@@ -1,0 +1,218 @@
+#################
+# Operating System Files
+#################
+
+# OS X / macOS
+.DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# OS X Thumbnails
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+#################
+# CodeIgniter 4 Environment & Config
+#################
+
+.env
+.env.local
+.env.*.local
+.env.backup
+.env.*.php
+.env.*.development
+.env.*.production
+
+#################
+# Vagrant
+#################
+
+.vagrant
+.vagrant/
+Vagrantfile
+
+#################
+# Composer Dependencies
+#################
+
+vendor/
+composer.lock
+
+#################
+# Project Dependencies
+#################
+
+node_modules/
+package-lock.json
+yarn.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+#################
+# Writable Folders (Cache, Logs, Sessions, Uploads)
+#################
+
+writable/cache/*
+!writable/cache/.gitkeep
+!writable/cache/index.html
+
+writable/logs/*
+!writable/logs/.gitkeep
+!writable/logs/index.html
+
+writable/session/*
+!writable/session/.gitkeep
+!writable/session/index.html
+
+writable/uploads/*
+!writable/uploads/.gitkeep
+!writable/uploads/index.html
+
+writable/debugbar/*
+!writable/debugbar/.gitkeep
+!writable/debugbar/index.html
+
+#################
+# Build & Dist Files
+#################
+
+build/
+dist/
+/results/
+
+#################
+# Test Coverage & PHPUnit
+#################
+
+tests/coverage/
+tests/coverage*
+phpunit
+phpunit*.xml
+.phpunit.result.cache
+.phpunit*.cache
+
+#################
+# IDE & Development Tools
+#################
+
+# JetBrains PHPStorm / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+.phpstorm.meta.php
+.php_cs.cache
+.php_cs.dist.cache
+
+# NetBeans
+/nbproject/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/nbactions.xml
+/nb-configuration.xml
+/.nb-gradle/
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+.phpintel/
+/api/
+
+# Visual Studio Code
+.vscode/
+.vscode-test/
+*.code-workspace
+
+# Eclipse
+.project
+.pydevproject
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Netbeans
+/nbproject/private/
+
+# Vim / Neovim
+*.swp
+*.swo
+.vim/
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Others
+.editorconfig
+.gitattributes
+/api/
+/modules/
+
+#################
+# Error Log Files
+#################
+
+php_errors.log
+error_log
+debug.log
+*.log
+
+#################
+# User Guide Temp Files (if developing docs)
+#################
+
+user_guide_src/build/*
+user_guide_src/cilexer/build/*
+user_guide_src/cilexer/dist/*
+user_guide_src/cilexer/pycilexer.egg-info/*
+
+#################
+# Misc Temporary Files
+#################
+
+*.tmp
+*.temp
+*.bak
+*.backup
+*.swp
+*.swo
+~*
+
+#################
+# Database Backups
+#################
+
+*.sql
+*.gz
+*.zip
+!.gitkeep
