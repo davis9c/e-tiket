@@ -37,11 +37,9 @@
                                             </div>
                                         <?php endif; ?>
                                         <div class="form-floating mb-3">
-                                            <?php if (getenv('CI_ENVIRONMENT') === 'development'): ?>
-
+                                            <?php if (ENVIRONMENT == 'development'): ?>
                                                 <?php
                                                 $defaultUser = '198511072009031002'; // <-- DEFAULT LOGIN DEV
-
                                                 $devUsers = [
                                                     'J002 - Pranata Komputer' => [
                                                         '198511072009031002' => 'IRFAN FAUZI, A.Md.',
@@ -64,7 +62,6 @@
                                                     ],
                                                 ];
                                                 ?>
-
                                                 <select class="form-select" id="user_id" name="user_id">
                                                     <?php foreach ($devUsers as $jabatan => $users): ?>
                                                         <optgroup label="<?= $jabatan ?>">
@@ -84,12 +81,8 @@
                                                         </optgroup>
                                                     <?php endforeach ?>
                                                 </select>
-
                                                 <label for="user_id">Pilih User (Development Mode)</label>
-
                                             <?php else: ?>
-
-
                                                 <input type="text"
                                                     class="form-control form-control-user"
                                                     id="user_id"
@@ -97,10 +90,8 @@
                                                     value="<?= old('user_id'); ?>"
                                                     placeholder="User ID">
                                                 <label for="user_id">User ID</label>
-
                                             <?php endif ?>
                                         </div>
-
                                         <div class="form-floating mb-3">
                                             <input type="password"
                                                 class="form-control form-control-user"
@@ -109,7 +100,6 @@
                                             <label for="password">Password</label>
                                         </div>
                                         <div class="d-flex align-items-center justify-content-between mt-4 mb-0">
-
                                             <button class="btn btn-primary btn-user btn-block">Login</button>
                                         </div>
                                     </form>
