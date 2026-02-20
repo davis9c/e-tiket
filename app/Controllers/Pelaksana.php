@@ -179,7 +179,6 @@ class Pelaksana extends BaseController
             ->with('success', 'Proses berhasil disimpan.');
     }
 
-
     public function proses()
     {
         // ========================
@@ -289,7 +288,6 @@ class Pelaksana extends BaseController
         return redirect()->to(base_url('pelaksana'))
             ->with('success', 'Proses berhasil disimpan.');
     }
-
 
     // =====================================================
     // HEADSECTION APPROVAL
@@ -415,6 +413,7 @@ class Pelaksana extends BaseController
         return redirect()->to(base_url('pelaksana'))
             ->with('success', 'Status berhasil diperbarui.');
     }
+
     /* =========================================================
      * AUTH GUARD
      * ========================================================= */
@@ -452,7 +451,6 @@ class Pelaksana extends BaseController
 
         return $ticket;
     }
-
 
     private function attachNamaJabatanToUnits(array $data): array
     {
