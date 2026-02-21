@@ -37,8 +37,27 @@ class Auth extends BaseController
 
         $result = $this->loginApi($userId, $password);
 
+<<<<<<< HEAD
         if (!$result['success']) {
             return $this->backWithError($result['message']);
+=======
+        try {
+            $response = $client->post('http://192.168.1.12:9001/api/auth/login/', [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept'       => 'application/json',
+                ],
+                'json' => [
+                    'user_id'  => $userId,
+                    'password' => $password,
+                ],
+                'http_errors' => false,
+            ]);
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menghubungi server autentikasi')
+                ->withInput();
+>>>>>>> cd14efb (oke done)
         }
 
         $this->setUserSession($result['data']);

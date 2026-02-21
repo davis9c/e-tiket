@@ -37,7 +37,12 @@
                                             </div>
                                         <?php endif; ?>
                                         <div class="form-floating mb-3">
+<<<<<<< HEAD
                                             <?php if (ENVIRONMENT == 'development'): ?>
+=======
+                                            <?php if ( ENVIRONMENT == 'development'): ?>
+
+>>>>>>> cd14efb (oke done)
                                                 <?php
                                                 $defaultUser = '198511072009031002'; // <-- DEFAULT LOGIN DEV
                                                 $devUsers = [
@@ -67,15 +72,12 @@
                                                         <optgroup label="<?= $jabatan ?>">
                                                             <?php foreach ($users as $id => $nama): ?>
                                                                 <?php
-                                                                // Prioritas:
-                                                                // 1. old('user_id') kalau ada (validasi gagal)
-                                                                // 2. default user kalau pertama kali load
                                                                 $selected = old('user_id')
                                                                     ? old('user_id') == $id
                                                                     : $defaultUser == $id;
                                                                 ?>
                                                                 <option value="<?= $id ?>" <?= $selected ? 'selected' : '' ?>>
-                                                                    <?= $id ?> - <?= $nama ?>
+                                                                    <?= $nama ?>
                                                                 </option>
                                                             <?php endforeach ?>
                                                         </optgroup>
