@@ -37,12 +37,7 @@
                                             </div>
                                         <?php endif; ?>
                                         <div class="form-floating mb-3">
-<<<<<<< HEAD
                                             <?php if (ENVIRONMENT == 'development'): ?>
-=======
-                                            <?php if ( ENVIRONMENT == 'development'): ?>
-
->>>>>>> cd14efb (oke done)
                                                 <?php
                                                 $defaultUser = '198511072009031002'; // <-- DEFAULT LOGIN DEV
                                                 $devUsers = [

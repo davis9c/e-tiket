@@ -27,43 +27,27 @@ class Auth extends BaseController
     }
 
     public function attempt()
-    {
-        $userId   = trim($this->request->getPost('user_id'));
-        $password = trim($this->request->getPost('password'));
+{
+    $userId   = trim($this->request->getPost('user_id'));
+    $password = trim($this->request->getPost('password'));
 
-        if (!$userId || !$password) {
-            return $this->backWithError('User ID dan password wajib diisi');
-        }
-
-        $result = $this->loginApi($userId, $password);
-
-        if (!$result['success']) {
-            return $this->backWithError($result['message']);
-            try {
-                $response = $client->post('http://192.168.1.12:9001/api/auth/login/', [
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                        'Accept'       => 'application/json',
-                    ],
-                    'json' => [
-                        'user_id'  => $userId,
-                        'password' => $password,
-                    ],
-                    'http_errors' => false,
-                ]);
-            } catch (\Throwable $e) {
-                return redirect()->back()
-                    ->with('error', 'Gagal menghubungi server autentikasi')
-                    ->withInput();
-            }
-
-            $this->setUserSession($result['data']);
-            $this->syncUser($result['data'], $userId);
-
-            return redirect()->to(base_url('etiket'))
-                ->with('success', 'Login berhasil, selamat datang ' . $result['data']['data']['nama']);
-        }
+    if (!$userId || !$password) {
+        return $this->backWithError('User ID dan password wajib diisi');
     }
+
+    $result = $this->loginApi($userId, $password);
+
+    if (!$result['success']) {
+        return $this->backWithError($result['message']);
+    }
+
+    // sukses
+    $this->setUserSession($result['data']);
+    $this->syncUser($result['data'], $userId);
+
+    return redirect()->to(base_url('etiket'))
+        ->with('success', 'Login berhasil, selamat datang ' . $result['data']['data']['nama']);
+}
     public function logout()
     {
         session()->destroy();
