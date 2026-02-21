@@ -3,20 +3,25 @@
 
 <main>
     <div class="container-fluid px-4">
+        <!-- Page Header -->
         <h1 class="mt-4"><?= esc($title) ?></h1>
 
-        <ol class="breadcrumb mb-4">
-            <li class="breadcrumb-item active">Petugas</li>
-        </ol>
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item active">Petugas</li>
+            </ol>
+        </nav>
+
+        <!-- Content Row -->
         <div class="row">
-            <?php if ($petugas) : ?>
-
-                <!-- 🔹 Petugas ada → HANYA tampil list petugas -->
+            <?php if (!empty($petugas)): ?>
+                <!-- Petugas List Section -->
                 <?= $this->include('Admin/petugas/list2') ?>
-            <?php endif ?>
+            <?php endif; ?>
 
-            <!-- 🔹 Belum ada petugas → tampil jabatan -->
-            <?= $this->include('Admin/petugas/card') ?>
+            <!-- Jabatan Card Section -->
+            <?= $this->include('Admin/petugas/card-datatable') ?>
         </div>
     </div>
 </main>

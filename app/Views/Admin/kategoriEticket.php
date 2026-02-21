@@ -18,8 +18,6 @@
                 <?= $this->include('kategoriEticket/form') ?>
             <?php endif; ?>
         </div>
-
-
     </div>
 </main>
 <?= $this->endSection() ?>

@@ -5,7 +5,7 @@
             <?= $title ?>
         </div>
         <div class="card-body">
-            <table id="datatablesSimple">
+            <table class="table table-hover datatable">
                 <thead>
                     <tr>
                         <th>No</th>
@@ -19,10 +19,9 @@
                         <?php foreach ($petugas as $index => $p): ?>
                             <tr>
                                 <td><?= $index + 1 ?></td>
-                                <td><?= esc($p['nama']) ?><br><?= esc($p['nip']) ?></td>
+                                <td><?= esc($p['nama']) ?>
                                 <td>
                                     <?= esc($p['nm_jbtn']) ?>
-                                    (<?= esc($p['kd_jbtn']) ?>)
                                 </td>
                                 <td>
                                     <?php if ($p['headsection']) : ?>

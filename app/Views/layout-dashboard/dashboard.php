@@ -25,11 +25,9 @@
     </div>
     <script src="<?= base_url('BootStrap/bootstrap.bundle.min.js') ?>" crossorigin="anonymous"></script>
     <script src="<?= base_url('sb/js/scripts.js') ?>"></script>
-    <script src="<?= base_url('ChartJS/Chart.min.js') ?>" crossorigin="anonymous"></script>
-    <script src="<?= base_url('sb/assets/demo/chart-area-demo.js') ?>"></script>
-    <script src="<?= base_url('sb/assets/demo/chart-bar-demo.js') ?>"></script>
     <script src="<?= base_url('dataTables/simple-datatables.min.js') ?>" crossorigin="anonymous"></script>
     <script src="<?= base_url('sb/js/datatables-simple-demo.js') ?>"></script>
+    <script src="<?= base_url('js/dataTables.js') ?>"></script>
 </body>
 
 </html>
