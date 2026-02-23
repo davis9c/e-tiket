@@ -26,8 +26,6 @@
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">
                 <?= $this->include('headsection/list') ?>
             </div>
-
-
         </div>
     </div>
 </main>
