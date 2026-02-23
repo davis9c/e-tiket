@@ -170,8 +170,9 @@ class ETicketModel extends Model
                 'inner'
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('e.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid', null) //kuncinya disini
+            //->where('e.valid', null) //kuncinya disini
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
