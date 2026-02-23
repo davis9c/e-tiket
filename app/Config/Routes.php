@@ -37,7 +37,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('headsection/(:num)', 'Headsection::index/$1');
     $routes->post('headsection/approve', 'Headsection::approve');
 
-    $routes->group('kategori', function ($routes) {
+    $routes->group('kategori',['filter' => 'auth'], function ($routes) {
         $routes->get('/', 'KategoriETiket::index');
         $routes->post('store', 'KategoriETiket::store');
         $routes->post('updateUnit', 'KategoriETiket::updateUnit');

@@ -16,13 +16,13 @@
         <?php endif; ?>
         <div class="row">
 
-            <!-- FORM DETAIL (KANAN) -->
+            <!-- FORM DETAIL (kiri) -->
             <?php if (!empty($data['detailTicket'])): ?>
                 <div class="col-md-5">
                     <?= $this->include('headsection/form') ?>
                 </div>
             <?php endif; ?>
-            <!-- LIST (KIRI) -->
+            <!-- LIST (kanan) -->
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">
                 <?= $this->include('headsection/list') ?>
             </div>

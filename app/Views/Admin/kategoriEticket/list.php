@@ -1,5 +1,4 @@
-<div class="col-md-6 col-lg-5">
-    <div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4">
         <div class="card-header">
             <i class="fas fa-table me-1"></i>
             <?= esc($title) ?>
@@ -83,4 +82,3 @@
             </table>
         </div>
     </div>
-</div>

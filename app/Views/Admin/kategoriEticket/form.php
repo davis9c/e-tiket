@@ -1,6 +1,4 @@
-<div class="col-md-6 col-lg-5">
-
-    <div class="card shadow-sm mb-4">
+<div class="card shadow-sm mb-4">
         <div class="card-header py-2">
             <i class="fas fa-plus me-1"></i>
             Tambah Kategori
@@ -84,5 +82,3 @@
 
         </div>
     </div>
-
-</div>

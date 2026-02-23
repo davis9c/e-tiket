@@ -1,7 +1,4 @@
-<?php if ($kategori !== null): ?>
-
-    <div class="col-md-6 col-lg-5">
-        <div class="card mb-4">
+<div class="card mb-4">
             <div class="card-header">
                 <i class="fas fa-edit me-1"></i>
                 Edit Kategori E-Ticket
@@ -98,6 +95,3 @@
                 </form>
             </div>
         </div>
-    </div>
-
-<?php endif; ?>

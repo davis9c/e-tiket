@@ -28,14 +28,18 @@
         <div class="row justify-content-start">
             <?php if ($edit === 1): ?>
                 <!-- Edit Mode -->
-                <div class="col-12">
+                <div class="col-md-5">
                     <?= $this->include('kategoriEticket/edit') ?>
+                </div>
+                <div class="col-md-7">
                     <?= $this->include('kategoriEticket/edit-unit') ?>
                 </div>
             <?php else: ?>
                 <!-- View/Create Mode -->
-                <div class="col-12">
-                    <?= $this->include('kategoriEticket/list') ?>
+                <div class="col-md-7">
+                    <?= $this->include('kategoriEticket/list2') ?>
+                    </div>
+                <div class="col-md-5">
                     <?= $this->include('kategoriEticket/form') ?>
                 </div>
             <?php endif; ?>

@@ -5,7 +5,7 @@
     </div>
 
     <div class="card-body">
-        <table id="datatablesSimple" class="table table-bordered table-striped">
+        <table class="table table-bordered table-striped datatable">
             <thead>
                 <tr>
                     <th width="5%">No</th>
@@ -57,20 +57,20 @@
                             <td class="text-center">
 
                                 <!-- Tombol Edit -->
-                                <a href="<?= base_url('admin/kategori/' . $p['id']) ?>"
+                                <a href="<?= base_url('kategori/' . $p['id']) ?>"
                                     class="btn btn-sm btn-warning me-1">
                                     <i class="fas fa-edit"></i>
                                 </a>
 
                                 <!-- Toggle Status -->
                                 <?php if ($p['aktif'] == 1): ?>
-                                    <a href="<?= base_url('admin/kategori/toggle/' . $p['id']) ?>"
+                                    <a href="<?= base_url('kategori/toggle/' . $p['id']) ?>"
                                         class="btn btn-sm btn-success"
                                         onclick="return confirm('Nonaktifkan data ini?')">
                                         Aktif
                                     </a>
                                 <?php else: ?>
-                                    <a href="<?= base_url('admin/kategori/toggle/' . $p['id']) ?>"
+                                    <a href="<?= base_url('kategori/toggle/' . $p['id']) ?>"
                                         class="btn btn-sm btn-secondary"
                                         onclick="return confirm('Aktifkan kembali data ini?')">
                                         Nonaktif
