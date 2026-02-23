@@ -31,24 +31,17 @@ class Pelaksana extends BaseController
             'Accept'        => 'application/json',
         ];
     }
-    /* =========================================================
-     * LIST PELAKSANA + DETAIL
-     * ========================================================= */
     public function index(int $id = null)
     {
         if ($redirect = $this->guard()) return $redirect;
 
         $kdJbtn = session()->get('kd_jabatan');
-
-        //$tickets = $this->eticketModel->getSudahValid($kdJbtn, true, true); //selesai
-        //$tickets = $this->eticketModel->getSudahValid($kdJbtn, true, false); //belum selesai
         $tickets = $this->eticketModel->getSudahValidByProses($kdJbtn, true); //belum selesai
 
         $tickets = $this->attachPetugasToTickets($tickets);
 
         $detail = null;
         if ($id) {
-            //$detail = $this->eticketModel->findDetail($id);
             $detail = $this->eticketModel->findDetailLengkap($id);
 
             if ($detail) {
@@ -58,7 +51,6 @@ class Pelaksana extends BaseController
         }
         $data['eticket']        = $tickets;
         $data['detailTicket']   = $detail;
-        //dd($tickets);
         return view('pelaksana', [
             'page'  => 'list_pelaksana',
             'title' => 'Pelaksana',

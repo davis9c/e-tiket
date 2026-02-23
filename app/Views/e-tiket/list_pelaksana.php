@@ -7,7 +7,7 @@
         <p>Halaman ini hanya tampil di headsection. menampilkan yang sudah dan yang belum di approv secara keseluruhan berdasarkan kode jabatan
         </p>
         <p>g</p>
-        <table id="datatablesSimple" class="table table-bordered table-striped">
+        <table class="table table-bordered table-striped datatable">
             <thead>
                 <tr>
                     <th>No</th>
@@ -48,12 +48,13 @@
                                         Proses
                                     </span>
                                 <?php else: ?>
-                                    <span class="badge bg-primary">
-                                        Selesai
-                                    </span>
                                     <?php if ($p['reject'] != null): ?>
                                         <span class="badge bg-danger">
                                             Ditolak
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-primary">
+                                            Selesai
                                         </span>
                                     <?php endif; ?>
                                 <?php endif; ?>
