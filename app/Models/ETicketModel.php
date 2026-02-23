@@ -134,9 +134,6 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-
-
-
     public function getByUnit(string $kd_jbtn): array
     {
         $rows = $this->baseQuery()
@@ -230,7 +227,7 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid IS NOT NULL', null, false)
+            //->where('e.valid IS NOT NULL', null, false)
             ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
             ->groupBy('e.id') // penting supaya tidak duplicate
             ->orderBy('e.created_at', 'DESC')

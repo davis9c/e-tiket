@@ -10,7 +10,6 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-
     <?php if ($msg = session()->getFlashdata('error')): ?>
         <div class="alert alert-danger alert-dismissible fade show">
             <?= esc($msg) ?>
@@ -27,11 +26,9 @@
                         <h5 class="fw-bold text-uppercase mb-2">
                             <?= esc($data['detailTicket']['nama_kategori']) ?>
                         </h5>
-
                         <div class="text-muted small mb-3">
                             Kode: <strong><?= esc($data['detailTicket']['kode_kategori']) ?></strong>
                         </div>
-
                         <!-- Unit Penanggung Jawab -->
                         <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
                             <div class="mb-3">
@@ -45,13 +42,11 @@
                                 </div>
                             </div>
                         <?php endif; ?>
-
                         <!-- Deskripsi Kategori -->
                         <p class="fst-italic mb-0 text-secondary">
                             <?= esc($data['detailTicket']['deskripsi']) ?>
                         </p>
                     </div>
-
                     <!-- Tanggal Pengajuan -->
                     <div class="col-md-4 text-md-end">
                         <div class="small text-muted">Tanggal Pengajuan</div>
@@ -62,8 +57,6 @@
                 </div>
             </div>
         </div>
-
-
         <!-- ===== INFORMASI PETUGAS ===== -->
         <div class="mb-4">
             <label class="form-label fw-semibold">Petugas Pengajuan</label>
@@ -74,8 +67,6 @@
                 </div>
             </div>
         </div>
-
-
         <!-- ===== DESKRIPSI PENGAJUAN ===== -->
         <div class="mb-4">
             <label class="form-label fw-semibold">Deskripsi Pengajuan</label>
@@ -83,45 +74,41 @@
         </div>
         <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
         <?php if ($data['detailTicket']['valid'] != null) : ?>
-
             <!-- Tiket Sudah Divalidasi -->
             <div class="alert alert-info mb-4">
                 <i class="fas fa-check-circle me-2"></i>
                 Validasi: <strong><?= esc($data['detailTicket']['valid']) ?></strong>
             </div>
-
             <!-- Unit Proses Pengajuan -->
             <?php
             $units   = $data['detailTicket']['unit_penanggung_jawab'] ?? [];
             $proses  = $data['detailTicket']['proses'] ?? [];
             $formDitampilkan = false;
             ?>
-
             <div class="mb-4">
                 <h6 class="fw-semibold mb-3">Proses Unit Penanggung Jawab</h6>
-
-
                 <?php foreach ($units as $index => $unit): ?>
                     <?php
                     $kd = $unit['kd_jbtn'];
-
                     $nextUnit = $units[$index + 1] ?? null;
                     $nextKd   = $nextUnit['kd_jbtn'] ?? null;
-
                     // Cari proses unit ini
                     $prosesItem = null;
-                    foreach ($proses as $p) {
-                        if ($p['kd_jbtn'] === $kd) {
-                            $prosesItem = $p;
-                            break;
-                        }
-                    }
+$currentJabatan = session()->get('kd_jabatan');
 
+foreach ($proses as $p) {
+    if (
+        isset($p['kd_jbtn']) &&
+        $p['kd_jbtn'] === $kd &&
+        $p['kd_jbtn'] === $currentJabatan
+    ) {
+        $prosesItem = $p;
+        break;
+    }
+}
                     $belumSelesai = empty($prosesItem['catatan']);
                     // dd($prosesItem);
                     ?>
-
-
                     <div class="mb-3 p-3 border rounded">
                         <div class="fw-semibold mb-2">
                             <i class="fas fa-sitemap me-2"></i>
@@ -130,17 +117,12 @@
                                 | <?= esc($prosesItem['id_petugas']) ?>
                             <?php endif; ?>
                         </div>
-
                         <?php if ($prosesItem): ?>
-
                             <?php if ($belumSelesai && !$formDitampilkan): ?>
-
                                 <?php $formDitampilkan = true; ?>
-
                                 <!-- FORM MUNCUL DI UNIT PERTAMA YANG BELUM SELESAI -->
                                 <form action="<?= base_url('pelaksana/proses') ?>" method="post">
                                     <?= csrf_field() ?>
-
                                     <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
                                     <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
                                     <?php if ($nextKd != null): ?>
@@ -152,11 +134,9 @@
                                             rows="3"
                                             placeholder="Masukkan keterangan proses..."></textarea>
                                     </div>
-
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold d-block">Pilih Status</label>
                                         <div class="btn-group w-100">
-
                                             <input type="radio" class="btn-check" name="status_validasi" id="reject<?= $kd ?>" value="0">
                                             <label class="btn btn-outline-danger" for="reject<?= $kd ?>">
                                                 Tolak
@@ -171,44 +151,53 @@
                                             <label class="btn btn-outline-primary" for="selesai<?= $kd ?>">
                                                 Selesaikan
                                             </label>
-
                                         </div>
                                     </div>
-
                                     <button type="submit" class="btn btn-primary">
                                         Simpan
                                     </button>
                                 </form>
-
                             <?php elseif (!empty($prosesItem['catatan'])): ?>
-
                                 <!-- SUDAH SELESAI -->
-                                <div class="alert alert-success mb-0">
-                                    <strong>Selesai</strong><br>
-                                    <?= esc($prosesItem['catatan']) ?>
-                                    <div class="small text-muted mt-2">
-                                        <?= esc($prosesItem['updated_at']) ?>
-                                    </div>
+                                <!-- SUDAH SELESAI / DITOLAK -->
+                                <?php
+                                    $isReject   = !empty($data['detailTicket']['reject']);
+                                    $rejectBy   = $data['detailTicket']['reject'] ?? null;
+                                    $catatan    = $prosesItem['catatan'] ?? '-';
+                                    $updatedAt  = $prosesItem['updated_at'] ?? null;
+
+                                    $alertClass = $isReject ? 'alert-danger' : 'alert-success';
+                                ?>
+
+                                <div class="alert <?= $alertClass ?> mb-0">
+
+                                    <strong>
+                                        <?= $isReject 
+                                            ? 'Ditolak oleh ' . esc($rejectBy) 
+                                            : 'Selesai'; ?>
+                                    </strong>
+                                    <br>
+
+                                    <?= esc($catatan); ?>
+
+                                    <?php if ($updatedAt): ?>
+                                        <div class="small text-muted mt-2">
+                                            <?= esc($updatedAt); ?>
+                                        </div>
+                                    <?php endif; ?>
+
                                 </div>
-
                             <?php endif; ?>
-
                         <?php endif; ?>
                     </div>
-
                 <?php endforeach; ?>
-
                 <?php if (!$formDitampilkan): ?>
                     <div class="alert alert-info">
                         Semua unit sudah menyelesaikan proses.
                     </div>
                 <?php endif; ?>
-
             </div>
-
-
         <?php else : ?>
-
             <!-- Tiket Belum Divalidasi - Form Approval -->
             <div class="alert alert-warning mb-4">
                 <i class="fas fa-exclamation-triangle me-2"></i>
@@ -217,5 +206,4 @@
         <?php endif; ?>
         <hr>
     </div>
-
 </div>
