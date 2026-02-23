@@ -171,6 +171,7 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('e.kd_jbtn', $kd_jbtn)// hanya di jbtn itu saja yang tampil d masing2 headsection
+            ->where('e.headsection', 1)// hanya di jbtn itu saja yang tampil d masing2 headsection
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
             //->where('e.valid', null) //kuncinya disini, menampilkan hanya yang tidak valid
             ->orderBy('e.created_at', 'DESC')

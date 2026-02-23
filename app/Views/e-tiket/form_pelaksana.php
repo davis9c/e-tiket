@@ -94,18 +94,18 @@
                     $nextKd   = $nextUnit['kd_jbtn'] ?? null;
                     // Cari proses unit ini
                     $prosesItem = null;
-$currentJabatan = session()->get('kd_jabatan');
+                    $currentJabatan = session()->get('kd_jabatan');
 
-foreach ($proses as $p) {
-    if (
-        isset($p['kd_jbtn']) &&
-        $p['kd_jbtn'] === $kd &&
-        $p['kd_jbtn'] === $currentJabatan
-    ) {
-        $prosesItem = $p;
-        break;
-    }
-}
+                    foreach ($proses as $p) {
+                        if (
+                            isset($p['kd_jbtn']) &&
+                            $p['kd_jbtn'] === $kd &&
+                            $p['kd_jbtn'] === $currentJabatan
+                        ) {
+                            $prosesItem = $p;
+                            break;
+                        }
+                    }
                     $belumSelesai = empty($prosesItem['catatan']);
                     // dd($prosesItem);
                     ?>

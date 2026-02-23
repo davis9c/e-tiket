@@ -29,19 +29,35 @@
                             <td><?= esc($p['petugas_nama']) ?></td>
 
                             <!-- STATUS -->
+                            <!-- STATUS -->
                             <td>
                                 <?php if ($p['valid'] == null): ?>
                                     <span class="badge bg-warning text-dark">
                                         Menunggu Approval Head Section
                                     </span>
-                                <?php elseif ($p['status'] == 1): ?>
+                                <?php elseif ($p['valid'] != null): ?>
                                     <span class="badge bg-success">
-                                        Disetujui
+                                        Valid
                                     </span>
                                 <?php else: ?>
                                     <span class="badge bg-danger">
                                         Ditolak
                                     </span>
+                                <?php endif; ?>
+                                <?php if ($p['selesai'] == null): ?>
+                                    <span class="badge bg-warning text-dark">
+                                        Proses
+                                    </span>
+                                <?php else: ?>
+                                    <?php if ($p['reject'] != null): ?>
+                                        <span class="badge bg-danger">
+                                            Ditolak
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-primary">
+                                            Selesai
+                                        </span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                         </tr>

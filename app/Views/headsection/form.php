@@ -174,27 +174,56 @@
                 </div>
             </form>
         <?php else:?>
-            Validated by <?= $data['detailTicket']['valid'] ?> 
-        <?php endif;?>
-        
-<hr>
-<!-- UNIT PROSES -->
-<?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
-    <div class="list-group">
-        <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
-            <div class="list-group-item">
-                <?= esc($unit['nm_jbtn']) ?> 
-                <small class="text-muted">
-                    (<?= esc($unit['kd_jbtn']) ?>)
-                </small>
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-check-circle me-2"></i>
+                Validasi: <strong><?= esc($data['detailTicket']['valid']) ?></strong>
             </div>
-        <?php endforeach; ?>
-    </div>
-<?php else: ?>
-    <div class="text-muted">
-        Tidak ada unit proses
-    </div>
-<?php endif; ?>
+            <!--
+            Kondisi jika diselesaikan validator    
+            -->
+            <?php if($data['detailTicket']['selesai']==$data['detailTicket']['valid']): ?>
+                
+                <?php if($data['detailTicket']['selesai']==$data['detailTicket']['reject']): ?>
+                    <div class="alert alert-danger mb-4">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Reject: <strong><?= esc($data['detailTicket']['reject']) ?></strong><br>
+                        <strong><?= esc($data['detailTicket']['respon_message']) ?></strong>
+                        <div class="small text-muted mt-2">
+                            <?= esc($data['detailTicket']['updated_at']) ?>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-success mb-4">
+                    <i class="fas fa-check-circle me-2"></i>
+                        Diselesaikan: <strong><?= esc($data['detailTicket']['valid']) ?></strong><br>
+                        <strong><?= esc($data['detailTicket']['respon_message']) ?></strong>
+                        <div class="small text-muted mt-2">
+                            <?= esc($data['detailTicket']['updated_at']) ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            <?php else: ?>
+            <?php endif; ?>
+        <?php endif;?>
+        <hr>
+        <!-- UNIT PROSES -->
+        <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
+            <div class="list-group">
+                <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
+                    <div class="list-group-item">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <?= esc($unit['nm_jbtn']) ?> 
+                        <small class="text-muted">
+                            (<?= esc($unit['kd_jbtn']) ?>)
+                        </small>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="text-muted">
+                Tidak ada unit proses
+            </div>
+        <?php endif; ?>
     </div>
 
 </div>
