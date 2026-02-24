@@ -74,7 +74,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     | Admin
     |--------------------------------------------------------------------------
     */
-    $routes->group('admin', function ($routes) {
+    $routes->group('admin', ['filter' => 'roleadmin'], function ($routes) {
 
         // User Management
         $routes->get('users', 'Admin::users');
