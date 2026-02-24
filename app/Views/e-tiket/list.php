@@ -21,7 +21,7 @@
                         <tr>
                             <td><?= $index + 1 ?></td>
                             <td>
-                                <a href="<?= base_url('pelaksana/' . $p['id']) ?>">
+                                <a href="<?= base_url('etiket/' . $p['id']) ?>">
                                     <?= esc($p['nama_kategori']) ?>
                                 </a>
                             </td>

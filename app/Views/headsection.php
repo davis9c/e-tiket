@@ -4,7 +4,7 @@
 <main>
     <div class="container-fluid px-4">
         <h1 class="mt-4">E-Tiket</h1>
-
+        <p>Bagian ini hanya bisa dilihat headsection yang memilikikesamaan kdjabatan</p>
         <ol class="breadcrumb mb-4">
             <li class="breadcrumb-item active">Headsection</li>
         </ol>

@@ -24,6 +24,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('/', 'ETicket::index');
     $routes->get('home', 'Home::index');
     $routes->get('etiket', 'ETicket::index');
+    $routes->get('etiket/(:num)', 'ETicket::index/$1');
     $routes->post('etiket/submit', 'ETicket::submit');
 
     $routes->get('pelaksana', 'Pelaksana::index');

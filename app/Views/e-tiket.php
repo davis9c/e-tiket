@@ -3,8 +3,9 @@
 <main>
     <div class="container-fluid px-4">
         <h1 class="mt-4">E-Tiket</h1>
+        <p>Bagian ini hanya bisa dilihat pembuat e-tiket</p>
         <ol class="breadcrumb mb-4">
-            <li class="breadcrumb-item active">E</li>
+            <li class="breadcrumb-item active">E-Tiket</li>
         </ol>
         <?php if (session()->getFlashdata('success')): ?>
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -15,13 +16,17 @@
         <div class="row">
             <!-- FORM DETAIL (KANAN) -->
             <?php
-            //dd($data['eticket']);
+            //dd($data['detailTicket']);
             ?>
             <div class="col-md-6">
-                <?php if (!empty($data['kategoriData'])): ?>
-                    <?= $this->include('e-tiket/form') ?>
+                <?php if (!empty($data['detailTicket'])): ?>
+                    <?= $this->include('e-tiket/form_pelaksana') ?>
                 <?php else: ?>
-                    <?= $this->include('e-tiket/card') ?>
+                    <?php if (!empty($data['kategoriData'])): ?>
+                        <?= $this->include('e-tiket/form') ?>
+                    <?php else: ?>
+                        <?= $this->include('e-tiket/card') ?>
+                    <?php endif ?>
                 <?php endif ?>
             </div>
             <!-- LIST (KIRI) -->

@@ -182,7 +182,6 @@
             Kondisi jika diselesaikan validator    
             -->
             <?php if($data['detailTicket']['selesai']==$data['detailTicket']['valid']): ?>
-                
                 <?php if($data['detailTicket']['selesai']==$data['detailTicket']['reject']): ?>
                     <div class="alert alert-danger mb-4">
                         <i class="fas fa-check-circle me-2"></i>

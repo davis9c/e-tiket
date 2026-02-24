@@ -62,49 +62,90 @@ class ETicket extends BaseController
     /* =========================================================
     * LIST & CREATE E-TICKET
     * ========================================================= */
-    public function index()
-    {
-        if ($redirect = $this->guard()) return $redirect;
+    public function index($id = null)
+{
+    if ($redirect = $this->guard()) {
+        return $redirect;
+    }
 
-        $kategoriId = (int) $this->request->getGet('kategori');
+    $data = [];
+    $kategoriId = (int) $this->request->getGet('kategori');
 
-        // =========================
-        // MODE CREATE (FORM)
-        // =========================
-        if ($kategoriId) {
+    // =====================================================
+    // MODE CREATE (FORM)
+    // =====================================================
+    if ($kategoriId) {
+        $kategori = $this->kategoriModel->findDetail($kategoriId);
 
-            $kategori = $this->kategoriModel->findDetail($kategoriId);
-
-            if (!$kategori) {
-                return redirect()->to(base_url('eticket'))
-                    ->with('error', 'Kategori tidak ditemukan');
-            }
-
-            $kategori = $this->attachNamaJabatanToUnits($kategori);
-
-            if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
-                $kategori['headsection_users'] = $this->getHeadsectionUsers();
-            }
-            $data['kategoriData'] = $kategori;
-            //dd($data['kategoriData']);
+        if (!$kategori) {
+            return redirect()
+                ->to(base_url('eticket'))
+                ->with('error', 'Kategori tidak ditemukan');
         }
 
-        // =========================
-        // MODE LIST
-        // =========================
-        $data['kategori'] = $this->attachNamaJabatanToKategori(
-            $this->kategoriModel->findByUnitPengajuan(session()->get('kd_jabatan'))
-        );
+        $kategori = $this->attachNamaJabatanToUnits($kategori);
 
-        $data['eticket'] = $this->attachPetugasToTickets(
-            $this->eticketModel->getByPetugas(session()->get('nip'))
-        );
+        if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
+            $kategori['headsection_users'] = $this->getHeadsectionUsers();
+        }
 
-        return view('e-tiket', [
-            'title' => 'Pengajuan E-Ticket',
-            'data'  => $data,
-        ]);
+        $data['kategoriData'] = $kategori;
     }
+
+    // =====================================================
+    // MODE LIST (Kategori & Ticket)
+    // =====================================================
+    $kdJabatan = session()->get('kd_jabatan');
+    $nip       = session()->get('nip');
+
+    $data['kategori'] = $this->attachNamaJabatanToKategori(
+        $this->kategoriModel->findByUnitPengajuan($kdJabatan)
+    );
+
+    $data['eticket'] = $this->attachPetugasToTickets(
+        $this->eticketModel->getByPetugas($nip)
+    );
+
+    // =====================================================
+    // MAPPING PETUGAS (Batch)
+    // =====================================================
+    $nips = array_unique(
+        array_filter(array_column($data['eticket'], 'petugas_id'))
+    );
+
+    $petugasMap = $this->buildPetugasMap($nips);
+
+    foreach ($data['eticket'] as &$row) {
+        $p = $petugasMap[(string) $row['petugas_id']] ?? null;
+
+        $row['petugas_nip']  = $p['nip']     ?? $row['petugas_id'];
+        $row['petugas_nama'] = $p['nama']    ?? '-';
+        $row['kd_jbtn']      = $p['kd_jbtn'] ?? '-';
+        $row['nm_jbtn']      = $p['nm_jbtn'] ?? '-';
+    }
+    unset($row);
+
+    // =====================================================
+    // DETAIL TICKET
+    // =====================================================
+    $detailTicket = null;
+
+    if ($id !== null) {
+        $detailTicket = $this->eticketModel->findDetail($id);
+
+        if ($detailTicket) {
+            $detailTicket = $this->attachPetugasDetail($detailTicket, $petugasMap);
+            $detailTicket = $this->mapUnitWithJabatan($detailTicket);
+        }
+    }
+
+    $data['detailTicket'] = $detailTicket;
+
+    return view('e-tiket', [
+        'title' => 'Pengajuan E-Ticket',
+        'data'  => $data,
+    ]);
+}
     /* =========================================================
      * SUBMIT
      * ========================================================= */
@@ -322,5 +363,77 @@ class ETicket extends BaseController
             //'judul'       => 'required|min_length[1]',
             'message'     => 'required|min_length[1]',
         ];
+    }
+    // =====================================================
+    // HELPER METHODS
+    // =====================================================
+
+    private function attachPetugasDetail(array $detail, array $petugasMap): array
+    {
+        $nipDetail = (string) $detail['petugas_id'];
+
+        $p = $petugasMap[$nipDetail]
+            ?? ($this->getPetugas([$nipDetail])[0] ?? null);
+
+        if ($p) {
+            $detail['petugas_id']   = $p['nip'];
+            $detail['petugas_nama'] = $p['nama'];
+            $detail['kd_jbtn']      = $p['kd_jbtn'];
+            $detail['nm_jbtn']      = $p['nm_jbtn'];
+        }
+
+        return $detail;
+    }
+    private function mapUnitWithJabatan(array $detail): array
+    {
+        $jabatanList = $this->getJabatan();
+
+        $jabatanMap = [];
+        foreach ($jabatanList as $j) {
+            $jabatanMap[$j['kd_jbtn']] = $j['nm_jbtn'] ?? '-';
+        }
+
+        $normalize = function ($units) use ($jabatanMap) {
+            if (empty($units)) return [];
+
+            $units = isset($units[0]) ? $units : [$units];
+
+            return array_map(function ($u) use ($jabatanMap) {
+                $kd = $u['kd_jbtn'] ?? '-';
+                return [
+                    'kd_jbtn' => $kd,
+                    'nm_jbtn' => $jabatanMap[$kd] ?? '-',
+                ];
+            }, $units);
+        };
+
+        $detail['unit_penanggung_jawab'] = $normalize($detail['unit_penanggung_jawab'] ?? []);
+        $detail['unit_pengajuan']        = $normalize($detail['unit_pengajuan'] ?? []);
+
+        return $detail;
+    }
+
+    private function getJabatan(): array
+    {
+        try {
+            $response = $this->client->get(
+                env('API_KANZA_BRIDGE') . 'jabatan',
+                [
+                    'headers'     => $this->headers,
+                    'timeout'     => 10,
+                    'http_errors' => false,
+                ]
+            );
+
+            if ($response->getStatusCode() !== 200) {
+                return [];
+            }
+
+            $result = json_decode($response->getBody(), true);
+            return $result['data'] ?? [];
+        } catch (\Throwable $e) {
+            log_message('error', '[GET_JABATAN] ' . $e->getMessage());
+            return [];
+        }
     }
 }
