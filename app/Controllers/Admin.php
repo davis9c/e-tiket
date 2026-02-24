@@ -38,9 +38,6 @@ class Admin extends BaseController
         if (!session()->get('token')) {
             return redirect()->to('/login')->send();
         }
-        if (strtotime(session()->get('expires')) < time()) {
-            return redirect()->to('/logout');
-        }
     }
 
     /* =====================================================
@@ -400,31 +397,59 @@ class Admin extends BaseController
     }
     private function getAPI($endpoint): array
     {
-        $response = $this->client->get(
-            env('API_KANZA_BRIDGE') . $endpoint,
-            [
-                'headers' => $this->headers,
-                'timeout' => 10,
-            ]
-        );
+        try {
 
-        $result = json_decode($response->getBody(), true);
-        return $result['data'] ?? [];
+            $response = $this->client->get(
+                env('API_KANZA_BRIDGE') . $endpoint,
+                [
+                    'headers'     => $this->headers,
+                    'timeout'     => 10,
+                    'http_errors' => false, // penting!
+                ]
+            );
+
+            if ($response->getStatusCode() === 401) {
+                $this->forceLogout();
+                exit;
+            }
+
+            $result = json_decode($response->getBody(), true);
+            return $result['data'] ?? [];
+
+        } catch (\Throwable $e) {
+
+            log_message('error', '[API ERROR] ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function postAPI($endpoint, $payload = []): array
     {
-        $response = $this->client->post(
-            env('API_KANZA_BRIDGE') . $endpoint,
-            [
-                'headers' => $this->headers,
-                'json'    => $payload,
-                'timeout' => 10,
-            ]
-        );
+        try {
 
-        $result = json_decode($response->getBody(), true);
-        return $result['data'] ?? [];
+            $response = $this->client->post(
+                env('API_KANZA_BRIDGE') . $endpoint,
+                [
+                    'headers'     => $this->headers,
+                    'json'        => $payload,
+                    'timeout'     => 10,
+                    'http_errors' => false, // penting!
+                ]
+            );
+
+            if ($response->getStatusCode() === 401) {
+                $this->forceLogout();
+                exit;
+            }
+
+            $result = json_decode($response->getBody(), true);
+            return $result['data'] ?? [];
+
+        } catch (\Throwable $e) {
+
+            log_message('error', '[API ERROR] ' . $e->getMessage());
+            return [];
+        }
     }
 
     private function getJabatan(): array
@@ -444,5 +469,25 @@ class Admin extends BaseController
                 'nm_jbtn' => $mapJabatan[$kd] ?? '(Tidak ditemukan)',
             ];
         }, $units);
+    }
+    private function forceLogout()
+    {
+        session()->remove([
+            'token',
+            'expires',
+            'id_pegawai',
+            'nip',
+            'nik',
+            'nama',
+            'kd_jabatan',
+            'jabatan',
+            'headsection',
+            'logged_in',
+        ]);
+
+        return redirect()
+            ->to(base_url('login'))
+            ->with('error', 'Sesi habis, silakan login kembali.')
+            ->send();
     }
 }

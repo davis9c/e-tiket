@@ -20,15 +20,33 @@ abstract class BaseController extends Controller
         // $this->session = service('session');
     }
     protected function checkToken()
-{
-    if (!session()->get('token')) {
-        header('Location: ' . base_url('login'));
-        exit;
-    }
+    {
+        // kalau tidak ada token → ke login
+        if (!session()->get('token')) {
+            return redirect()->to(base_url('login'));
+        }
 
-    if (strtotime(session()->get('expires')) < time()) {
-        header('Location: ' . base_url('logout'));
-        exit;
+        $expires = session()->get('expires');
+
+        // kalau expires tidak ada ATAU sudah lewat waktu
+        if (!$expires || strtotime($expires) < time()) {
+
+            session()->remove([
+                'token',
+                'expires',
+                'id_pegawai',
+                'nip',
+                'nik',
+                'nama',
+                'kd_jabatan',
+                'jabatan',
+                'headsection',
+                'logged_in',
+            ]);
+
+            return redirect()
+                ->to(base_url('login'))
+                ->with('error', 'Sesi habis, silakan login kembali.');
+        }
     }
-}
 }
