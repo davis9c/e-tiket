@@ -70,7 +70,8 @@
         <!-- ===== DESKRIPSI PENGAJUAN ===== -->
         <div class="mb-4">
             <label class="form-label fw-semibold">Deskripsi Pengajuan</label>
-            <textarea class="form-control bg-light" rows="4" readonly><?= esc($data['detailTicket']['message']) ?></textarea>
+            <textarea class="form-control bg-light" rows="4"
+                readonly><?= esc($data['detailTicket']['message']) ?></textarea>
         </div>
         <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
         <?php if ($data['detailTicket']['valid'] != null) : ?>
@@ -129,25 +130,26 @@
                                         <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
                                     <?php endif; ?>
                                     <div class="mb-3">
-                                        <textarea name="catatan"
-                                            class="form-control"
-                                            rows="3"
+                                        <textarea name="catatan" class="form-control" rows="3"
                                             placeholder="Masukkan keterangan proses..."></textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold d-block">Pilih Status</label>
                                         <div class="btn-group w-100">
-                                            <input type="radio" class="btn-check" name="status_validasi" id="reject<?= $kd ?>" value="0">
+                                            <input type="radio" class="btn-check" name="status_validasi" id="reject<?= $kd ?>"
+                                                value="0">
                                             <label class="btn btn-outline-danger" for="reject<?= $kd ?>">
                                                 Tolak
                                             </label>
                                             <?php if ($nextKd != null): ?>
-                                                <input type="radio" class="btn-check" name="status_validasi" id="lanjut<?= $kd ?>" value="1">
+                                                <input type="radio" class="btn-check" name="status_validasi" id="lanjut<?= $kd ?>"
+                                                    value="1">
                                                 <label class="btn btn-outline-success" for="lanjut<?= $kd ?>">
                                                     Lanjutkan
                                                 </label>
                                             <?php endif; ?>
-                                            <input type="radio" class="btn-check" name="status_validasi" id="selesai<?= $kd ?>" value="2">
+                                            <input type="radio" class="btn-check" name="status_validasi" id="selesai<?= $kd ?>"
+                                                value="2">
                                             <label class="btn btn-outline-primary" for="selesai<?= $kd ?>">
                                                 Selesaikan
                                             </label>
@@ -161,31 +163,23 @@
                                 <!-- SUDAH SELESAI -->
                                 <!-- SUDAH SELESAI / DITOLAK -->
                                 <?php
-                                    $isReject   = !empty($data['detailTicket']['reject']);
-                                    $rejectBy   = $data['detailTicket']['reject'] ?? null;
-                                    $catatan    = $prosesItem['catatan'] ?? '-';
-                                    $updatedAt  = $prosesItem['updated_at'] ?? null;
-
-                                    $alertClass = $isReject ? 'alert-danger' : 'alert-success';
+                                $isReject   = !empty($data['detailTicket']['reject']);
+                                $rejectBy   = $data['detailTicket']['reject'] ?? null;
+                                $catatan    = $prosesItem['catatan'] ?? '-';
+                                $updatedAt  = $prosesItem['updated_at'] ?? null;
+                                $alertClass = $isReject ? 'alert-danger' : 'alert-success';
                                 ?>
-
                                 <div class="alert <?= $alertClass ?> mb-0">
-
                                     <strong>
-                                        <?= $isReject 
-                                            ? 'Ditolak oleh ' . esc($rejectBy) 
-                                            : 'Selesai'; ?>
+                                        <?= $isReject ? 'Ditolak oleh ' . esc($rejectBy) : 'Selesai'; ?>
                                     </strong>
                                     <br>
-
                                     <?= esc($catatan); ?>
-
                                     <?php if ($updatedAt): ?>
                                         <div class="small text-muted mt-2">
                                             <?= esc($updatedAt); ?>
                                         </div>
                                     <?php endif; ?>
-
                                 </div>
                             <?php endif; ?>
                         <?php endif; ?>

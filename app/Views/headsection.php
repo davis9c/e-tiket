@@ -9,18 +9,18 @@
             <li class="breadcrumb-item active">Headsection</li>
         </ol>
         <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?= session()->getFlashdata('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?= session()->getFlashdata('success') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
         <?php endif; ?>
         <div class="row">
 
             <!-- FORM DETAIL (kiri) -->
             <?php if (!empty($data['detailTicket'])): ?>
-                <div class="col-md-5">
-                    <?= $this->include('headsection/form') ?>
-                </div>
+            <div class="col-md-5">
+                <?= $this->include('e-tiket/form-e') ?>
+            </div>
             <?php endif; ?>
             <!-- LIST (kanan) -->
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">

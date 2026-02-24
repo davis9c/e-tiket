@@ -8,10 +8,10 @@
             <li class="breadcrumb-item active">E-Tiket</li>
         </ol>
         <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?= session()->getFlashdata('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <?= session()->getFlashdata('success') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
         <?php endif; ?>
         <div class="row">
             <!-- FORM DETAIL (KANAN) -->
@@ -20,13 +20,13 @@
             ?>
             <div class="col-md-6">
                 <?php if (!empty($data['detailTicket'])): ?>
-                    <?= $this->include('e-tiket/form_pelaksana') ?>
+                <?= $this->include('e-tiket/form-e') ?>
                 <?php else: ?>
-                    <?php if (!empty($data['kategoriData'])): ?>
-                        <?= $this->include('e-tiket/form') ?>
-                    <?php else: ?>
-                        <?= $this->include('e-tiket/card') ?>
-                    <?php endif ?>
+                <?php if (!empty($data['kategoriData'])): ?>
+                <?= $this->include('e-tiket/form') ?>
+                <?php else: ?>
+                <?= $this->include('e-tiket/card') ?>
+                <?php endif ?>
                 <?php endif ?>
             </div>
             <!-- LIST (KIRI) -->
