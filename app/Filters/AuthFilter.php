@@ -14,6 +14,5 @@ class AuthFilter implements FilterInterface
             return redirect()->to(base_url('login'));
         }
     }
-
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null) {}
 }

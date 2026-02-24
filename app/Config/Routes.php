@@ -5,40 +5,62 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
+
 /*
 |--------------------------------------------------------------------------
-| Authentication Routes (No auth filter needed)
+| Authentication Routes (Public)
 |--------------------------------------------------------------------------
 */
 $routes->get('login', 'Auth::login');
 $routes->post('auth/attempt', 'Auth::attempt');
 $routes->get('logout', 'Auth::logout');
 
+
+/*
+|--------------------------------------------------------------------------
+| Protected Routes (Auth Filter)
+|--------------------------------------------------------------------------
+*/
 $routes->group('', ['filter' => 'auth'], function ($routes) {
+
+    // Dashboard & Home
+    $routes->get('/', 'ETicket::index');
+    $routes->get('dashboard', 'Dashboard::index');
 
     /*
     |--------------------------------------------------------------------------
-    | Dashboard
+    | E-Ticket
     |--------------------------------------------------------------------------
     */
-    $routes->get('/', 'ETicket::index');
-    $routes->get('home', 'Home::index');
     $routes->get('etiket', 'ETicket::index');
     $routes->get('etiket/(:num)', 'ETicket::index/$1');
     $routes->post('etiket/submit', 'ETicket::submit');
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pelaksana
+    |--------------------------------------------------------------------------
+    */
     $routes->get('pelaksana', 'Pelaksana::index');
     $routes->get('pelaksana/(:num)', 'Pelaksana::index/$1');
     $routes->post('pelaksana/approve', 'Pelaksana::approve');
-    $routes->post('pelaksana/approve', 'Pelaksana::approve');
     $routes->post('pelaksana/proses', 'Pelaksana::proses');
 
-    $routes->get('dashboard', 'Dashboard::index');
+    /*
+    |--------------------------------------------------------------------------
+    | Head Section
+    |--------------------------------------------------------------------------
+    */
     $routes->get('headsection', 'Headsection::index');
     $routes->get('headsection/(:num)', 'Headsection::index/$1');
     $routes->post('headsection/approve', 'Headsection::approve');
 
-    $routes->group('kategori',['filter' => 'auth'], function ($routes) {
+    /*
+    |--------------------------------------------------------------------------
+    | Kategori E-Tiket
+    |--------------------------------------------------------------------------
+    */
+    $routes->group('kategori', function ($routes) {
         $routes->get('/', 'KategoriETiket::index');
         $routes->post('store', 'KategoriETiket::store');
         $routes->post('updateUnit', 'KategoriETiket::updateUnit');
@@ -47,14 +69,25 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         $routes->get('toggle-status/(:num)', 'KategoriETiket::toggleStatus/$1');
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin
+    |--------------------------------------------------------------------------
+    */
+    $routes->group('admin', function ($routes) {
 
-    $routes->group('admin', ['filter' => 'auth'], function ($routes) {
-
+        // User Management
         $routes->get('users', 'Admin::users');
         $routes->get('pegawai', 'Admin::pegawai');
+
+        // Petugas
         $routes->get('petugas', 'Admin::petugas');
         $routes->get('petugas/(:segment)', 'Admin::petugas/$1');
+
+        // Head Section
         $routes->match(['get', 'post'], 'setheadsection/(:segment)', 'Admin::setHeadsection/$1');
+
+        // Kategori
         $routes->get('kategori', 'Admin::kategori');
         $routes->get('kategori/(:num)', 'Admin::kategori/$1');
         $routes->post('kategori/store', 'Admin::storeKategori');
