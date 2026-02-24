@@ -37,7 +37,7 @@
             <?php else: ?>
                 <!-- View/Create Mode -->
                 <div class="col-md-7">
-                    <?= $this->include('kategoriEticket/list2') ?>
+                    <?= $this->include('kategoriEticket/list') ?>
                     </div>
                 <div class="col-md-5">
                     <?= $this->include('kategoriEticket/form') ?>

@@ -9,7 +9,7 @@
         <table class="table table-bordered table-striped datatable">
             <thead>
                 <tr>
-                    <th>No</th>
+                    <th width="5%">No</th>
                     <th>Kategori</th>
                     <th>Petugas</th>
                     <th>Status</th>
@@ -21,16 +21,21 @@
                         <tr>
                             <td><?= $index + 1 ?></td>
                             <td>
-                                <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['id']) ?>">
-                                    <?= esc($p['nama_kategori']) ?>
-                                </a>
+                                <?php if (((int)($data['detailTicket']['id'] ?? 0) === (int)$p['id'])): ?>
+                                    <span class="badge bg-primary">
+                                        <?= esc($p['nama_kategori']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['id']) ?>">
+                                        <?= esc($p['nama_kategori']) ?>
+                                    </a>
+                                <?php endif; ?>
                             </td>
                             <td><?= esc($p['petugas_nama']) ?></td>
-
                             <!-- STATUS -->
                             <td>
                                 <?php if ($p['valid'] == null): ?>
-                                    <span class="badge bg-warning text-dark">
+                                    <span class="badge bg-secondary">
                                         Tidak Valid
                                     </span>
                                 <?php elseif ($p['valid'] != null): ?>
@@ -38,7 +43,7 @@
                                         Valid
                                     </span>
                                     <?php if ($p['selesai'] == null): ?>
-                                    <span class="badge bg-warning text-dark">
+                                    <span class="badge bg-warning">
                                         Proses
                                     </span>
                                     <?php else: ?>

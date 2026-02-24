@@ -24,7 +24,7 @@
             <?php endif; ?>
             <!-- LIST (kanan) -->
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">
-                <?= $this->include('headsection/list') ?>
+                <?= $this->include('e-tiket/list') ?>
             </div>
         </div>
     </div>

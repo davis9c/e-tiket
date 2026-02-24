@@ -51,7 +51,9 @@
                     <div class="col-md-4 text-md-end">
                         <div class="small text-muted">Tanggal Pengajuan</div>
                         <div class="fw-semibold">
-                            <?= esc($data['detailTicket']['created_at']) ?>
+                            <?php
+                            esc($data['detailTicket']['created_at']);
+                            ?>
                         </div>
                     </div>
                 </div>
