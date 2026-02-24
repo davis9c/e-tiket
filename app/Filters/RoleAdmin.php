@@ -11,13 +11,11 @@ class RoleAdmin implements FilterInterface
     public function before(RequestInterface $request, $arguments = null)
     {
         $roleAdmin = getenv('ROLE_ADMIN');
-
         if (session()->get('kd_jabatan') !== $roleAdmin) {
             return redirect()->to('/dashboard')
                 ->with('error', 'Akses ditolak!');
         }
     }
-
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         //

@@ -6,7 +6,7 @@
         <ol class="breadcrumb mb-4">
             <li class="breadcrumb-item active">E</li>
         </ol>
-        <?= $this->include('pegawai/list') ?>
+        <?= $this->include('Admin/pegawai/list') ?>
     </div>
 </main>
 <?= $this->endSection() ?>
