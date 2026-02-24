@@ -36,7 +36,7 @@
                                 <div>
                                     <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
                                         <span class="badge bg-primary me-1 mb-1">
-                                            <?= esc($unit['nm_jbtn']) ?>
+                                            <?= esc($unit['nm_jbtn']) ?> | <?= esc($unit['kd_jbtn']) ?>
                                         </span>
                                     <?php endforeach; ?>
                                 </div>
@@ -51,9 +51,7 @@
                     <div class="col-md-4 text-md-end">
                         <div class="small text-muted">Tanggal Pengajuan</div>
                         <div class="fw-semibold">
-                            <?php
-                            esc($data['detailTicket']['created_at']);
-                            ?>
+                            <?= esc($data['detailTicket']['created_at']) ?>
                         </div>
                     </div>
                 </div>
