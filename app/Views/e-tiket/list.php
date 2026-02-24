@@ -21,7 +21,7 @@
                         <tr>
                             <td><?= $index + 1 ?></td>
                             <td>
-                                <a href="<?= base_url('etiket/' . $p['id']) ?>">
+                                <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['id']) ?>">
                                     <?= esc($p['nama_kategori']) ?>
                                 </a>
                             </td>
@@ -31,32 +31,33 @@
                             <td>
                                 <?php if ($p['valid'] == null): ?>
                                     <span class="badge bg-warning text-dark">
-                                        Menunggu Approval Head Section
+                                        Tidak Valid
                                     </span>
                                 <?php elseif ($p['valid'] != null): ?>
                                     <span class="badge bg-success">
                                         Valid
                                     </span>
+                                    <?php if ($p['selesai'] == null): ?>
+                                    <span class="badge bg-warning text-dark">
+                                        Proses
+                                    </span>
+                                    <?php else: ?>
+                                        <?php if ($p['reject'] != null): ?>
+                                            <span class="badge bg-danger">
+                                                Ditolak
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge bg-primary">
+                                                Selesai
+                                            </span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="badge bg-danger">
                                         Ditolak
                                     </span>
                                 <?php endif; ?>
-                                <?php if ($p['selesai'] == null): ?>
-                                    <span class="badge bg-warning text-dark">
-                                        Proses
-                                    </span>
-                                <?php else: ?>
-                                    <?php if ($p['reject'] != null): ?>
-                                        <span class="badge bg-danger">
-                                            Ditolak
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge bg-primary">
-                                            Selesai
-                                        </span>
-                                    <?php endif; ?>
-                                <?php endif; ?>
+                                
                             </td>
                         </tr>
                     <?php endforeach; ?>

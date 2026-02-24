@@ -27,7 +27,7 @@
             <!-- LIST (KIRI) -->
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">
                 <?php if ($page == 'list_pelaksana'): ?>
-                <?= $this->include('e-tiket/list_pelaksana') ?>
+                <?= $this->include('e-tiket/list') ?>
                 <?php endif; ?>
             </div>
 
