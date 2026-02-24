@@ -27,32 +27,42 @@ class Auth extends BaseController
     }
 
     public function attempt()
-{
-    $userId   = trim($this->request->getPost('user_id'));
-    $password = trim($this->request->getPost('password'));
+    {
+        $userId   = trim($this->request->getPost('user_id'));
+        $password = trim($this->request->getPost('password'));
 
-    if (!$userId || !$password) {
-        return $this->backWithError('User ID dan password wajib diisi');
+        if (!$userId || !$password) {
+            return $this->backWithError('User ID dan password wajib diisi');
+        }
+
+        $result = $this->loginApi($userId, $password);
+
+        if (!$result['success']) {
+            return $this->backWithError($result['message']);
+        }
+
+        // sukses
+        $this->setUserSession($result['data']);
+        $this->syncUser($result['data'], $userId);
+
+        return redirect()->to(base_url('etiket'))
+            ->with('success', 'Login berhasil, selamat datang ' . $result['data']['data']['nama']);
     }
-
-    $result = $this->loginApi($userId, $password);
-
-    if (!$result['success']) {
-        return $this->backWithError($result['message']);
-    }
-
-    // sukses
-    $this->setUserSession($result['data']);
-    $this->syncUser($result['data'], $userId);
-
-    return redirect()->to(base_url('etiket'))
-        ->with('success', 'Login berhasil, selamat datang ' . $result['data']['data']['nama']);
-}
     public function logout()
     {
-        session()->destroy();
-        return redirect()->to(base_url('login'))
-            ->with('success', 'Berhasil logout');
+        session()->remove([
+            'token',
+            'expires',
+            'id_pegawai',
+            'nip',
+            'nik',
+            'nama',
+            'kd_jabatan',
+            'jabatan',
+            'headsection',
+            'logged_in',
+        ]);
+        return redirect()->to(base_url('login'))->with('success', 'Berhasil logout');
     }
     /* =====================================================
      * PRIVATE METHODS

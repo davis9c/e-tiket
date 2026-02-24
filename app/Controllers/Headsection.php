@@ -25,7 +25,7 @@ class Headsection extends BaseController
         $this->eticketModel         = new ETicketModel();
         $this->kategoriEticketModel = new KategoriETiketModel();
         $this->db = \Config\Database::connect();
-
+$this->checkToken();
         $this->headers = [
             'Authorization' => session()->get('token'),
             'Accept'        => 'application/json',

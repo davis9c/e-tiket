@@ -27,6 +27,7 @@ class ETicket extends BaseController
         $this->usersModel    = new UsersModel();
         $this->client        = Services::curlrequest();
         $this->prosesModel  = new ProsesModel();
+        $this->checkToken();
         $this->headers = [
             'Authorization' => session()->get('token'),
             'Accept'        => 'application/json',

@@ -23,7 +23,7 @@ class Admin extends BaseController
         $this->usersModel    = new UsersModel();
         $this->kategoriModel = new KategoriETiketModel();
         $this->unitModel     = new KategoriUnitJabatanModel();
-
+        $this->checkToken();
         $this->headers = [
             'Authorization' => session()->get('token'),
             'Accept'        => 'application/json',
@@ -37,6 +37,9 @@ class Admin extends BaseController
     {
         if (!session()->get('token')) {
             return redirect()->to('/login')->send();
+        }
+        if (strtotime(session()->get('expires')) < time()) {
+            return redirect()->to('/logout');
         }
     }
 
@@ -352,8 +355,6 @@ class Admin extends BaseController
         ]);
     }
 
-
-
     /* =====================================================
      * HELPER API
      * ===================================================== */
@@ -378,10 +379,6 @@ class Admin extends BaseController
         return redirect()->to(base_url('admin/kategori'))
             ->with('success', 'Kategori berhasil ditambahkan');
     }
-
-    /* =====================================================
-     * HELPER API
-     * ===================================================== */
     public function toggleKategori($id)
     {
         $this->auth();
@@ -401,11 +398,6 @@ class Admin extends BaseController
         return redirect()->to(base_url('admin/kategori'))
             ->with('success', 'Status berhasil diperbarui');
     }
-
-    /* =====================================================
-     * HELPER API
-     * ===================================================== */
-
     private function getAPI($endpoint): array
     {
         $response = $this->client->get(

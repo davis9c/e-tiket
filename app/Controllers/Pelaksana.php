@@ -26,6 +26,7 @@ class Pelaksana extends BaseController
         $this->usersModel    = new UsersModel();
         $this->eticketProsesModel = new ETicketProsesModel();
         $this->client        = Services::curlrequest();
+        $this->checkToken();
         $this->headers = [
             'Authorization' => session()->get('token'),
             'Accept'        => 'application/json',
