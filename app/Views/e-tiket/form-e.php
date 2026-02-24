@@ -63,7 +63,7 @@
         <div class="mb-4">
             <label class="form-label fw-semibold">Petugas Pengajuan</label>
             <div class="form-control bg-light">
-                <div class="fw-semibold"><?= esc($data['detailTicket']['petugas_nama']) ?></div>
+                <div class="fw-semibold"><?= esc($data['detailTicket']['petugas_id_nama']) ?></div>
                 <div class="small text-muted">
                     <?= esc($data['detailTicket']['nm_jbtn']) ?> — NIP: <?= esc($data['detailTicket']['petugas_id']) ?>
                 </div>
@@ -78,10 +78,18 @@
         <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
         <?php if ($data['detailTicket']['valid'] != null) : ?>
             <!-- Tiket Sudah Divalidasi -->
-            <div class="alert alert-info mb-4">
-                <i class="fas fa-check-circle me-2"></i>
-                Validasi: <strong><?= esc($data['detailTicket']['valid']) ?></strong>
-            </div>
+            <?php if($data['detailTicket']['petugas_id']==$data['detailTicket']['valid']):?>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Valid
+                </div>
+            <?php else: ?>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Validasi: <strong><?= esc($data['detailTicket']['valid_nama']) ?></strong>
+                </div>
+            <?php endif; ?>
+            
             <!-- Jika valid == selesai maka proses dianggap final -->
             <?php if ($data['detailTicket']['valid'] == $data['detailTicket']['selesai']) : ?>
 
@@ -90,10 +98,10 @@
 
                     <?php if ($data['detailTicket']['reject']) : ?>
                         Ditolak oleh:
-                        <strong><?= esc($data['detailTicket']['reject']) ?></strong>
+                        <strong><?= esc($data['detailTicket']['reject_nama']) ?></strong>
                     <?php else: ?>
                         Diselesaikan oleh:
-                        <strong><?= esc($data['detailTicket']['selesai']) ?></strong>
+                        <strong><?= esc($data['detailTicket']['selesai_nama']) ?></strong>
                     <?php endif; ?>
                     <textarea class="form-control bg-light" rows="4" readonly><?= esc($data['detailTicket']['respon_message']) ?></textarea>
                     <div class="small text-muted mt-2">

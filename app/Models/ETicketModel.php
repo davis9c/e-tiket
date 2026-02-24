@@ -147,13 +147,21 @@ class ETicketModel extends Model
 
 
     public function getByPetugas(string $nip): array
-    {
-        return $this->baseQuery()
-            ->where('e.petugas_id', $nip)
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-    }
+{
+    $rows = $this->baseQuery()
+        ->join(
+            'eticket_proses ep',
+            'ep.id_eticket = e.id',
+            'left'
+        )
+        ->where('e.petugas_id', $nip)
+        ->groupBy('e.id')
+        ->orderBy('e.created_at', 'DESC')
+        ->get()
+        ->getResultArray();
+
+    return $this->attachProsesToRows($rows);
+}
 
     /*
     |--------------------------------------------------------------------------

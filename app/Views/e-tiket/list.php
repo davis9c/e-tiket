@@ -31,7 +31,7 @@
                                     </a>
                                 <?php endif; ?>
                             </td>
-                            <td><?= esc($p['petugas_nama']) ?></td>
+                            <td><?= esc($p['petugas_id_nama']) ?></td>
                             <!-- STATUS -->
                             <td>
                                 <?php if ($p['valid'] == null): ?>

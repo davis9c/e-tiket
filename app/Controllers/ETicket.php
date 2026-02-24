@@ -44,109 +44,72 @@ class ETicket extends BaseController
         }
         return null;
     }
-
-    /* =========================================================
-     * LIST TIKET USER
-     * ========================================================= */
-    public function indexori()
-    {
-        if ($redirect = $this->guard()) return $redirect;
-        $data['kategori']   = $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(session()->get('kd_jabatan')));
-        $data['eticket']    = $this->attachPetugasToTickets($this->eticketModel->getByPetugas(session()->get('nip')));
-
-        return view('e-tiket', [
-            'page'  => 'list',
-            'title' => 'Pengajuan E-Ticket',
-            'data'  => $data,
-        ]);
-    }
     /* =========================================================
     * LIST & CREATE E-TICKET
     * ========================================================= */
     public function index($id = null)
-{
-    if ($redirect = $this->guard()) {
-        return $redirect;
-    }
-
-    $data = [];
-    $kategoriId = (int) $this->request->getGet('kategori');
-
-    // =====================================================
-    // MODE CREATE (FORM)
-    // =====================================================
-    if ($kategoriId) {
-        $kategori = $this->kategoriModel->findDetail($kategoriId);
-
-        if (!$kategori) {
-            return redirect()
-                ->to(base_url('eticket'))
-                ->with('error', 'Kategori tidak ditemukan');
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
         }
 
-        $kategori = $this->attachNamaJabatanToUnits($kategori);
+        $data = [];
+        $kategoriId = (int) $this->request->getGet('kategori');
 
-        if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
-            $kategori['headsection_users'] = $this->getHeadsectionUsers();
+        // =====================================================
+        // MODE CREATE (FORM)
+        // =====================================================
+        $kdJbtn = session()->get('kd_jabatan');
+        $nip    = session()->get('nip');
+        if ($kategoriId) {
+            $kategori = $this->kategoriModel->findDetail($kategoriId);
+
+            if (!$kategori) {
+                return redirect()
+                    ->to(base_url('eticket'))
+                    ->with('error', 'Kategori tidak ditemukan');
+            }
+
+            $kategori = $this->attachNamaJabatanToUnits($kategori);
+
+            if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
+                $kategori['headsection_users'] = $this->getHeadsectionUsers();
+            }
+
+            $data['kategoriData'] = $kategori;
         }
+        $data['kategori'] = $this->attachNamaJabatanToKategori(
+            $this->kategoriModel->findByUnitPengajuan($kdJbtn)
+        );
+        // =====================================================
+        // MODE LIST (Kategori & Ticket)
+        // =====================================================
+        $etickets = $this->eticketModel->getByPetugas($nip);
+        //dd($etickets);
+        $etickets = $this->attachPetugasToTickets($etickets);
 
-        $data['kategoriData'] = $kategori;
-    }
+        // =====================================================
+        // DETAIL TICKET
+        // =====================================================
+        $detail = null;
 
-    // =====================================================
-    // MODE LIST (Kategori & Ticket)
-    // =====================================================
-    $kdJabatan = session()->get('kd_jabatan');
-    $nip       = session()->get('nip');
+        if ($id) {
+            $detail = $this->eticketModel->findDetailLengkap($id);
 
-    $data['kategori'] = $this->attachNamaJabatanToKategori(
-        $this->kategoriModel->findByUnitPengajuan($kdJabatan)
-    );
-
-    $data['eticket'] = $this->attachPetugasToTickets(
-        $this->eticketModel->getByPetugas($nip)
-    );
-
-    // =====================================================
-    // MAPPING PETUGAS (Batch)
-    // =====================================================
-    $nips = array_unique(
-        array_filter(array_column($data['eticket'], 'petugas_id'))
-    );
-
-    $petugasMap = $this->buildPetugasMap($nips);
-
-    foreach ($data['eticket'] as &$row) {
-        $p = $petugasMap[(string) $row['petugas_id']] ?? null;
-
-        $row['petugas_nip']  = $p['nip']     ?? $row['petugas_id'];
-        $row['petugas_nama'] = $p['nama']    ?? '-';
-        $row['kd_jbtn']      = $p['kd_jbtn'] ?? '-';
-        $row['nm_jbtn']      = $p['nm_jbtn'] ?? '-';
-    }
-    unset($row);
-
-    // =====================================================
-    // DETAIL TICKET
-    // =====================================================
-    $detailTicket = null;
-
-    if ($id !== null) {
-        $detailTicket = $this->eticketModel->findDetail($id);
-
-        if ($detailTicket) {
-            $detailTicket = $this->attachPetugasDetail($detailTicket, $petugasMap);
-            $detailTicket = $this->mapUnitWithJabatan($detailTicket);
+            if ($detail) {
+                $detail = $this->attachPetugasToTicket($detail); // 🔥 INI YANG KURANG
+                $detail = $this->attachNamaJabatanToUnits($detail);
+                $detail = $this->mapUnitWithJabatan($detail);
+            }
         }
+        $data['eticket'] = $etickets;
+        $data['detailTicket'] = $detail;
+        //dd($data['detailTicket']);
+        return view('e-tiket', [
+            'title' => 'Pengajuan E-Ticket',
+            'data'  => $data,
+        ]);
     }
-
-    $data['detailTicket'] = $detailTicket;
-
-    return view('e-tiket', [
-        'title' => 'Pengajuan E-Ticket',
-        'data'  => $data,
-    ]);
-}
     /* =========================================================
      * SUBMIT
      * ========================================================= */
@@ -239,26 +202,54 @@ class ETicket extends BaseController
      * ========================================================= */
     private function attachPetugasToTickets(array $tickets): array
     {
-        if (empty($tickets)) return [];
+        $nips = [];
 
-        $nips = array_unique(array_column($tickets, 'petugas_id'));
+        foreach ($tickets as $t) {
+            foreach (['petugas_id', 'valid', 'selesai', 'reject'] as $field) {
+                if (!empty($t[$field])) {
+                    $nips[] = (string)$t[$field];
+                }
+            }
+        }
+
+        $nips = array_unique($nips);
         $map  = $this->buildPetugasMap($nips);
 
-        return array_map(
-            fn($ticket) => $this->attachPetugasToTicket($ticket, $map),
-            $tickets
-        );
+        foreach ($tickets as &$t) {
+            $t = $this->attachPetugasToTicket($t, $map);
+        }
+
+        return $tickets;
     }
 
     private function attachPetugasToTicket(array $ticket, array $map = null): array
     {
-        $map ??= $this->buildPetugasMap([$ticket['petugas_id']]);
-        $p = $map[(string)$ticket['petugas_id']] ?? [];
+        $nipFields = ['petugas_id', 'valid', 'selesai', 'reject'];
 
-        return array_merge($ticket, [
-            'petugas_nama' => $p['nama'] ?? '-',
-            'nm_jbtn'      => $p['nm_jbtn'] ?? '-',
-        ]);
+        if ($map === null) {
+            $nips = [];
+            foreach ($nipFields as $field) {
+                if (!empty($ticket[$field])) {
+                    $nips[] = (string)$ticket[$field];
+                }
+            }
+            $map = $this->buildPetugasMap($nips);
+        }
+
+        foreach ($nipFields as $field) {
+
+            $nip = $ticket[$field] ?? null;
+            $p   = $map[(string)$nip] ?? null;
+
+            $ticket[$field . '_nama'] = $p['nama'] ?? '-';
+
+            // khusus petugas_id tambahkan nm_jbtn
+            if ($field === 'petugas_id') {
+                $ticket['nm_jbtn'] = $p['nm_jbtn'] ?? '-';
+            }
+        }
+
+        return $ticket;
     }
 
     private function attachNamaJabatanToUnits(array $data): array

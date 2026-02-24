@@ -38,20 +38,21 @@ class Pelaksana extends BaseController
 
         $kdJbtn = session()->get('kd_jabatan');
         $tickets = $this->eticketModel->getSudahValidByProses($kdJbtn, true); //belum selesai
-
+        //dd($tickets);
         $tickets = $this->attachPetugasToTickets($tickets);
 
         $detail = null;
         if ($id) {
             $detail = $this->eticketModel->findDetailLengkap($id);
-
             if ($detail) {
                 $detail = $this->attachPetugasToTicket($detail);
                 $detail = $this->attachNamaJabatanToUnits($detail);
+                $detail = $this->mapUnitWithJabatan($detail);
             }
         }
         $data['eticket']        = $tickets;
         $data['detailTicket']   = $detail;
+        //dd($data['detailTicket']);
         return view('pelaksana', [
             'page'  => 'list_pelaksana',
             'title' => 'Pelaksana',
@@ -423,7 +424,17 @@ class Pelaksana extends BaseController
      * ========================================================= */
     private function attachPetugasToTickets(array $tickets): array
     {
-        $nips = array_unique(array_column($tickets, 'petugas_id'));
+        $nips = [];
+
+        foreach ($tickets as $t) {
+            foreach (['petugas_id', 'valid', 'selesai', 'reject'] as $field) {
+                if (!empty($t[$field])) {
+                    $nips[] = (string)$t[$field];
+                }
+            }
+        }
+
+        $nips = array_unique($nips);
         $map  = $this->buildPetugasMap($nips);
 
         foreach ($tickets as &$t) {
@@ -435,12 +446,30 @@ class Pelaksana extends BaseController
 
     private function attachPetugasToTicket(array $ticket, array $map = null): array
     {
-        $map ??= $this->buildPetugasMap([$ticket['petugas_id']]);
+        $nipFields = ['petugas_id', 'valid', 'selesai', 'reject'];
 
-        $p = $map[(string)$ticket['petugas_id']] ?? null;
+        if ($map === null) {
+            $nips = [];
+            foreach ($nipFields as $field) {
+                if (!empty($ticket[$field])) {
+                    $nips[] = (string)$ticket[$field];
+                }
+            }
+            $map = $this->buildPetugasMap($nips);
+        }
 
-        $ticket['petugas_nama'] = $p['nama'] ?? '-';
-        $ticket['nm_jbtn']      = $p['nm_jbtn'] ?? '-';
+        foreach ($nipFields as $field) {
+
+            $nip = $ticket[$field] ?? null;
+            $p   = $map[(string)$nip] ?? null;
+
+            $ticket[$field . '_nama'] = $p['nama'] ?? '-';
+
+            // khusus petugas_id tambahkan nm_jbtn
+            if ($field === 'petugas_id') {
+                $ticket['nm_jbtn'] = $p['nm_jbtn'] ?? '-';
+            }
+        }
 
         return $ticket;
     }
@@ -550,5 +579,56 @@ class Pelaksana extends BaseController
             'judul'       => 'required|min_length[1]',
             'message'     => 'required|min_length[1]',
         ];
+    }
+    private function mapUnitWithJabatan(array $detail): array
+    {
+        $jabatanList = $this->getJabatan();
+
+        $jabatanMap = [];
+        foreach ($jabatanList as $j) {
+            $jabatanMap[$j['kd_jbtn']] = $j['nm_jbtn'] ?? '-';
+        }
+
+        $normalize = function ($units) use ($jabatanMap) {
+            if (empty($units)) return [];
+
+            $units = isset($units[0]) ? $units : [$units];
+
+            return array_map(function ($u) use ($jabatanMap) {
+                $kd = $u['kd_jbtn'] ?? '-';
+                return [
+                    'kd_jbtn' => $kd,
+                    'nm_jbtn' => $jabatanMap[$kd] ?? '-',
+                ];
+            }, $units);
+        };
+
+        $detail['unit_penanggung_jawab'] = $normalize($detail['unit_penanggung_jawab'] ?? []);
+        $detail['unit_pengajuan']        = $normalize($detail['unit_pengajuan'] ?? []);
+
+        return $detail;
+    }
+    private function getJabatan(): array
+    {
+        try {
+            $response = $this->client->get(
+                env('API_KANZA_BRIDGE') . 'jabatan',
+                [
+                    'headers'     => $this->headers,
+                    'timeout'     => 10,
+                    'http_errors' => false,
+                ]
+            );
+
+            if ($response->getStatusCode() !== 200) {
+                return [];
+            }
+
+            $result = json_decode($response->getBody(), true);
+            return $result['data'] ?? [];
+        } catch (\Throwable $e) {
+            log_message('error', '[GET_JABATAN] ' . $e->getMessage());
+            return [];
+        }
     }
 }
