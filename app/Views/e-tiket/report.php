@@ -110,7 +110,7 @@
                 <td><span class="label">Kode Ticket</span></td>
                 <td>: <?= esc($detailTicket['kode_ticket'] ?? '-') ?></td>
                 <td class="text-right"><span class="label">Tanggal</span></td>
-                <td>: <?= date('d-m-Y', strtotime($detailTicket['created_at'])) ?></td>
+                <td>: <?= date('d-M-Y', strtotime($detailTicket['created_at'])) ?></td>
             </tr>
             <tr>
                 <td><span class="label">Kategori</span></td>
@@ -152,7 +152,6 @@
             </tr>
         </table>
     </div>
-
     <!-- ================== DESKRIPSI ================== -->
     <div class="section">
         <div class="label">Deskripsi Pengajuan</div>
@@ -160,7 +159,6 @@
             <?= nl2br(esc($detailTicket['message'])) ?>
         </div>
     </div>
-
     <!-- ================== PROSES UNIT ================== -->
     <?php if (!empty($detailTicket['unit_penanggung_jawab'])): ?>
         <div class="section">
@@ -181,10 +179,8 @@
                     $proses = $detailTicket['proses'] ?? [];
                     ?>
                     <?php foreach ($units as $unit): ?>
-
                         <?php
                         $prosesItem = null;
-
                         foreach ($proses as $p) {
                             if ($p['kd_jbtn'] === $unit['kd_jbtn']) {
                                 $prosesItem = $p;
@@ -192,14 +188,12 @@
                             }
                         }
                         ?>
-
                         <tr>
                             <td><?= esc($unit['nm_jbtn']) ?></td>
-
                             <?php if (!empty($prosesItem['catatan'])): ?>
                                 <td><?= esc($prosesItem['nm_petugas']) ?></td>
                                 <td><?= esc($prosesItem['catatan']) ?></td>
-                                <td><?= date('d-m-Y', strtotime($prosesItem['updated_at'])) ?></td>
+                                <td><?= date('d-M-Y', strtotime($prosesItem['updated_at'])) ?></td>
                             <?php else: ?>
                                 <td>-</td>
                                 <td>-</td>
@@ -246,7 +240,7 @@
             <br><br>
 
             <strong>Tanggal Update:</strong>
-            <?= date('d-m-Y H:i', strtotime($detailTicket['updated_at'])) ?>
+            <?= date('d-M-Y H:i', strtotime($detailTicket['updated_at'])) ?>
 
         </div>
     </div>
