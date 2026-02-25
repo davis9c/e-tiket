@@ -5,7 +5,7 @@
     </div>
 
     <div class="card-body">
-        <table id="datatablesSimple" class="table table-bordered table-striped">
+        <table class="table table-bordered table-striped datatable">
             <thead>
                 <tr>
                     <th width="5%">No</th>
