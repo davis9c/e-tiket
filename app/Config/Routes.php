@@ -35,6 +35,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('etiket', 'ETicket::index');
     $routes->get('etiket/(:num)', 'ETicket::index/$1');
     $routes->post('etiket/submit', 'ETicket::submit');
+    $routes->get('etiket/report/(:num)', 'ETicket::report/$1');
 
     /*
     |--------------------------------------------------------------------------

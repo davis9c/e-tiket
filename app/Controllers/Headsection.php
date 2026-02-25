@@ -88,7 +88,7 @@ class Headsection extends BaseController
         $id             = (int) $this->request->getPost('id');
         $statusValidasi = $this->request->getPost('status_validasi');
         $catatan        = $this->request->getPost('catatan_headsection');
-        $proses         = (array) $this->request->getPost('proses');
+        //$proses         = (array) $this->request->getPost('proses');
         $nip            = session()->get('nip');
         $kdJabatan      = session()->get('kd_jabatan');
 

@@ -76,7 +76,7 @@
         <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
         <?php if ($data['detailTicket']['valid'] != null) : ?>
             <!-- Tiket Sudah Divalidasi -->
-            <?php if($data['detailTicket']['petugas_id']==$data['detailTicket']['valid']):?>
+            <?php if ($data['detailTicket']['petugas_id'] == $data['detailTicket']['valid']): ?>
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-check-circle me-2"></i>
                     Valid
@@ -87,7 +87,7 @@
                     Validasi: <strong><?= esc($data['detailTicket']['valid_nama']) ?></strong>
                 </div>
             <?php endif; ?>
-            
+
             <!-- Jika valid == selesai maka proses dianggap final -->
             <?php if ($data['detailTicket']['valid'] == $data['detailTicket']['selesai']) : ?>
 
@@ -123,4 +123,11 @@
         <!-- tampilkan penanggung jawab/pelaksana -->
         <?= $this->include('e-tiket/unit-pelaksana') ?>
     </div>
+    <?php if ($data['detailTicket']['selesai'] != null): ?>
+        <a href="<?= base_url('etiket/report/' . $data['detailTicket']['id']) ?>"
+            target="_blank"
+            class="btn btn-primary">
+            <i class="fas fa-print"></i> Cetak Report
+        </a>
+    <?php endif; ?>
 </div>

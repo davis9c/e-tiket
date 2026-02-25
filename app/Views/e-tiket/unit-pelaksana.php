@@ -105,9 +105,5 @@ $formDitampilkan = false;
             <?php endif; ?>
         </div>
     <?php endforeach; ?>
-    <?php if (!$formDitampilkan): ?>
-        <div class="alert alert-info">
-            Tombol report di tampilkan ketika selesai!=null 
-        </div>
-    <?php endif; ?>
+    
 </div>

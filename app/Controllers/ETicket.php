@@ -111,6 +111,45 @@ class ETicket extends BaseController
         ]);
     }
     /* =========================================================
+    * REPORT E-TICKET
+    * ========================================================= */
+    public function report($id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        // =====================================================
+        // AMBIL DETAIL TICKET
+        // =====================================================
+        $detail = $this->eticketModel->findDetailLengkap($id);
+
+        if (!$detail) {
+            return redirect()
+                ->to(base_url('eticket'))
+                ->with('error', 'Data E-Ticket tidak ditemukan');
+        }
+
+        // =====================================================
+        // LAMPIRKAN INFO PETUGAS & UNIT
+        // =====================================================
+        $detail = $this->attachPetugasToTicket($detail);       // petugas pengajuan & validasi
+        $detail = $this->attachNamaJabatanToUnits($detail);    // unit penanggung jawab
+        $detail = $this->mapUnitWithJabatan($detail);          // mapping proses ke unit
+
+        $data['detailTicket'] = $detail;
+        //dd($data['detailTicket']);
+        //print_r($data['detailTicket']);
+        //die;
+        // =====================================================
+        // RETURN VIEW REPORT
+        // =====================================================
+        return view('e-tiket/report', [
+            'title' => 'Report E-Ticket #' . $id,
+            'detailTicket' => $data['detailTicket'],
+        ]);
+    }
+    /* =========================================================
      * SUBMIT
      * ========================================================= */
     public function submit()
