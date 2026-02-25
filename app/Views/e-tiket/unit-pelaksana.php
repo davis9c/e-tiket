@@ -44,7 +44,7 @@ $formDitampilkan = false;
                 <?php if (empty($prosesItem['catatan']) && !$formDitampilkan && ($prosesItem['kd_jbtn'] === session()->get('kd_jabatan'))): ?>
                     <?php if ($data['detailTicket']['selesai'] == null): ?>
                         <?php $formDitampilkan = true; ?>
-                        <form action="<?= base_url('pelaksana/proses') ?>" method="post">
+                        <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
                             <?= csrf_field() ?>
                             <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
                             <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">

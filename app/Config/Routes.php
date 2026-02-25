@@ -36,25 +36,14 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('etiket/(:num)', 'ETicket::index/$1');
     $routes->post('etiket/submit', 'ETicket::submit');
     $routes->get('etiket/report/(:num)', 'ETicket::report/$1');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Pelaksana
-    |--------------------------------------------------------------------------
-    */
-    $routes->get('pelaksana', 'Pelaksana::index');
-    $routes->get('pelaksana/(:num)', 'Pelaksana::index/$1');
-    $routes->post('pelaksana/approve', 'Pelaksana::approve');
-    $routes->post('pelaksana/proses', 'Pelaksana::proses');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Head Section
-    |--------------------------------------------------------------------------
-    */
-    $routes->get('headsection', 'Headsection::index');
-    $routes->get('headsection/(:num)', 'Headsection::index/$1');
-    $routes->post('headsection/approve', 'Headsection::approve');
+    
+    $routes->get('headsection', 'ETicket::headsection');
+    $routes->get('headsection/(:num)', 'ETicket::headsection/$1');
+    $routes->post('headsection/headsection_approve', 'ETicket::headsection_approve');
+    
+    $routes->get('pelaksana', 'ETicket::pelaksana');
+    $routes->get('pelaksana/(:num)', 'ETicket::pelaksana/$1');
+    $routes->post('pelaksana/pelaksana_proses', 'ETicket::pelaksana_proses');
 
     /*
     |--------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-<form action="<?= base_url('headsection/approve') ?>" method="post">
+<form action="<?= base_url('headsection/headsection_approve') ?>" method="post">
     <?= csrf_field() ?>
     <input type="hidden" name="id" value="<?= esc($data['detailTicket']['id']) ?>">
     <?php
