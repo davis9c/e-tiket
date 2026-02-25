@@ -3,20 +3,20 @@
         <i class="fas fa-ticket-alt me-1"></i>
         Detail E-Ticket
     </div>
-    <!-- ===== FLASH MESSAGE ===== -->
-    <?php if ($msg = session()->getFlashdata('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show">
-            <?= esc($msg) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-    <?php if ($msg = session()->getFlashdata('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show">
-            <?= esc($msg) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
     <div class="card-body">
+        <!-- ===== FLASH MESSAGE ===== -->
+        <?php if ($msg = session()->getFlashdata('success')): ?>
+            <div class="alert alert-success alert-dismissible fade show">
+                <?= esc($msg) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+        <?php if ($msg = session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?= esc($msg) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
         <!-- ===== KATEGORI E-TIKET ===== -->
         <div class="card mb-4 border-start border-primary border-4">
             <div class="card-body">

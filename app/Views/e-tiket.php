@@ -10,12 +10,6 @@
             <li class="breadcrumb-item"><?= esc($data['detailTicket']['id'])?></li>
             <?php endif; ?>
         </ol>
-        <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <?= session()->getFlashdata('success') ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        <?php endif; ?>
         <div class="row">
             <!-- FORM DETAIL (KANAN) -->
             <div class="col-md-6">
