@@ -99,12 +99,19 @@ class ETicket extends BaseController
             if ($detail) {
                 $detail = $this->attachPetugasToTicket($detail); // 🔥 INI YANG KURANG
                 $detail = $this->attachNamaJabatanToUnits($detail);
+                /**
+                 * Buatkan Bagian ini
+                 */
+                $detail = $this->attachNamaJabatanToProses($detail);
+                //
                 $detail = $this->mapUnitWithJabatan($detail);
             }
         }
         $data['eticket'] = $etickets;
         $data['detailTicket'] = $detail;
         //dd($data['detailTicket']);
+        //print_r($data['detailTicket']);
+        //die;
         return view('e-tiket', [
             'title' => 'Pengajuan E-Ticket',
             'data'  => $data,
@@ -135,6 +142,7 @@ class ETicket extends BaseController
         // =====================================================
         $detail = $this->attachPetugasToTicket($detail);       // petugas pengajuan & validasi
         $detail = $this->attachNamaJabatanToUnits($detail);    // unit penanggung jawab
+        $detail = $this->attachNamaJabatanToProses($detail);
         $detail = $this->mapUnitWithJabatan($detail);          // mapping proses ke unit
 
         $data['detailTicket'] = $detail;
@@ -467,4 +475,42 @@ class ETicket extends BaseController
             return [];
         }
     }
+    private function attachNamaJabatanToProses(array $detail): array
+{
+    if (empty($detail['proses'])) {
+        return $detail;
+    }
+
+    // ============================================
+    // Kumpulkan semua NIP dari proses
+    // ============================================
+    $nips = [];
+
+    foreach ($detail['proses'] as $p) {
+        if (!empty($p['id_petugas'])) {
+            $nips[] = (string)$p['id_petugas'];
+        }
+    }
+
+    $nips = array_unique($nips);
+
+    // ============================================
+    // Build petugas map
+    // ============================================
+    $map = $this->buildPetugasMap($nips);
+
+    // ============================================
+    // Attach ke proses
+    // ============================================
+    foreach ($detail['proses'] as &$p) {
+
+        $nip = (string)($p['id_petugas'] ?? '');
+        $petugas = $map[$nip] ?? null;
+
+        $p['nm_petugas'] = $petugas['nama'] ?? '-';
+        $p['nm_jbtn']    = $petugas['nm_jbtn'] ?? '-';
+    }
+
+    return $detail;
+}
 }

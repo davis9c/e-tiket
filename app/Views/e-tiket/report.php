@@ -210,7 +210,7 @@
                             <td><?= esc($unit['nm_jbtn']) ?></td>
 
                             <?php if (!empty($prosesItem['catatan'])): ?>
-                                <td><?= esc($prosesItem['id_petugas']) ?></td>
+                                <td><?= esc($prosesItem['nm_petugas']) ?></td>
                                 <td><?= esc($prosesItem['catatan']) ?></td>
                                 <td><?= date('d-m-Y H:i', strtotime($prosesItem['updated_at'])) ?></td>
                             <?php else: ?>
