@@ -9,6 +9,8 @@
                 <li class="breadcrumb-item active"><a href="<?= base_url('etiket') ?>">E-Tiket</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
                     <li class="breadcrumb-item"><?= esc($data['detailTicket']['id'])?></li>
+                <?php elseif(!empty($data['kategoriData'])): ?>
+                    <li class="breadcrumb-item"><?= esc($data['kategoriData']['nama_kategori'])?> (Baru)</li>
                 <?php endif; ?>
             </ol>
         </nav>
