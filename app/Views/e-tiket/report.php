@@ -80,37 +80,24 @@
             <tr>
                 <!-- LOGO KIRI -->
                 <td width="20%" align="left" valign="top">
-                    <img src="<?= base_url('assets/img/logo-kiri.png') ?>"
+                    <img src="<?= base_url('assets/img/logo.png') ?>"
                         style="height:90px;">
                 </td>
 
                 <!-- TEKS TENGAH -->
                 <td width="60%" align="center" valign="middle">
-                    <div style="font-weight:bold; font-size:14pt;">
-                        PEMERINTAH KOTA PROBOLINGGO
-                    </div>
-                    <div style="font-weight:bold; font-size:13pt;">
-                        DINAS KESEHATAN, PENGENDALIAN PENDUDUK DAN KELUARGA BERENCANA
-                    </div>
                     <div style="font-weight:bold; font-size:16pt; margin-top:4px;">
-                        RSUD ARROZY
+                        RSUD ARROZY KOTA PROBOLINGGO
                     </div>
-
                     <div style="margin-top:8px; font-size:11pt;">
-                        Jl. Prof. Dr. Hamka KM 3,5 Telp. (0335)4490009
+                        Jl. Prof. Dr. Hamka KM 3,5 Probolinggo (67228)
                     </div>
                     <div style="font-size:11pt;">
-                        Probolinggo (67228)
+                        Telp. (0335)4490009
                     </div>
                     <div style="font-size:11pt;">
                         Email: rsudarrozy@probolinggo.go.id
                     </div>
-                </td>
-
-                <!-- LOGO KANAN -->
-                <td width="20%" align="right" valign="top">
-                    <img src="<?= base_url('assets/img/logo-kanan.png') ?>"
-                        style="height:90px;">
                 </td>
             </tr>
         </table>
@@ -123,7 +110,7 @@
                 <td><span class="label">Kode Ticket</span></td>
                 <td>: <?= esc($detailTicket['kode_ticket'] ?? '-') ?></td>
                 <td class="text-right"><span class="label">Tanggal</span></td>
-                <td>: <?= date('d-m-Y H:i', strtotime($detailTicket['created_at'])) ?></td>
+                <td>: <?= date('d-m-Y', strtotime($detailTicket['created_at'])) ?></td>
             </tr>
             <tr>
                 <td><span class="label">Kategori</span></td>
@@ -212,7 +199,7 @@
                             <?php if (!empty($prosesItem['catatan'])): ?>
                                 <td><?= esc($prosesItem['nm_petugas']) ?></td>
                                 <td><?= esc($prosesItem['catatan']) ?></td>
-                                <td><?= date('d-m-Y H:i', strtotime($prosesItem['updated_at'])) ?></td>
+                                <td><?= date('d-m-Y', strtotime($prosesItem['updated_at'])) ?></td>
                             <?php else: ?>
                                 <td>-</td>
                                 <td>-</td>

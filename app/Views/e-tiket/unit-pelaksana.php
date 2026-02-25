@@ -33,7 +33,7 @@ $formDitampilkan = false;
                 <i class="fas fa-sitemap me-2"></i>
                 <?= esc($unit['nm_jbtn']) ?>
                 <?php if (!empty($prosesItem['id_petugas'])): ?>
-                    | <?= esc($prosesItem['id_petugas']) ?>
+                    | <?= esc($prosesItem['nm_petugas']) ?>
                 <?php endif; ?>
             </div>
             <?php

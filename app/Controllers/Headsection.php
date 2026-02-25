@@ -50,7 +50,7 @@ class Headsection extends BaseController
         //dd($tickets);
         $tickets = $this->attachPetugasToTickets($tickets);
 
-       
+
 
         // ========================
         // 3. Detail Ticket
@@ -61,6 +61,7 @@ class Headsection extends BaseController
             if ($detail) {
                 $detail = $this->attachPetugasToTicket($detail);
                 $detail = $this->attachNamaJabatanToUnits($detail);
+                $detail = $this->attachNamaJabatanToProses($detail);
                 $detail = $this->mapUnitWithJabatan($detail);
             }
         }
@@ -406,5 +407,43 @@ class Headsection extends BaseController
         $data   = $result['data'] ?? [];
 
         return array_column($data, 'nm_jbtn', 'kd_jbtn');
+    }
+    private function attachNamaJabatanToProses(array $detail): array
+    {
+        if (empty($detail['proses'])) {
+            return $detail;
+        }
+
+        // ============================================
+        // Kumpulkan semua NIP dari proses
+        // ============================================
+        $nips = [];
+
+        foreach ($detail['proses'] as $p) {
+            if (!empty($p['id_petugas'])) {
+                $nips[] = (string)$p['id_petugas'];
+            }
+        }
+
+        $nips = array_unique($nips);
+
+        // ============================================
+        // Build petugas map
+        // ============================================
+        $map = $this->buildPetugasMap($nips);
+
+        // ============================================
+        // Attach ke proses
+        // ============================================
+        foreach ($detail['proses'] as &$p) {
+
+            $nip = (string)($p['id_petugas'] ?? '');
+            $petugas = $map[$nip] ?? null;
+
+            $p['nm_petugas'] = $petugas['nama'] ?? '-';
+            $p['nm_jbtn']    = $petugas['nm_jbtn'] ?? '-';
+        }
+
+        return $detail;
     }
 }

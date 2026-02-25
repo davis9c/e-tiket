@@ -476,41 +476,41 @@ class ETicket extends BaseController
         }
     }
     private function attachNamaJabatanToProses(array $detail): array
-{
-    if (empty($detail['proses'])) {
+    {
+        if (empty($detail['proses'])) {
+            return $detail;
+        }
+
+        // ============================================
+        // Kumpulkan semua NIP dari proses
+        // ============================================
+        $nips = [];
+
+        foreach ($detail['proses'] as $p) {
+            if (!empty($p['id_petugas'])) {
+                $nips[] = (string)$p['id_petugas'];
+            }
+        }
+
+        $nips = array_unique($nips);
+
+        // ============================================
+        // Build petugas map
+        // ============================================
+        $map = $this->buildPetugasMap($nips);
+
+        // ============================================
+        // Attach ke proses
+        // ============================================
+        foreach ($detail['proses'] as &$p) {
+
+            $nip = (string)($p['id_petugas'] ?? '');
+            $petugas = $map[$nip] ?? null;
+
+            $p['nm_petugas'] = $petugas['nama'] ?? '-';
+            $p['nm_jbtn']    = $petugas['nm_jbtn'] ?? '-';
+        }
+
         return $detail;
     }
-
-    // ============================================
-    // Kumpulkan semua NIP dari proses
-    // ============================================
-    $nips = [];
-
-    foreach ($detail['proses'] as $p) {
-        if (!empty($p['id_petugas'])) {
-            $nips[] = (string)$p['id_petugas'];
-        }
-    }
-
-    $nips = array_unique($nips);
-
-    // ============================================
-    // Build petugas map
-    // ============================================
-    $map = $this->buildPetugasMap($nips);
-
-    // ============================================
-    // Attach ke proses
-    // ============================================
-    foreach ($detail['proses'] as &$p) {
-
-        $nip = (string)($p['id_petugas'] ?? '');
-        $petugas = $map[$nip] ?? null;
-
-        $p['nm_petugas'] = $petugas['nama'] ?? '-';
-        $p['nm_jbtn']    = $petugas['nm_jbtn'] ?? '-';
-    }
-
-    return $detail;
-}
 }
