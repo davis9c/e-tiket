@@ -4,18 +4,20 @@
     <div class="container-fluid px-4">
         <h1 class="mt-4">Pelaksana</h1>
         <p>Bagian ini hanya bisa dilihat Pelaksana yang memiliki keterlibatan(Unit Penanggung Jawab)</p>
-        <ol class="breadcrumb mb-4">
-            <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">Pelaksana</a></li>
-            <?php if (!empty($data['detailTicket'])): ?>
-            <li class="breadcrumb-item"><?= esc($data['detailTicket']['id'])?></li>
-            <?php endif; ?>
-        </ol>
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">Pelaksana</a></li>
+                <?php if (!empty($data['detailTicket'])): ?>
+                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['id'])?></li>
+                <?php endif; ?>
+            </ol>
+        </nav>
         <div class="row">
             <!-- LIST (KIRI) -->
             <?php if (!empty($data['detailTicket'])): ?>
-            <div class="col-md-5">
-                <?= $this->include('e-tiket/form-e') ?>
-            </div>
+                <div class="col-md-5">
+                    <?= $this->include('e-tiket/form-e') ?>
+                </div>
             <?php endif; ?>
             <!-- FORM DETAIL (KANAN) -->
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">
