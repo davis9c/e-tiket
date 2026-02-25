@@ -77,11 +77,5 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         // Head Section
         $routes->match(['get', 'post'], 'setheadsection/(:segment)', 'Admin::setHeadsection/$1');
 
-        // Kategori
-        $routes->get('kategori', 'Admin::kategori');
-        $routes->get('kategori/(:num)', 'Admin::kategori/$1');
-        $routes->post('kategori/store', 'Admin::storeKategori');
-        $routes->get('kategori/toggle/(:num)', 'Admin::toggleKategori/$1');
-        $routes->post('kategori/update-unit', 'Admin::updateUnit');
     });
 });
