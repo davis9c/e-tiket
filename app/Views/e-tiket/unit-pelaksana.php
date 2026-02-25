@@ -107,7 +107,7 @@ $formDitampilkan = false;
     <?php endforeach; ?>
     <?php if (!$formDitampilkan): ?>
         <div class="alert alert-info">
-            Semua unit sudah menyelesaikan proses.:d
+            Tombol report di tampilkan ketika selesai!=null 
         </div>
     <?php endif; ?>
 </div>
