@@ -36,11 +36,11 @@
                 </div>
             <?php else: ?>
                 <!-- View/Create Mode -->
-                <div class="col-md-7">
-                    <?= $this->include('kategoriEticket/list') ?>
-                    </div>
                 <div class="col-md-5">
                     <?= $this->include('kategoriEticket/form') ?>
+                </div>
+                <div class="col-md-7">
+                    <?= $this->include('kategoriEticket/list') ?>
                 </div>
             <?php endif; ?>
         </div>

@@ -23,9 +23,12 @@
                     <?php foreach ($kategoriEticket as $index => $p): ?>
                         <tr>
                             <td><?= $index + 1 ?></td>
-                            <td><?= esc($p['kode_kategori']) ?></td>
+                            <td>
+                                <a href="<?= base_url('kategori/edit/' . $p['id']) ?>">
+                                    <?= esc($p['kode_kategori']) ?>
+                                </a>
+                            </td>
                             <td><?= esc($p['nama_kategori']) ?></td>
-
                             <!-- Unit Penanggung Jawab -->
                             <td>
                                 <?php if (!empty($p['unit_penanggung_jawab'])): ?>
@@ -55,13 +58,6 @@
                             <td><?= esc($p['deskripsi']) ?></td>
 
                             <td class="text-center">
-
-                                <!-- Tombol Edit -->
-                                <a href="<?= base_url('kategori/edit/' . $p['id']) ?>"
-                                    class="btn btn-sm btn-warning me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-
                                 <!-- Toggle Status -->
                                 <?php if ($p['aktif'] == 1): ?>
                                     <a href="<?= base_url('kategori/toggle/' . $p['id']) ?>"
