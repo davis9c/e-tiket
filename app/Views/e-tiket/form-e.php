@@ -123,11 +123,13 @@
         <!-- tampilkan penanggung jawab/pelaksana -->
         <?= $this->include('e-tiket/unit-pelaksana') ?>
     </div>
-    <?php if ($data['detailTicket']['selesai'] != null): ?>
-        <a href="<?= base_url('etiket/report/' . $data['detailTicket']['id']) ?>"
-            target="_blank"
-            class="btn btn-primary">
-            <i class="fas fa-print"></i> Cetak Report
-        </a>
-    <?php endif; ?>
+    <div class="card-header">
+        <?php if ($data['detailTicket']['selesai'] != null): ?>
+            <a href="<?= base_url('etiket/report/' . $data['detailTicket']['id']) ?>"
+                target="_blank"
+                class="btn btn-primary">
+                <i class="fas fa-print"></i> Cetak Report
+            </a>
+        <?php endif; ?>
+    </div>
 </div>

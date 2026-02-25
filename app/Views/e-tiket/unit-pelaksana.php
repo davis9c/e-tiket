@@ -65,6 +65,7 @@ $formDitampilkan = false;
                                     <label class="btn btn-outline-danger" for="reject<?= $kd ?>">
                                         Tolak
                                     </label>
+
                                     <?php if ($nextKd): ?>
                                         <input type="radio" class="btn-check"
                                             name="status_validasi"
@@ -74,10 +75,12 @@ $formDitampilkan = false;
                                             Lanjutkan
                                         </label>
                                     <?php endif; ?>
+
                                     <input type="radio" class="btn-check"
                                         name="status_validasi"
                                         id="selesai<?= $kd ?>"
-                                        value="2">
+                                        value="2"
+                                        checked> <!-- 🔥 DEFAULT -->
                                     <label class="btn btn-outline-primary" for="selesai<?= $kd ?>">
                                         Selesaikan
                                     </label>
