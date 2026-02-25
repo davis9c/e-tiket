@@ -120,7 +120,7 @@
             <?php endif; ?>
         <?php endif; ?>
         <hr>
-        <!-- tampilkan penanggung jawab -->
+        <!-- tampilkan penanggung jawab/pelaksana -->
         <?= $this->include('e-tiket/unit-pelaksana') ?>
     </div>
 </div>
