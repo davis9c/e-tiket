@@ -8,7 +8,7 @@
             <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">Pelaksana</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
-                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['id'])?></li>
+                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['id']) ?></li>
                 <?php endif; ?>
             </ol>
         </nav>

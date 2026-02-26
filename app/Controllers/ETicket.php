@@ -120,7 +120,7 @@ class ETicket extends BaseController
             'detailTicket' => $detail,
         ];
     }
-    
+
     /* =========================================================
      * HEADSECTION
      * ========================================================= */
@@ -256,7 +256,7 @@ class ETicket extends BaseController
             'catatan'    => null,
         ]);
 
-        return redirect()->to(base_url('headsection/'.$id))
+        return redirect()->to(base_url('headsection/' . $id))
             ->with('success', 'Status berhasil diperbarui.');
     }
 
@@ -328,7 +328,7 @@ class ETicket extends BaseController
             ->first();
 
         if (! $prosesItem) {
-            return redirect()->to(base_url('pelaksana/'.$ticketId)) ->with('error', 'Proses item tidak ditemukan.');
+            return redirect()->to(base_url('pelaksana/' . $ticketId))->with('error', 'Proses item tidak ditemukan.');
         }
 
         $prosesId = $prosesItem['id'];
@@ -389,7 +389,7 @@ class ETicket extends BaseController
                 break;
         }
 
-        return redirect()->to(base_url('pelaksana/'.$ticketId))
+        return redirect()->to(base_url('pelaksana/' . $ticketId))
             ->with('success', 'Proses berhasil disimpan.');
     }
     /* =========================================================

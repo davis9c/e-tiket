@@ -240,7 +240,7 @@ class Admin extends BaseController
     /* =====================================================
      * HELPER API
      * ===================================================== */
-    
+
     private function getAPI($endpoint): array
     {
         try {
@@ -261,7 +261,6 @@ class Admin extends BaseController
 
             $result = json_decode($response->getBody(), true);
             return $result['data'] ?? [];
-
         } catch (\Throwable $e) {
 
             log_message('error', '[API ERROR] ' . $e->getMessage());
@@ -290,7 +289,6 @@ class Admin extends BaseController
 
             $result = json_decode($response->getBody(), true);
             return $result['data'] ?? [];
-
         } catch (\Throwable $e) {
 
             log_message('error', '[API ERROR] ' . $e->getMessage());
