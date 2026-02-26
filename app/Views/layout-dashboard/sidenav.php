@@ -1,31 +1,21 @@
 <?php
-$uri      = service('uri');
-$segment1 = $uri->getSegment(1);
-$segment2 = $uri->getSegment(2);
+$uri = service('uri');
 
+$segment1 = $uri->getSegment(1) ?? '';
+$segment2 = $uri->getSegment(2) ?? '';
 $kdJabatan = session('kd_jabatan');
 
-/**
- * Helper active menu
- */
-function isActive($current1, $current2 = null)
+function isActive($seg1, $seg2, $current1, $current2 = null)
 {
-    $uri = service('uri');
-
     if ($current2 === null) {
-        return $uri->getSegment(1) === $current1 ? 'active' : '';
+        return $seg1 === $current1 ? 'active' : '';
     }
-
-    return ($uri->getSegment(1) === $current1 && 
-            $uri->getSegment(2) === $current2) ? 'active' : '';
+    return ($seg1 === $current1 && $seg2 === $current2) ? 'active' : '';
 }
 
-/**
- * Helper open collapse if active
- */
-function isOpen($segment)
+function isOpen($seg1, $target)
 {
-    return service('uri')->getSegment(1) === $segment ? 'show' : '';
+    return $seg1 === $target ? 'show' : '';
 }
 ?>
 
@@ -35,8 +25,8 @@ function isOpen($segment)
             <div class="nav">
 
                 <!-- DASHBOARD -->
-                <a class="nav-link <?= isActive('dashboard') ?>" 
-                   href="<?= base_url('dashboard') ?>">
+                <a class="nav-link <?= isActive($segment1, $segment2, 'dashboard') ?>"
+                    href="<?= base_url('dashboard') ?>">
                     <div class="sb-nav-link-icon">
                         <i class="fas fa-tachometer-alt"></i>
                     </div>
@@ -45,8 +35,8 @@ function isOpen($segment)
 
                 <!-- HEADSECTION -->
                 <?php if ((int) session('headsection') === 1): ?>
-                    <a class="nav-link <?= isActive('headsection') ?>" 
-                       href="<?= base_url('headsection') ?>">
+                    <a class="nav-link <?= isActive($segment1, $segment2, 'headsection') ?>"
+                        href="<?= base_url('headsection') ?>">
                         <div class="sb-nav-link-icon">
                             <i class="fas fa-ticket-alt"></i>
                         </div>
@@ -55,8 +45,8 @@ function isOpen($segment)
                 <?php endif; ?>
 
                 <div class="sb-sidenav-menu-heading">Pelaksana</div>
-                <a class="nav-link <?= isActive('pelaksana') ?>" 
-                   href="<?= base_url('pelaksana') ?>">
+                <a class="nav-link <?= isActive($segment1, $segment2, 'pelaksana') ?>"
+                    href="<?= base_url('pelaksana') ?>">
                     <div class="sb-nav-link-icon">
                         <i class="fas fa-user-cog"></i>
                     </div>
@@ -64,8 +54,8 @@ function isOpen($segment)
                 </a>
 
                 <div class="sb-sidenav-menu-heading">My E-Ticket</div>
-                <a class="nav-link <?= isActive('etiket') ?>" 
-                   href="<?= base_url('etiket') ?>">
+                <a class="nav-link <?= isActive($segment1, $segment2, 'etiket') ?>"
+                    href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon">
                         <i class="fas fa-ticket-alt"></i>
                     </div>
@@ -75,12 +65,12 @@ function isOpen($segment)
                 <?php if ($kdJabatan === env('ROLE_ADMIN')): ?>
                     <div class="sb-sidenav-menu-heading">MASTER DATA</div>
                     <!-- KANZA -->
-                    <a class="nav-link collapsed <?= isOpen('admin') ? '' : '' ?>"
-                       href="#"
-                       data-bs-toggle="collapse"
-                       data-bs-target="#collapseKanza"
-                       aria-expanded="<?= isOpen('admin') ? 'true' : 'false' ?>"
-                       aria-controls="collapseKanza">
+                    <a class="nav-link collapsed"
+                        href="#"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseKanza"
+                        aria-expanded="<?= isOpen($segment1, 'admin') ? 'true' : 'false' ?>"
+                        aria-controls="collapseKanza">
                         <div class="sb-nav-link-icon">
                             <i class="fas fa-database"></i>
                         </div>
@@ -90,31 +80,31 @@ function isOpen($segment)
                         </div>
                     </a>
 
-                    <div class="collapse <?= isOpen('admin') ?>" 
-                         id="collapseKanza" 
-                         data-bs-parent="#sidenavAccordion">
+                    <div class="collapse <?= isOpen($segment1, 'admin') ?>"
+                        id="collapseKanza"
+                        data-bs-parent="#sidenavAccordion">
                         <nav class="sb-sidenav-menu-nested nav">
 
-                            <a class="nav-link <?= isActive('admin','users') ?>" 
-                               href="<?= base_url('admin/users') ?>">
+                            <a class="nav-link <?= isActive($segment1, $segment2, 'admin', 'users') ?>"
+                                href="<?= base_url('admin/users') ?>">
                                 <i class="fas fa-user-shield me-2"></i>
                                 User E-Tiket
                             </a>
 
-                            <a class="nav-link <?= isActive('admin','pegawai') ?>" 
-                               href="<?= base_url('admin/pegawai') ?>">
+                            <a class="nav-link <?= isActive($segment1, $segment2, 'admin', 'pegawai') ?>"
+                                href="<?= base_url('admin/pegawai') ?>">
                                 <i class="fas fa-user-tie me-2"></i>
                                 Pegawai
                             </a>
 
-                            <a class="nav-link <?= isActive('admin','petugas') ?>" 
-                               href="<?= base_url('admin/petugas') ?>">
+                            <a class="nav-link <?= isActive($segment1, $segment2, 'admin', 'petugas') ?>"
+                                href="<?= base_url('admin/petugas') ?>">
                                 <i class="fas fa-headset me-2"></i>
                                 Petugas
                             </a>
 
-                            <a class="nav-link <?= isActive('admin','dokter') ?>" 
-                               href="<?= base_url('admin/dokter') ?>">
+                            <a class="nav-link <?= isActive($segment1, $segment2, 'admin', 'dokter') ?>"
+                                href="<?= base_url('admin/dokter') ?>">
                                 <i class="fas fa-user-md me-2"></i>
                                 Dokter
                             </a>
@@ -124,11 +114,11 @@ function isOpen($segment)
 
                     <!-- APP -->
                     <a class="nav-link collapsed"
-                       href="#"
-                       data-bs-toggle="collapse"
-                       data-bs-target="#collapseApp"
-                       aria-expanded="<?= isOpen('kategori') ? 'true' : 'false' ?>"
-                       aria-controls="collapseApp">
+                        href="#"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseApp"
+                        aria-expanded="<?= isOpen($segment1, 'kategori') ? 'true' : 'false' ?>"
+                        aria-controls="collapseApp">
                         <div class="sb-nav-link-icon">
                             <i class="fas fa-cogs"></i>
                         </div>
@@ -138,18 +128,18 @@ function isOpen($segment)
                         </div>
                     </a>
 
-                    <div class="collapse <?= isOpen('kategori') ?>" 
-                         id="collapseApp" 
-                         data-bs-parent="#sidenavAccordion">
-                        <nav class="sb-sidenav-menu-nested nav">
+                    <div class="collapse <?= isOpen($segment1, 'kategori') ?>"
+                        id="collapseApp"
+                        data-bs-parent="#sidenavAccordion">
 
-                            <a class="nav-link <?= isActive('kategori') ?>" 
-                               href="<?= base_url('kategori') ?>">
+                        <nav class="sb-sidenav-menu-nested nav">
+                            <a class="nav-link <?= isActive($segment1, $segment2, 'kategori') ?>"
+                                href="<?= base_url('kategori') ?>">
                                 <i class="fas fa-layer-group me-2"></i>
                                 Kategori E-Tiket
                             </a>
-
                         </nav>
+
                     </div>
 
                 <?php endif; ?>
