@@ -4,8 +4,6 @@
         Daftar E-Tiket
     </div>
     <div class="card-body">
-        <p>Halaman ini hanya tampil di headsection. menampilkan yang sudah dan yang belum di approv secara keseluruhan berdasarkan kode jabatan
-        </p>
         <table class="table table-bordered table-striped datatable">
             <thead>
                 <tr>
