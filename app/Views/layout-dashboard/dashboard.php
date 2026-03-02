@@ -8,6 +8,7 @@
     <meta name="description" content="" />
     <meta name="author" content="" />
     <title>E-TIKET | <?=$title?></title>
+    <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/logo.ico') ?>">
     <link href="<?= base_url('dataTables/style.min.css') ?>" rel="stylesheet" />
     <link href="<?= base_url('sb/css/styles.css') ?>" rel="stylesheet" />
     <script src="<?= base_url('FontAwesome/all.js') ?>" crossorigin="anonymous"></script>
