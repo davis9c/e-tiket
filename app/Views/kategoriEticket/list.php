@@ -14,7 +14,6 @@
                     <th width="20%">Unit PJ</th>
                     <th width="20%">Unit Pengajuan</th>
                     <th>Deskripsi</th>
-                    <th width="15%" class="text-center">Aksi</th>
                 </tr>
             </thead>
 
@@ -56,24 +55,6 @@
                             </td>
 
                             <td><?= esc($p['deskripsi']) ?></td>
-
-                            <td class="text-center">
-                                <!-- Toggle Status -->
-                                <?php if ($p['aktif'] == 1): ?>
-                                    <a href="<?= base_url('kategori/toggle/' . $p['id']) ?>"
-                                        class="btn btn-sm btn-success"
-                                        onclick="return confirm('Nonaktifkan data ini?')">
-                                        Aktif
-                                    </a>
-                                <?php else: ?>
-                                    <a href="<?= base_url('kategori/toggle/' . $p['id']) ?>"
-                                        class="btn btn-sm btn-secondary"
-                                        onclick="return confirm('Aktifkan kembali data ini?')">
-                                        Nonaktif
-                                    </a>
-                                <?php endif; ?>
-
-                            </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
