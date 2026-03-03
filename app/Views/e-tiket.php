@@ -6,7 +6,7 @@
         <p>Bagian ini hanya bisa dilihat pembuat e-tiket</p>
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a href="<?= base_url('etiket') ?>">E-Tiket</a></li>
+                <li class="breadcrumb-item active"><a href="<?= base_url('etiket') ?>">E-Tiket (baru)</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
                     <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php elseif (!empty($data['kategoriData'])): ?>

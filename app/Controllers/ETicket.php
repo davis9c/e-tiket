@@ -521,7 +521,7 @@ class ETicket extends BaseController
 
             $db->transCommit();
 
-            return redirect()->to(base_url('etiket'))
+            return redirect()->to(base_url('etiket/' . $this->hashids->encode($ticketId)))
                 ->with('success', 'E-Ticket berhasil diajukan.');
         } catch (\Exception $e) {
             $db->transRollback();
