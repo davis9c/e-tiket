@@ -14,7 +14,7 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('login', 'Auth::login');
 $routes->post('auth/attempt', 'Auth::attempt');
 $routes->get('logout', 'Auth::logout');
-
+$routes->get('dashboard', 'Dashboard::index');
 
 /*
 |--------------------------------------------------------------------------
@@ -25,7 +25,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     // Dashboard & Home
     $routes->get('/', 'ETicket::index');
-    $routes->get('dashboard', 'Dashboard::index');
+    
 
     /*
     |--------------------------------------------------------------------------

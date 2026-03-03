@@ -24,15 +24,15 @@ function isOpen($seg1, $target)
         <div class="sb-sidenav-menu">
             <div class="nav">
 
-                <!-- DASHBOARD -->
-                <a class="nav-link <?= isActive($segment1, $segment2, 'dashboard') ?>"
-                    href="<?= base_url('dashboard') ?>">
+                <!-- E-TIKET -->
+                <div class="sb-sidenav-menu-heading">My E-Ticket</div>
+                <a class="nav-link <?= isActive($segment1, $segment2, 'etiket') ?>"
+                    href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon">
-                        <i class="fas fa-tachometer-alt"></i>
+                        <i class="fas fa-ticket-alt"></i>
                     </div>
-                    Dashboard
+                    E-Tiket
                 </a>
-
                 <!-- HEADSECTION -->
                 <?php if ((int) session('headsection') === 1): ?>
                     <a class="nav-link <?= isActive($segment1, $segment2, 'headsection') ?>"
@@ -44,6 +44,7 @@ function isOpen($seg1, $target)
                     </a>
                 <?php endif; ?>
 
+                <!-- PELAKSANA -->
                 <div class="sb-sidenav-menu-heading">Pelaksana</div>
                 <a class="nav-link <?= isActive($segment1, $segment2, 'pelaksana') ?>"
                     href="<?= base_url('pelaksana') ?>">
@@ -53,15 +54,7 @@ function isOpen($seg1, $target)
                     Pelaksana
                 </a>
 
-                <div class="sb-sidenav-menu-heading">My E-Ticket</div>
-                <a class="nav-link <?= isActive($segment1, $segment2, 'etiket') ?>"
-                    href="<?= base_url('etiket') ?>">
-                    <div class="sb-nav-link-icon">
-                        <i class="fas fa-ticket-alt"></i>
-                    </div>
-                    E-Tiket
-                </a>
-
+                <!-- KANZA -->
                 <?php if ($kdJabatan === env('ROLE_ADMIN')): ?>
                     <div class="sb-sidenav-menu-heading">MASTER DATA</div>
                     <!-- KANZA -->
@@ -103,11 +96,12 @@ function isOpen($seg1, $target)
                                 Petugas
                             </a>
 
-                            <a class="nav-link <?= isActive($segment1, $segment2, 'admin', 'dokter') ?>"
+                            <a class="nav-link disabled <?= isActive($segment1, $segment2, 'admin', 'dokter') ?>"
                                 href="<?= base_url('admin/dokter') ?>">
                                 <i class="fas fa-user-md me-2"></i>
                                 Dokter
                             </a>
+
 
                         </nav>
                     </div>
