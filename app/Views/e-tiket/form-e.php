@@ -127,7 +127,7 @@
     </div>
     <div class="card-header">
         <?php if ($data['detailTicket']['selesai'] != null): ?>
-            <a href="<?= base_url('etiket/report/' . $data['detailTicket']['id']) ?>"
+            <a href="<?= base_url('report/' . $data['detailTicket']['hashid']) ?>"
                 target="_blank"
                 class="btn btn-primary">
                 <i class="fas fa-print"></i> Cetak Report

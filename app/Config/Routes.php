@@ -25,7 +25,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     // Dashboard & Home
     $routes->get('/', 'ETicket::index');
-    
+
 
     /*
     |--------------------------------------------------------------------------
@@ -33,18 +33,19 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     |--------------------------------------------------------------------------
     */
     $routes->get('etiket', 'ETicket::index');
-    $routes->get('etiket/(:num)', 'ETicket::index/$1');
+    $routes->get('etiket/(:any)', 'ETicket::index/$1');
     $routes->post('etiket/submit', 'ETicket::submit');
+    $routes->get('report/(:any)', 'ETicket::report/$1');
 
     $routes->get('headsection', 'ETicket::headsection');
-    $routes->get('headsection/(:num)', 'ETicket::headsection/$1');
+    $routes->get('headsection/(:any)', 'ETicket::headsection/$1');
     $routes->post('headsection/headsection_approve', 'ETicket::headsection_approve');
 
     $routes->get('pelaksana', 'ETicket::pelaksana');
-    $routes->get('pelaksana/(:num)', 'ETicket::pelaksana/$1');
+    $routes->get('pelaksana/(:any)', 'ETicket::pelaksana/$1');
     $routes->post('pelaksana/pelaksana_proses', 'ETicket::pelaksana_proses');
 
-    $routes->get('etiket/report/(:num)', 'ETicket::report/$1');
+
 
     /*
     |--------------------------------------------------------------------------
