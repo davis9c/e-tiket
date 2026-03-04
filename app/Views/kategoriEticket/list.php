@@ -3,7 +3,6 @@
         <i class="fas fa-table me-1"></i>
         <?= esc($title) ?>
     </div>
-
     <div class="card-body">
         <table class="table table-bordered table-striped datatable">
             <thead>
@@ -17,7 +16,6 @@
                     <th width="15%" class="text-center">Aksi</th>
                 </tr>
             </thead>
-
             <tbody>
                 <?php if (!empty($kategoriEticket)): ?>
                     <?php foreach ($kategoriEticket as $index => $p): ?>
