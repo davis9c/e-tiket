@@ -34,10 +34,12 @@
                             <div class="mb-3">
                                 <div class="small text-muted">Unit Penanggung Jawab</div>
                                 <div>
+                                    <?php $i = 1; ?>
                                     <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
                                         <span class="badge bg-primary me-1 mb-1">
-                                            <?= esc($unit['nm_jbtn']) ?> | <?= esc($unit['kd_jbtn']) ?>
-                                        </span>
+                                            <?= $i ?> <?= esc($unit['nm_jbtn']) ?>
+                                        </span><br>
+                                        <?php $i++ ?>
                                     <?php endforeach; ?>
                                 </div>
                             </div>
@@ -125,7 +127,7 @@
     </div>
     <div class="card-header">
         <?php if ($data['detailTicket']['selesai'] != null): ?>
-            <a href="<?= base_url('etiket/report/' . $data['detailTicket']['id']) ?>"
+            <a href="<?= base_url('report/' . $data['detailTicket']['hashid']) ?>"
                 target="_blank"
                 class="btn btn-primary">
                 <i class="fas fa-print"></i> Cetak Report

@@ -17,6 +17,7 @@ class ETicket extends BaseController
     protected $client;
     protected array $headers;
     protected $eticketProsesModel;
+    protected $hashids;
     public function __construct()
     {
         $this->eticketModel  = new ETicketModel();
@@ -24,7 +25,11 @@ class ETicket extends BaseController
         $this->kategoriModel = new KategoriETiketModel();
         $this->usersModel    = new UsersModel();
         $this->client        = Services::curlrequest();
+
+        $this->hashids = \Config\Services::hashids();
+
         $this->checkToken();
+
         $this->headers = [
             'Authorization' => session()->get('token'),
             'Accept'        => 'application/json',
@@ -37,15 +42,28 @@ class ETicket extends BaseController
     private function guard()
     {
         if (!session()->get('token')) {
-            return redirect()->to(base_url('login'));
+            return redirect()->to('/login');
         }
+
         return null;
     }
     /* =========================================================
     * LIST & CREATE E-TICKET
     * ========================================================= */
-    public function index($id = null)
+    public function index($hashid = null)
     {
+        $id = null;
+
+        if ($hashid !== null) {
+            $decoded = $this->hashids->decode($hashid);
+
+            if (empty($decoded)) {
+                return redirect()->to('etiket/' . $hashid)
+                    ->with('error', 'ID tidak valid');
+            }
+
+            $id = $decoded[0];
+        }
         if ($redirect = $this->guard()) {
             return $redirect;
         }
@@ -63,7 +81,7 @@ class ETicket extends BaseController
 
             if (!$kategori) {
                 return redirect()
-                    ->to(base_url('eticket'))
+                    ->to(base_url('etiket/' . $hashid))
                     ->with('error', 'Kategori tidak ditemukan');
             }
 
@@ -78,6 +96,7 @@ class ETicket extends BaseController
         $data['kategori'] = $this->attachNamaJabatanToKategori(
             $this->kategoriModel->findByUnitPengajuan($kdJbtn)
         );
+        //dd($data['kategori']);
         // =====================================================
         // MODE LIST (Kategori & Ticket)
         // =====================================================
@@ -87,12 +106,20 @@ class ETicket extends BaseController
             'tickets' => $etickets,
             'id'      => $id,
         ]);
-
-        $data['eticket']      = $listData['eticket'];
-        $data['detailTicket'] = $listData['detailTicket'];
+        $data = array_merge($data, $listData);
+        if (!empty($data['detailTicket'])) {
+            $data['detailTicket']['hashid'] = $this->hashids->encode($data['detailTicket']['id']);
+        }
+        $data['eticket']      = $data['eticket'];
+        foreach ($data['eticket'] as &$row) {
+            $row['hashid'] = $this->hashids->encode($row['id']);
+        }
+        //dd($data['eticket']);
+        $data['detailTicket'] = $data['detailTicket'];
         //dd($data['detailTicket']);
         //print_r($data['detailTicket']);
         //die;
+        //dd($data['detailTicket']);
         return view('e-tiket', [
             'title' => 'Pengajuan E-Ticket',
             'data'  => $data,
@@ -120,13 +147,26 @@ class ETicket extends BaseController
             'detailTicket' => $detail,
         ];
     }
-    
+
     /* =========================================================
      * HEADSECTION
      * ========================================================= */
-    public function headsection($id = null)
+    public function headsection($hashid = null)
     {
         if ($redirect = $this->guard()) return $redirect;
+
+        $id = null;
+
+        if ($hashid !== null) {
+            $decoded = $this->hashids->decode($hashid);
+
+            if (empty($decoded)) {
+                return redirect()->to('etiket/' . $hashid)
+                    ->with('error', 'ID tidak valid');
+            }
+
+            $id = $decoded[0];
+        }
 
         $kdJbtn = session()->get('kd_jabatan');
 
@@ -135,8 +175,18 @@ class ETicket extends BaseController
             'id'      => $id,
         ]);
 
+        if (!empty($data['detailTicket']['id'])) {
+            $data['detailTicket']['hashid'] =
+                $this->hashids->encode($data['detailTicket']['id']);
+        }
+        $data['eticket'] = $data['eticket'];
+        $data['detailTicket'] = $data['detailTicket'];
+
+        foreach ($data['eticket'] as &$row) {
+            $row['hashid'] = $this->hashids->encode($row['id']);
+        }
+        //dd($data);
         return view('headsection', [
-            //'page'  => 'list',
             'title' => 'Headsection',
             'data'  => $data,
         ]);
@@ -256,15 +306,29 @@ class ETicket extends BaseController
             'catatan'    => null,
         ]);
 
-        return redirect()->to(base_url('headsection/'.$id))
+        return redirect()->to(base_url('headsection/' . $this->hashids->encode($id)))
             ->with('success', 'Status berhasil diperbarui.');
     }
 
     /* =========================================================
      * PELAKSANA
      * ========================================================= */
-    public function pelaksana(int $id = null)
+    public function pelaksana($hashid = null)
     {
+        if ($redirect = $this->guard()) return $redirect;
+
+        $id = null;
+
+        if ($hashid !== null) {
+            $decoded = $this->hashids->decode($hashid);
+
+            if (empty($decoded)) {
+                return redirect()->to('etiket/' . $hashid)
+                    ->with('error', 'ID tidak valid');
+            }
+
+            $id = $decoded[0];
+        }
         if ($redirect = $this->guard()) return $redirect;
 
         $kdJbtn = session()->get('kd_jabatan');
@@ -273,7 +337,16 @@ class ETicket extends BaseController
             'tickets' => $this->eticketModel->getSudahValidByProses($kdJbtn, true),
             'id'      => $id,
         ]);
+        if (!empty($data['detailTicket']['id'])) {
+            $data['detailTicket']['hashid'] =
+                $this->hashids->encode($data['detailTicket']['id']);
+        }
+        $data['eticket'] = $data['eticket'];
+        $data['detailTicket'] = $data['detailTicket'];
 
+        foreach ($data['eticket'] as &$row) {
+            $row['hashid'] = $this->hashids->encode($row['id']);
+        }
         return view('pelaksana', [
             //'page'  => 'list_pelaksana',
             'title' => 'Pelaksana',
@@ -328,7 +401,7 @@ class ETicket extends BaseController
             ->first();
 
         if (! $prosesItem) {
-            return redirect()->to(base_url('pelaksana/'.$ticketId)) ->with('error', 'Proses item tidak ditemukan.');
+            return redirect()->to(base_url('pelaksana/' . $this->hashids->encode($ticketId)))->with('error', 'Proses item tidak ditemukan.');
         }
 
         $prosesId = $prosesItem['id'];
@@ -389,7 +462,7 @@ class ETicket extends BaseController
                 break;
         }
 
-        return redirect()->to(base_url('pelaksana/'.$ticketId))
+        return redirect()->to(base_url('pelaksana/' . $this->hashids->encode($ticketId)))
             ->with('success', 'Proses berhasil disimpan.');
     }
     /* =========================================================
@@ -448,7 +521,7 @@ class ETicket extends BaseController
 
             $db->transCommit();
 
-            return redirect()->to(base_url('etiket'))
+            return redirect()->to(base_url('etiket/' . $this->hashids->encode($ticketId)))
                 ->with('success', 'E-Ticket berhasil diajukan.');
         } catch (\Exception $e) {
             $db->transRollback();
@@ -742,41 +815,43 @@ class ETicket extends BaseController
     /* =========================================================
     * REPORT E-TICKET
     * ========================================================= */
-    public function report($id)
+    function report($hashid)
     {
+        $decoded = $this->hashids->decode($hashid);
+
+        if (empty($decoded)) {
+            return redirect()->to('/eticket')
+                ->with('error', 'ID tidak valid');
+        }
+
+        $id = $decoded[0];
         if ($redirect = $this->guard()) {
             return $redirect;
         }
 
-        // =====================================================
-        // AMBIL DETAIL TICKET
-        // =====================================================
-        $detail = $this->eticketModel->findDetailLengkap($id);
+        $id = (int) $id;
 
+        if ($id <= 0) {
+            return redirect()->to('/etiket')
+                ->with('error', 'ID tidak valid');
+        }
+
+        $detail = $this->eticketModel->findDetailLengkap($id);
+        //dd($detail);
         if (!$detail) {
             return redirect()
-                ->to(base_url('eticket'))
+                ->to(base_url('etiket'))
                 ->with('error', 'Data E-Ticket tidak ditemukan');
         }
 
-        // =====================================================
-        // LAMPIRKAN INFO PETUGAS & UNIT
-        // =====================================================
-        $detail = $this->attachPetugasToTicket($detail);       // petugas pengajuan & validasi
-        $detail = $this->attachNamaJabatanToUnits($detail);    // unit penanggung jawab
+        $detail = $this->attachPetugasToTicket($detail);
+        $detail = $this->attachNamaJabatanToUnits($detail);
         $detail = $this->attachNamaJabatanToProses($detail);
-        $detail = $this->mapUnitWithJabatan($detail);          // mapping proses ke unit
+        $detail = $this->mapUnitWithJabatan($detail);
 
-        $data['detailTicket'] = $detail;
-        //dd($data['detailTicket']);
-        //print_r($data['detailTicket']);
-        //die;
-        // =====================================================
-        // RETURN VIEW REPORT
-        // =====================================================
         return view('e-tiket/report', [
             'title' => 'Report E-Ticket #' . $id,
-            'detailTicket' => $data['detailTicket'],
+            'detailTicket' => $detail,
         ]);
     }
 }

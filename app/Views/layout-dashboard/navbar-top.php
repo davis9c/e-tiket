@@ -12,6 +12,7 @@
     <ul class="navbar-nav ms-auto me-3 me-lg-4 align-items-center">
 
         <!-- Menu Dropdown (Pengganti Search) -->
+        <!--
         <li class="nav-item dropdown me-3">
             <a class="nav-link dropdown-toggle" href="#" 
                id="menuDropdown" 
@@ -26,7 +27,7 @@
                 <li><a class="dropdown-item" href="#!">Laporan</a></li>
             </ul>
         </li>
-
+        -->
         <!-- User Dropdown -->
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" 

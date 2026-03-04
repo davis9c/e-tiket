@@ -8,12 +8,13 @@
             <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item active"><a href="<?= base_url('headsection') ?>">Headsection</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
-                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['id'])?></li>
+                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php endif; ?>
             </ol>
         </nav>
         <div class="row">
             <!-- LIST (KIRI) -->
+
             <?php if (!empty($data['detailTicket'])): ?>
                 <div class="col-md-5">
                     <?= $this->include('e-tiket/form-e') ?>

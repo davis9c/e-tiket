@@ -4,8 +4,6 @@
         Daftar E-Tiket
     </div>
     <div class="card-body">
-        <p>Halaman ini hanya tampil di headsection. menampilkan yang sudah dan yang belum di approv secara keseluruhan berdasarkan kode jabatan
-        </p>
         <table class="table table-bordered table-striped datatable">
             <thead>
                 <tr>
@@ -26,7 +24,7 @@
                                         <?= esc($p['nama_kategori']) ?>
                                     </span>
                                 <?php else: ?>
-                                    <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['id']) ?>">
+                                    <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) ?>">
                                         <?= esc($p['nama_kategori']) ?>
                                     </a>
                                 <?php endif; ?>
@@ -43,9 +41,9 @@
                                         Valid
                                     </span>
                                     <?php if ($p['selesai'] == null): ?>
-                                    <span class="badge bg-warning">
-                                        Proses
-                                    </span>
+                                        <span class="badge bg-warning">
+                                            Proses
+                                        </span>
                                     <?php else: ?>
                                         <?php if ($p['reject'] != null): ?>
                                             <span class="badge bg-danger">
@@ -62,7 +60,7 @@
                                         Ditolak
                                     </span>
                                 <?php endif; ?>
-                                
+
                             </td>
                         </tr>
                     <?php endforeach; ?>

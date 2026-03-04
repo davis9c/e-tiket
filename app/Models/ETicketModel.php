@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use CodeIgniter\Model;
+use CodeIgniter\I18n\Time;
+
 
 class ETicketModel extends Model
 {
@@ -16,6 +18,10 @@ class ETicketModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $prosesModel;
+    private function enamBulanLalu(): string
+    {
+        return Time::now()->subMonths(6)->toDateTimeString();
+    }
     private function attachProsesToRows(array $rows): array
     {
         if (empty($rows)) return $rows;
@@ -129,6 +135,7 @@ class ETicketModel extends Model
     {
         $rows = $this->baseQuery()
             ->orderBy('e.created_at', 'DESC')
+            ->where('e.created_at >=', $this->enamBulanLalu())
             ->get()
             ->getResultArray();
 
@@ -138,6 +145,7 @@ class ETicketModel extends Model
     {
         $rows = $this->baseQuery()
             ->where('e.kd_jbtn', $kd_jbtn)
+            ->where('e.created_at >=', $this->enamBulanLalu())
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
@@ -147,21 +155,22 @@ class ETicketModel extends Model
 
 
     public function getByPetugas(string $nip): array
-{
-    $rows = $this->baseQuery()
-        ->join(
-            'eticket_proses ep',
-            'ep.id_eticket = e.id',
-            'left'
-        )
-        ->where('e.petugas_id', $nip)
-        ->groupBy('e.id')
-        ->orderBy('e.created_at', 'DESC')
-        ->get()
-        ->getResultArray();
+    {
+        $rows = $this->baseQuery()
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left'
+            )
+            ->where('e.petugas_id', $nip)
+            ->groupBy('e.id')
+            ->orderBy('e.created_at', 'DESC')
+            ->where('e.created_at >=', $this->enamBulanLalu())
+            ->get()
+            ->getResultArray();
 
-    return $this->attachProsesToRows($rows);
-}
+        return $this->attachProsesToRows($rows);
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -178,9 +187,10 @@ class ETicketModel extends Model
                 'inner'
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('e.kd_jbtn', $kd_jbtn)// hanya di jbtn itu saja yang tampil d masing2 headsection
-            ->where('e.headsection', 1)// hanya di jbtn itu saja yang tampil d masing2 headsection
+            ->where('e.kd_jbtn', $kd_jbtn) // hanya di jbtn itu saja yang tampil d masing2 headsection
+            ->where('e.headsection', 1) // hanya di jbtn itu saja yang tampil d masing2 headsection
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.created_at >=', $this->enamBulanLalu())
             //->where('e.valid', null) //kuncinya disini, menampilkan hanya yang tidak valid
             ->orderBy('e.created_at', 'DESC')
             ->get()
@@ -190,7 +200,7 @@ class ETicketModel extends Model
     }
 
 
-    public function getSudahValid(
+    public function getSudahValid2(
         string $kd_jbtn,
         bool $penanggungJawab,
         ?bool $selesai = null
@@ -207,6 +217,36 @@ class ETicketModel extends Model
             ->where('e.valid IS NOT NULL', null, false);
 
         // 🔥 FILTER SELESAI BERDASARKAN NULL
+        if ($selesai === true) {
+            $builder->where('e.selesai IS NOT NULL', null, false);
+        } elseif ($selesai === false) {
+            $builder->where('e.selesai IS NULL', null, false);
+        }
+
+        $rows = $builder
+            ->orderBy('e.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $this->attachProsesToRows($rows);
+    }
+    public function getSudahValid(
+        string $kd_jbtn,
+        bool $penanggungJawab,
+        ?bool $selesai = null
+    ): array {
+
+        $builder = $this->baseQuery()
+            ->join(
+                'kategori_unit_jabatan kuj',
+                'kuj.kategori_id = e.kategori_id',
+                'inner'
+            )
+            ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.valid IS NOT NULL', null, false)
+            ->where('e.created_at >=', $this->enamBulanLalu()); // 🔥 tambahkan ini
+
         if ($selesai === true) {
             $builder->where('e.selesai IS NOT NULL', null, false);
         } elseif ($selesai === false) {
@@ -239,6 +279,7 @@ class ETicketModel extends Model
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
             //->where('e.valid IS NOT NULL', null, false)
             ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
+            ->where('e.created_at >=', $this->enamBulanLalu())
             ->groupBy('e.id') // penting supaya tidak duplicate
             ->orderBy('e.created_at', 'DESC')
             ->get()

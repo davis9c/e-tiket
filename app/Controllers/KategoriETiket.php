@@ -27,33 +27,8 @@ class KategoriETiket extends BaseController
         }
 
         $kategoriEticket = $this->kategoriEticketModel->findAllWithUnit();
-        $APIjabatan      = $this->getJabatan();
-        // mapping jabatan
-        $jabatanMap = [];
-        foreach ($APIjabatan as $j) {
-            $jabatanMap[$j['kd_jbtn']] = $j['nm_jbtn'];
-        }
 
-        foreach ($kategoriEticket as &$kat) {
-            $unitPJ = [];
-            foreach ($kat['unit_penanggung_jawab'] as $kd) {
-                $unitPJ[] = [
-                    'kd_jbtn' => $kd['kd_jbtn'],
-                    'nm_jbtn' => $jabatanMap[$kd['kd_jbtn']] ?? '(Tidak ditemukan)',
-                ];
-            }
-            $kat['unit_penanggung_jawab'] = $unitPJ;
-
-            $unitP = [];
-            foreach ($kat['unit_pengajuan'] as $kd) {
-                $unitP[] = [
-                    'kd_jbtn' => $kd['kd_jbtn'],
-                    'nm_jbtn' => $jabatanMap[$kd['kd_jbtn']] ?? '(Tidak ditemukan)',
-                ];
-            }
-            $kat['unit_pengajuan'] = $unitP;
-        }
-        unset($kat);
+        $kategoriEticket = $this->attachNamaJabatanToKategori($kategoriEticket);
 
         return view('kategoriEticket', [
             'title'           => 'Kategori E-Ticket',
@@ -66,23 +41,30 @@ class KategoriETiket extends BaseController
      * API Jabatan
      * =============================== */
 
-    private function getJabatan(): array
+    private function getJabatanMap(): array
     {
-        $response = $this->client->get(
-            env('API_KANZA_BRIDGE') . 'jabatan',
-            [
-                'headers'     => $this->apiHeaders(),
-                'http_errors' => false,
-                'timeout'     => 10,
-            ]
-        );
+        try {
+            $response = $this->client->get(
+                env('API_KANZA_BRIDGE') . 'jabatan',
+                [
+                    'headers'     => $this->apiHeaders(),
+                    'http_errors' => false,
+                    'timeout'     => 10,
+                ]
+            );
 
-        if ($response->getStatusCode() !== 200) {
-            throw new \Exception('Gagal mengambil data jabatan');
+            if ($response->getStatusCode() !== 200) {
+                return [];
+            }
+
+            $result = json_decode($response->getBody(), true);
+            $data   = $result['data'] ?? [];
+
+            return array_column($data, 'nm_jbtn', 'kd_jbtn');
+        } catch (\Throwable $e) {
+            log_message('error', '[GET_JABATAN_MAP] ' . $e->getMessage());
+            return [];
         }
-
-        $result = json_decode($response->getBody(), true);
-        return $result['data'] ?? [];
     }
 
     private function apiHeaders(): array
@@ -159,7 +141,7 @@ class KategoriETiket extends BaseController
         try {
             $this->kategoriEticketModel->update($id, $data);
 
-            return redirect()->to(base_url('kategori'))
+            return redirect()->to(base_url('kategori/edit/' . $id))
                 ->with('success', 'Kategori berhasil diperbarui');
         } catch (\Throwable $e) {
             return redirect()->to(base_url('kategori/edit/' . $id))
@@ -187,7 +169,7 @@ class KategoriETiket extends BaseController
             ->with('success', 'Status berhasil diubah');
     }
 
-    public function edit($id)
+    public function edit2($id)
     {
         $kategori = $this->kategoriEticketModel->findDetail($id);
         if (! $kategori) {
@@ -195,8 +177,8 @@ class KategoriETiket extends BaseController
                 ->with('error', 'Data kategori tidak ditemukan');
         }
 
-        $APIjabatan = $this->getJabatan();
-
+        $APIjabatan = $this->getJabatanMap();
+        dd($APIjabatan);
         // mapping jabatan
         $jabatanMap = [];
         foreach ($APIjabatan as $j) {
@@ -204,6 +186,8 @@ class KategoriETiket extends BaseController
                 $jabatanMap[$j['kd_jbtn']] = $j['nm_jbtn'];
             }
         }
+        dd($jabatanMap);
+
 
         $mapUnit = function ($units) use ($jabatanMap) {
             $result = [];
@@ -247,6 +231,77 @@ class KategoriETiket extends BaseController
             )
         );
         //dd($kategori);
+        return view('kategoriEticket', [
+            'title'    => 'Edit Kategori E-Ticket',
+            'edit'     => 1,
+            'kategori' => $kategori,
+        ]);
+    }
+    public function edit($id)
+    {
+        $kategori = $this->kategoriEticketModel->findDetail($id);
+
+        if (! $kategori) {
+            return redirect()->to('/kategori')
+                ->with('error', 'Data kategori tidak ditemukan');
+        }
+
+        // Ambil map jabatan (kd_jbtn => nm_jbtn)
+        $jabatanMap = $this->getJabatanMap();
+
+        // ================================
+        // Helper mapping unit
+        // ================================
+        $mapUnit = function ($units) use ($jabatanMap) {
+
+            if (! is_array($units)) {
+                return [];
+            }
+
+            return array_map(function ($u) use ($jabatanMap) {
+
+                $kd = $u['kd_jbtn'] ?? null;
+
+                return [
+                    'kd_jbtn' => $kd,
+                    'nm_jbtn' => $jabatanMap[$kd] ?? '(Tidak ditemukan)',
+                ];
+            }, $units);
+        };
+
+        // ================================
+        // Attach nama jabatan ke unit
+        // ================================
+        $kategori['unit_penanggung_jawab'] = $mapUnit($kategori['unit_penanggung_jawab'] ?? []);
+        $kategori['unit_pengajuan']        = $mapUnit($kategori['unit_pengajuan'] ?? []);
+
+        // ================================
+        // Hitung jabatan yang belum dipakai
+        // ================================
+        $used = array_column(
+            array_merge(
+                $kategori['unit_penanggung_jawab'],
+                $kategori['unit_pengajuan']
+            ),
+            'kd_jbtn'
+        );
+
+        $used = array_flip($used);
+
+        $kategori['jabatan'] = array_values(
+            array_filter(
+                array_map(
+                    fn($kd, $nm) => [
+                        'kd_jbtn' => $kd,
+                        'nm_jbtn' => $nm
+                    ],
+                    array_keys($jabatanMap),
+                    $jabatanMap
+                ),
+                fn($j) => ! isset($used[$j['kd_jbtn']])
+            )
+        );
+
         return view('kategoriEticket', [
             'title'    => 'Edit Kategori E-Ticket',
             'edit'     => 1,
@@ -307,5 +362,41 @@ class KategoriETiket extends BaseController
 
         return redirect()->to(base_url("kategori/edit/$kategori_id"))
             ->with('error', 'Aksi tidak dikenali.');
+    }
+
+    /* =========================================================
+    * ATTACH HELPERS
+    * ========================================================= */
+
+    private function attachNamaJabatanToUnits(array $data): array
+    {
+        $jabatanMap = $this->getJabatanMap();
+
+        foreach (['unit_penanggung_jawab', 'unit_pengajuan'] as $key) {
+            if (empty($data[$key])) {
+                $data[$key] = [];
+                continue;
+            }
+
+            $data[$key] = array_map(function ($u) use ($jabatanMap) {
+                $kd = $u['kd_jbtn'] ?? null;
+
+                return [
+                    'kd_jbtn' => $kd,
+                    'nm_jbtn' => $jabatanMap[$kd] ?? '(Tidak ditemukan)',
+                ];
+            }, $data[$key]);
+        }
+
+        return $data;
+    }
+
+    private function attachNamaJabatanToKategori(array $kategori): array
+    {
+        foreach ($kategori as &$k) {
+            $k = $this->attachNamaJabatanToUnits($k);
+        }
+
+        return $kategori;
     }
 }
