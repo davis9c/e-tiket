@@ -187,7 +187,7 @@ class ETicket extends BaseController
         }
         //dd($data);
         return view('headsection', [
-            'title' => 'Headsection',
+            'title' => 'Persetujuan E-Ticket',
             'data'  => $data,
         ]);
     }

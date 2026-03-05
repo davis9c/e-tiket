@@ -2,11 +2,11 @@
 <?= $this->section('content') ?>
 <main>
     <div class="container-fluid px-4">
-        <h1 class="mt-4">Headsection</h1>
-        <p>Bagian ini hanya bisa dilihat headsection yang memilikikesamaan kdjabatan</p>
+        <h1 class="mt-4">Persetujuan E-Ticket</h1>
+        <p>Pilih ticket yang akan anda setujui</p>
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a href="<?= base_url('headsection') ?>">Headsection</a></li>
+                <li class="breadcrumb-item active"><a href="<?= base_url('headsection') ?>">Persetujuan E-Ticket</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
                     <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php endif; ?>

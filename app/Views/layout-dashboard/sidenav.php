@@ -40,7 +40,7 @@ function isOpen($seg1, $target)
                         <div class="sb-nav-link-icon">
                             <i class="fas fa-ticket-alt"></i>
                         </div>
-                        Headsection
+                        Persetujuan E-Ticket
                     </a>
                 <?php endif; ?>
 
