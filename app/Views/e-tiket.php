@@ -3,7 +3,9 @@
 <main>
     <div class="container-fluid px-4">
         <h1 class="mt-4">E-Tiket</h1>
-        <p>Bagian ini hanya bisa dilihat pembuat e-tiket</p>
+        <!--UPDATE 2 START-->
+        <p>Pilih kategori ticket yang akan anda ajukan</p>
+        <!--UPDATE 2 END-->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item active"><a href="<?= base_url('etiket') ?>">E-Tiket (baru)</a></li>
