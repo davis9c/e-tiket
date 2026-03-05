@@ -168,16 +168,8 @@
 
             <!-- KOLOM KANAN -->
             <div class="column">
-                <div class="label">Kategori Laporan</div>
+                <div class="label">Detail Kategori</div>
                 <div class="box">
-                    <strong><?= esc($detailTicket['nama_kategori']) ?></strong>
-                    (<?= esc($detailTicket['kode_kategori']) ?>)
-                    <br><br>
-                    <?php if (!empty($detailTicket['deskripsi'])): ?>
-                        <?= nl2br(esc($detailTicket['deskripsi'])) ?>
-                    <?php else: ?>
-                        -
-                    <?php endif; ?>
                 </div>
             </div>
 
@@ -198,7 +190,6 @@
                     <thead>
                         <tr>
                             <th>Unit</th>
-                            <th>Petugas</th>
                             <th>Catatan</th>
                             <th>Tanggal</th>
                         </tr>
@@ -219,13 +210,18 @@
                             }
                             ?>
                             <tr>
-                                <td><?= esc($unit['nm_jbtn']) ?></td>
+                                <td>
+                                    <?= esc($unit['nm_jbtn']) ?>
+                                    <?php if (!empty($prosesItem['catatan'])): ?>
+                                        <br>
+                                        (<?= esc($prosesItem['nm_petugas']) ?>)
+                                    <?php endif; ?>
+                                </td>
                                 <?php if (!empty($prosesItem['catatan'])): ?>
-                                    <td><?= esc($prosesItem['nm_petugas']) ?></td>
+
                                     <td><?= esc($prosesItem['catatan']) ?></td>
                                     <td><?= date('d-M-Y', strtotime($prosesItem['updated_at'])) ?></td>
                                 <?php else: ?>
-                                    <td>-</td>
                                     <td>-</td>
                                     <td>-</td>
                                 <?php endif; ?>
@@ -238,42 +234,6 @@
                 </table>
             </div>
         <?php endif; ?>
-
-        <!-- ================== KEPUTUSAN FINAL ================== -->
-        <div class="section">
-            <div class="label">Keputusan Final</div>
-            <div class="box">
-
-                <?php
-                $status = strtoupper($detailTicket['status'] ?? 'PENDING');
-                ?>
-
-                <strong><?= $status ?></strong> |
-                <?php if (!empty($detailTicket['reject_nama']) && $detailTicket['status'] === 'reject'): ?>
-                    Oleh: <?= esc($detailTicket['reject_nama']) ?>
-                <?php elseif (!empty($detailTicket['selesai_nama']) && $detailTicket['status'] === 'selesai'): ?>
-                    Oleh: <?= esc($detailTicket['selesai_nama']) ?>
-                <?php elseif (!empty($detailTicket['valid_nama'])): ?>
-                    Oleh: <?= esc($detailTicket['valid_nama']) ?>
-                <?php endif; ?>
-
-                <br>
-
-                <strong>Respon / Catatan:</strong><br>
-
-                <?php if (!empty($detailTicket['respon_message'])): ?>
-                    <?= nl2br(esc($detailTicket['respon_message'])) ?>
-                <?php else: ?>
-                    -
-                <?php endif; ?>
-
-                <br><br>
-
-                <strong>Tanggal Update:</strong>
-                <?= date('d-M-Y H:i', strtotime($detailTicket['updated_at'])) ?>
-
-            </div>
-        </div>
 
         <!-- ================== TANDA TANGAN ================== -->
         <table class="signature">
