@@ -34,33 +34,32 @@
                             <td>
                                 <?php if ($p['valid'] == null): ?>
                                     <span class="badge bg-secondary">
-                                        Tidak Valid
+                                        Menunggu Persetujuan $Atasan
                                     </span>
                                 <?php elseif ($p['valid'] != null): ?>
                                     <span class="badge bg-success">
-                                        Valid
+                                        Disetujui $Atasan
                                     </span>
                                     <?php if ($p['selesai'] == null): ?>
                                         <span class="badge bg-warning">
-                                            Proses
+                                            Sampai Pada $Pelaksana
                                         </span>
                                     <?php else: ?>
                                         <?php if ($p['reject'] != null): ?>
                                             <span class="badge bg-danger">
-                                                Ditolak
+                                                Ditolak $penolak
                                             </span>
                                         <?php else: ?>
                                             <span class="badge bg-primary">
-                                                Selesai
+                                                Diselesaikan $penyelesai
                                             </span>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 <?php else: ?>
                                     <span class="badge bg-danger">
-                                        Ditolak
+                                        Ditolak $penolak
                                     </span>
                                 <?php endif; ?>
-
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -71,6 +70,5 @@
                 <?php endif; ?>
             </tbody>
         </table>
-
     </div>
 </div>

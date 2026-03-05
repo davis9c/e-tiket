@@ -20,25 +20,26 @@
         //dd($data);
         ?>
         <div class="row">
-            <!-- FORM DETAIL (KANAN) -->
+            <!-- FORM/DETAIL (ATAS) -->
             <?php if (!empty($data['detailTicket'])): ?>
-                <div class="col-md-6">
+                <div class="col-md-9">
                     <?= $this->include('e-tiket/form-e') ?>
                 </div>
             <?php else: ?>
                 <?php if (!empty($data['kategoriData'])): ?>
-                    <div class="col-md-6">
+                    <div class="col-md-9">
                         <?= $this->include('e-tiket/form') ?>
                     </div>
                 <?php else: ?>
-                    <div class="col-md-6">
+                    <div class="col-md-9">
                         <?= $this->include('e-tiket/card') ?>
                     </div>
                 <?php endif ?>
             <?php endif ?>
-
-            <!-- LIST (KIRI) -->
-            <div class="col-md-6">
+        </div>
+        <div class="row">
+            <!-- LIST (Bawah) -->
+            <div class="col-md-9">
                 <?= $this->include('e-tiket/list') ?>
             </div>
         </div>

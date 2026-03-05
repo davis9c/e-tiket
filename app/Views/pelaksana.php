@@ -15,12 +15,15 @@
         <div class="row">
             <!-- LIST (KIRI) -->
             <?php if (!empty($data['detailTicket'])): ?>
-                <div class="col-md-5">
+                <div class="col-md-9">
                     <?= $this->include('e-tiket/form-e') ?>
                 </div>
             <?php endif; ?>
             <!-- FORM DETAIL (KANAN) -->
-            <div class="<?= !empty($data['detailTicket']) ? 'col-md-7' : 'col-md-12' ?>">
+
+        </div>
+        <div class="row">
+            <div class="<?= !empty($data['detailTicket']) ? 'col-md-9' : 'col-md-9' ?>">
                 <?= $this->include('e-tiket/list') ?>
             </div>
         </div>
