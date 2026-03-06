@@ -5,75 +5,148 @@
     </div>
     <div class="card-body">
         <!-- ===== FLASH MESSAGE ===== -->
-        <?php if ($msg = session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show">
-                <?= esc($msg) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        <?php if ($msg = session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show">
-                <?= esc($msg) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        <!-- ===== KATEGORI E-TIKET ===== -->
-        <div class="card mb-4 border-start border-primary border-4">
-            <div class="card-body">
-                <div class="row">
-                    <!-- Informasi Kategori -->
-                    <div class="col-md-8">
-                        <h5 class="fw-bold text-uppercase mb-2">
-                            <?= esc($data['detailTicket']['nama_kategori']) ?>
-                        </h5>
+        <div>
+            <?php if ($msg = session()->getFlashdata('success')): ?>
+                <div class="alert alert-success alert-dismissible fade show">
+                    <?= esc($msg) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+            <?php if ($msg = session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <?= esc($msg) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="row g-3 mb-4">
+            <!-- ===== KATEGORI E-TIKET ===== -->
+            <div class="col-md-3">
+                <div class="card h-100 border-start border-primary border-4">
+                    <div class="card-header">
+                        <b>
+                            Kategori
+                        </b>
+                    </div>
+                    <div class="card-body">
                         <div class="text-muted small mb-3">
-                            Kode: <strong><?= esc($data['detailTicket']['kode_kategori']) ?></strong>
+                            <strong>
+                                <?= esc($data['detailTicket']['kode_kategori']) ?><br>
+                                (<?= esc($data['detailTicket']['nama_kategori']) ?>)
+                            </strong>
                         </div>
                         <!-- Unit Penanggung Jawab -->
                         <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
                             <div class="mb-3">
-                                <div class="small text-muted">Unit Penanggung Jawab</div>
-                                <div>
-                                    <?php $i = 1; ?>
-                                    <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
-                                        <span class="badge bg-primary me-1 mb-1">
-                                            <?= $i ?> <?= esc($unit['nm_jbtn']) ?>
-                                        </span><br>
-                                        <?php $i++ ?>
-                                    <?php endforeach; ?>
-                                </div>
+                                <div class="small text-muted">Penanggung Jawab</div>
+                                <?php $i = 1; ?>
+                                <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
+                                    <span class="badge bg-primary me-1 mb-1">
+                                        <?= $i ?> <?= esc($unit['nm_jbtn']) ?>
+                                    </span><br>
+                                    <?php $i++ ?>
+                                <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
-                        <!-- Deskripsi Kategori -->
-                        <p class="fst-italic mb-0 text-secondary">
+                        <p class="fst-italic mb-3 text-secondary">
                             <?= esc($data['detailTicket']['deskripsi']) ?>
                         </p>
                     </div>
-                    <!-- Tanggal Pengajuan -->
-                    <div class="col-md-4 text-md-end">
-                        <div class="small text-muted">Tanggal Pengajuan</div>
+                </div>
+            </div>
+            <!-- ===== INFORMASI PETUGAS ===== -->
+            <div class="col-md-3">
+                <div class="card h-100 border-start border-primary border-4">
+                    <div class="card-header">
+                        <b>Petugas</b>
+                    </div>
+                    <div class="card-body">
                         <div class="fw-semibold">
-                            <?= esc($data['detailTicket']['created_at']) ?>
+                            <?= esc($data['detailTicket']['petugas_id_nama']) ?>
+                        </div>
+                        <div class="small text-muted">
+                            <?= esc($data['detailTicket']['nm_jbtn']) ?> <br>
+                            NIP: <?= esc($data['detailTicket']['petugas_id']) ?>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- ===== INFORMASI PETUGAS ===== -->
-        <div class="mb-4">
-            <label class="form-label fw-semibold">Petugas Pengajuan</label>
-            <div class="form-control bg-light">
-                <div class="fw-semibold"><?= esc($data['detailTicket']['petugas_id_nama']) ?></div>
-                <div class="small text-muted">
-                    <?= esc($data['detailTicket']['nm_jbtn']) ?> — NIP: <?= esc($data['detailTicket']['petugas_id']) ?>
+            <!-- ===== DESKRIPSI PENGAJUAN ===== -->
+            <div class="col-md-3">
+                <div class="card h-100 border-start border-primary border-4">
+                    <div class="card-header">
+                        <b>
+                            Deskripsi
+                        </b>
+                    </div>
+                    <div class="card-body">
+                        <?= esc($data['detailTicket']['message']) ?>
+                    </div>
                 </div>
             </div>
-        </div>
-        <!-- ===== DESKRIPSI PENGAJUAN ===== -->
-        <div class="mb-4">
-            <label class="form-label fw-semibold">Deskripsi Pengajuan</label>
-            <textarea class="form-control bg-light" rows="4"
-                readonly><?= esc($data['detailTicket']['message']) ?></textarea>
+            <!-- ===== STATUS ===== -->
+            <div class="col-md-3">
+                <div class="card h-100 border-start border-primary border-4">
+                    <div class="card-header">
+                        <b>Status</b>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="timeline">
+
+                            <div class="timeline-item">
+                                <div class="timeline-dot bg-primary"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-semibold">Tiket Dibuat</div>
+                                    <div class="text-muted small">
+                                        <?= esc($data['detailTicket']['created_at']) ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item">
+                                <div class="timeline-dot bg-warning"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-semibold">
+                                        Disetujui $ / Menunggu Persetujuan $
+                                    </div>
+                                    <div class="text-muted small">
+                                        waktu persetujuan $
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gunakan perulangan nanti -->
+                            <div class="timeline-item">
+                                <div class="timeline-dot bg-info"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-semibold">
+                                        Diproses oleh $
+                                    </div>
+                                    <div class="text-muted small">
+                                        tanggal proses $
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="timeline-item">
+                                <div class="timeline-dot bg-success"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-semibold">
+                                        Sampai / Ditolak / Selesai
+                                    </div>
+                                    <div class="text-muted small">
+                                        pada $
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
         <?php if ($data['detailTicket']['valid'] != null) : ?>
