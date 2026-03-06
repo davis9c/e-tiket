@@ -10,10 +10,14 @@
                     <th width="5%">No</th>
                     <th>Kategori</th>
                     <th>Petugas</th>
+                    <th>Deskripsi</th>
                     <th>Status</th>
                 </tr>
             </thead>
             <tbody>
+                <?php
+                //dd($data['eticket']);
+                ?>
                 <?php if (!empty($data['eticket'])): ?>
                     <?php foreach ($data['eticket'] as $index => $p): ?>
                         <tr>
@@ -30,6 +34,7 @@
                                 <?php endif; ?>
                             </td>
                             <td><?= esc($p['petugas_id_nama']) ?></td>
+                            <td><?= esc($p['message']) ?></td>
                             <!-- STATUS -->
                             <td>
                                 <?php if ($p['valid'] == null): ?>
