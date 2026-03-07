@@ -147,6 +147,15 @@
                     </div>
 
                 </div>
+                <?php if ($data['detailTicket']['selesai'] != null): ?>
+                    <div class="card-footer">
+                        <a href="<?= base_url('report/' . $data['detailTicket']['hashid']) ?>"
+                            target="_blank"
+                            class="btn btn-sm btn-primary ">
+                            <i class="fas fa-print"></i> Cetak E-Ticket
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -181,10 +190,3 @@
     <!-- tampilkan penanggung jawab/pelaksana -->
     <?= $this->include('e-tiket/unit-pelaksana') ?>
 </div>
-<?php if ($data['detailTicket']['selesai'] != null): ?>
-    <a href="<?= base_url('report/' . $data['detailTicket']['hashid']) ?>"
-        target="_blank"
-        class="btn btn-primary">
-        <i class="fas fa-print"></i> Cetak Report
-    </a>
-<?php endif; ?>
