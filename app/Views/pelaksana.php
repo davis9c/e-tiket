@@ -3,10 +3,9 @@
 <main>
     <div class="container-fluid px-4">
         <h1 class="mt-4">Pelaksana</h1>
-        <p>Bagian ini hanya bisa dilihat Pelaksana yang memiliki keterlibatan(Unit Penanggung Jawab)</p>
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">Pelaksana</a></li>
+                <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">E-Ticket</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
                     <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php endif; ?>
