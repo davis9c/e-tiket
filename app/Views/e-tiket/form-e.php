@@ -24,7 +24,7 @@
                     </b>
                 </div>
                 <div class="card-body">
-                    <div class="text-muted small mb-3">
+                    <div class="text-muted small">
                         <strong>
                             <?= esc($data['detailTicket']['kode_kategori']) ?><br>
                             (<?= esc($data['detailTicket']['nama_kategori']) ?>)
@@ -89,13 +89,11 @@
                 <div class="card-body">
 
                     <div class="timeline">
-
                         <div class="timeline-item">
                             <div class="timeline-dot bg-primary"></div>
                             <div class="timeline-content">
-                                <div class="fw-semibold">Tiket Dibuat</div>
-                                <div class="text-muted small">
-                                    <?= esc($data['detailTicket']['created_at']) ?>
+                                <div class="fw-semibold">
+                                    <i class="fa-solid fa-pencil"></i> Tiket Dibuat <?= date('d M Y', strtotime($data['detailTicket']['created_at'])) ?>
                                 </div>
                             </div>
                         </div>
@@ -108,41 +106,46 @@
                                 <div class="timeline-content">
                                     <?php if ($data['detailTicket']['valid'] !== null) : ?>
                                         <div class="fw-semibold">
-                                            Disetujui <?= esc($data['detailTicket']['valid_nama']) ?>
+                                            <i class="fa-solid fa-check"></i> Disetujui <?= esc($data['detailTicket']['valid_nama']) ?>
                                         </div>
                                     <?php else: ?>
                                         <div class="fw-semibold">
-                                            Menunggu Persetujuan
+                                            <p class="fst-italic mb-3 text-secondary">
+                                                <i class="fa-solid fa-clock"></i> Menunggu Persetujuan
+                                            </p>
                                         </div>
                                     <?php endif ?>
                                 </div>
                             </div>
                         <?php endif ?>
-
-                        <!-- Gunakan perulangan nanti -->
-                        <div class="timeline-item">
-                            <div class="timeline-dot bg-info"></div>
-                            <div class="timeline-content">
-                                <div class="fw-semibold">
-                                    Diproses oleh $
-                                </div>
-                                <div class="text-muted small">
-                                    tanggal proses $
+                        <?php if ($data['detailTicket']['valid'] !== null) : ?>
+                            <!-- Gunakan perulangan nanti -->
+                            <div class="timeline-item">
+                                <div class="timeline-dot bg-info"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-semibold">
+                                        <i class="fa-solid fa-clock"></i> Diproses oleh $
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="timeline-item">
-                            <div class="timeline-dot bg-success"></div>
-                            <div class="timeline-content">
-                                <div class="fw-semibold">
-                                    Sampai / Ditolak / Selesai
-                                </div>
-                                <div class="text-muted small">
-                                    pada $
+                        <?php endif ?>
+                        <?php if ($data['detailTicket']['selesai'] !== null) : ?>
+                            <div class="timeline-item">
+                                <div class="timeline-dot bg-success"></div>
+                                <div class="timeline-content">
+                                    <div class="fw-semibold">
+                                        <p class="fst-italic mb-3 text-secondary">
+                                            Sampai / Ditolak / Selesai
+                                        </p>
+                                    </div>
+                                    <div class="text-muted small">
+                                        pada $
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        <?php endif ?>
+
+
 
                     </div>
 

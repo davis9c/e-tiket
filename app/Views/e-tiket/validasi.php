@@ -19,9 +19,9 @@
                 <?php endforeach; ?>
             <?php endif; ?>
 
-            <div class="card border-danger">
-                <div class="card-header bg-danger text-white">
-                    Tindakan Penolakan
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    Tindakan Penolakan / Persetujuan
                 </div>
 
                 <div class="card-body">
@@ -40,12 +40,12 @@
                         <button type="submit"
                             class="btn btn-danger"
                             onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
-                            ❌ Tolak
+                            ❌ Tidak Menyetujui
                         </button>
                         <button type="submit"
                             class="btn btn-primary"
                             onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
-                            ✅ Selesaikan
+                            ✅ Setujui
                         </button>
                     </div>
 
