@@ -35,6 +35,7 @@ class ETicket extends Migration
                 'type' => 'TINYINT',
                 'default' => 0,
             ],
+
             'kategori_id' => [
                 'type'       => 'INT',
                 'constraint' => 11,
@@ -42,11 +43,24 @@ class ETicket extends Migration
                 'null'       => false,
             ],
 
+            // Kode Pegawai
+            'kd_pegawai' => [
+                'type'       => 'BIGINT',
+                'constraint' => 20,
+                'unsigned'   => true,
+                'null'       => false,
+            ],
             // NIP petugas
             'petugas_id' => [
                 'type'       => 'BIGINT',
                 'constraint' => 20,
                 'unsigned'   => true,
+                'null'       => false,
+            ],
+            // NAMA petugas
+            'petugas_id_nama' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
                 'null'       => false,
             ],
 
@@ -69,17 +83,22 @@ class ETicket extends Migration
                 'unsigned'   => true,
                 'null'       => true,
             ],
+            'valid_nama' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
+                'null'       => true,
+            ],
             /**
              * PROSES
              * default adalah null
              * jika valid sudah terisi otomatis ini akan berisi kd_jbtn(penanggungjawab)
              * 
              */
-            //'proses' => [
-            //    'type'       => 'CHAR',
-            //    'constraint' => 4,
-            //    'null'       => true,
-            //],
+            'proses' => [
+                'type'       => 'CHAR',
+                'constraint' => 4,
+                'null'       => true,
+            ],
             /**
              * SELESAI
              * default adalah null
@@ -92,6 +111,11 @@ class ETicket extends Migration
                 'unsigned'   => true,
                 'null'       => true,
             ],
+            'selesai_nama' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
+                'null'       => true,
+            ],
             /**
              * REJECTED
              * default adalah null
@@ -102,6 +126,11 @@ class ETicket extends Migration
                 'type'       => 'BIGINT',
                 'constraint' => 20,
                 'unsigned'   => true,
+                'null'       => true,
+            ],
+            'reject_nama' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
                 'null'       => true,
             ],
             'respon_message' => [
@@ -126,7 +155,11 @@ class ETicket extends Migration
         $this->forge->addKey('kategori_id');
         $this->forge->addKey('petugas_id');
         $this->forge->addKey('kd_jbtn');
-
+        $this->forge->addKey('kd_pegawai');
+        $this->forge->addKey('valid');
+        $this->forge->addKey('selesai');
+        $this->forge->addKey('reject');
+        $this->forge->addKey('proses');
         $this->forge->createTable('e_ticket', true);
     }
 

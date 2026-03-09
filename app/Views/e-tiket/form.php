@@ -74,13 +74,17 @@
                 </div>
             </div>
             <!-- Petugas -->
+            <?php
+            //dd($data['user']);
+            ?>
             <div class="mb-3">
                 <label class="form-label">Petugas</label>
                 <input type="text"
                     class="form-control"
-                    value="<?= session()->get('nama') . ' (' . session()->get('jabatan') . ')' ?>"
+                    value="<?= $data['user']['nama'] . ' (' . $data['user']['jabatan'] . ')' ?>"
                     readonly>
-                <input type="hidden" name="petugas_id" value="<?= session()->get('nip') ?>">
+                <input type="hidden" name="petugas_id" value="<?= $data['user']['nip'] ?>">
+                <input type="hidden" name="petugas_id_nama" value="<?= $data['user']['nama'] ?>">
             </div>
             <!-- Message -->
             <div class="mb-3">

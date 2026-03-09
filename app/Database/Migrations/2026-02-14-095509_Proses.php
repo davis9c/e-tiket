@@ -31,6 +31,11 @@ class Proses extends Migration
                 'unsigned'   => true,
                 'null'       => true,
             ],
+            'id_petugas_nama' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 100,
+                'null'       => true,
+            ],
             'catatan' => [
                 'type' => 'TEXT',
                 'null'       => true,
