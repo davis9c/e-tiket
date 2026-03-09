@@ -100,11 +100,15 @@ class ETicketModel extends Model
         'headsection',
         'kategori_id',
         'petugas_id',
+        'petugas_id_nama',
         'kd_jbtn',
         'valid',
+        'valid_nama',
         'respon_message',
         'selesai',
+        'selesai_nama',
         'reject',
+        'reject_nama',
     ];
 
     /*

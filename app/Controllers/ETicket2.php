@@ -9,7 +9,7 @@ use App\Models\UsersModel;
 use Config\Services;
 use App\Models\ETicketProsesModel;
 
-class ETicket extends BaseController
+class ETicket2 extends BaseController
 {
     protected ETicketModel $eticketModel;
     protected KategoriETiketModel $kategoriModel;
@@ -114,14 +114,14 @@ class ETicket extends BaseController
         foreach ($data['eticket'] as &$row) {
             $row['hashid'] = $this->hashids->encode($row['id']);
         }
-        //dd($data['eticket']);
+        ($data['eticket']);
         $data['detailTicket'] = $data['detailTicket'];
         //dd(session()->get());
         $data['user'] = session()->get();
         //dd($data['detailTicket']);
         //print_r($data['detailTicket']);
         //die;
-        //dd($data['detailTicket']);
+        dd($data['detailTicket']);
         return view('e-tiket', [
             'title' => 'Pengajuan E-Ticket',
             'data'  => $data,
@@ -129,15 +129,14 @@ class ETicket extends BaseController
     }
     private function buildTicketPage(array $config)
     {
-        $tickets = $config['tickets'];
-
-        $tickets = $this->attachPetugasToTickets($tickets);
+        $tickets = $this->attachNamaJabatanToTickets($config['tickets']);
 
         $detail = null;
+
         if (!empty($config['id'])) {
             $detail = $this->eticketModel->findDetailLengkap($config['id']);
+
             if ($detail) {
-                $detail = $this->attachPetugasToTicket($detail);
                 $detail = $this->attachNamaJabatanToUnits($detail);
                 $detail = $this->attachNamaJabatanToProses($detail);
                 $detail = $this->mapUnitWithJabatan($detail);
@@ -253,22 +252,36 @@ class ETicket extends BaseController
         // ========================
         // Mapping Status
         // ========================
+        $nama = session()->get('nama');
+
         $statusMap = [
             0 => [
                 'selesai' => $nip,
+                'selesai_nama' => $nama,
                 'valid'   => $nip,
+                'valid_nama' => $nama,
                 'reject'  => $nip,
+                'reject_nama' => $nama,
                 'respon_message' => $catatan,
             ],
-            1 => [
+            1 =>
+            [
                 'selesai' => null,
+                'selesai_nama' => null,
                 'valid'   => $nip,
+                'valid_nama' => $nama,
                 'reject'  => null,
+                'reject_nama' => null,
+                'respon_message' => $catatan,
             ],
-            2 => [
+            2 =>
+            [
                 'selesai' => $nip,
+                'selesai_nama' => $nama,
                 'valid'   => $nip,
+                'valid_nama' => $nama,
                 'reject'  => null,
+                'reject_nama' => null,
                 'respon_message' => $catatan,
             ],
         ];
@@ -378,7 +391,7 @@ class ETicket extends BaseController
         $keterangan      = $this->request->getPost('catatan');
         $status          = $this->request->getPost('status_validasi');
         $nip             = session()->get('nip');
-
+        $nama = session()->get('nama');
         // ========================
         // Validasi Input
         // ========================
@@ -420,7 +433,9 @@ class ETicket extends BaseController
             case '0':
                 $this->eticketModel->update($ticketId, [
                     'selesai'        => $nip,
+                    'selesai_nama'   => $nama,
                     'reject'         => $nip,
+                    'reject_nama'    => $nama,
                     'respon_message' => $keterangan,
                 ]);
 
@@ -455,6 +470,7 @@ class ETicket extends BaseController
             case '2':
                 $this->eticketModel->update($ticketId, [
                     'selesai'        => $nip,
+                    'selesai_nama'   => $nama,
                     'respon_message' => $keterangan,
                 ]);
 
@@ -497,13 +513,16 @@ class ETicket extends BaseController
         try {
             // Insert Ticket
             $ticketId = $this->eticketModel->insert([
-                'kategori_id' => $kategoriId,
-                'petugas_id'  => $this->request->getPost('petugas_id'),
-                'judul'       => trim($this->request->getPost('judul')),
-                'message'     => trim($this->request->getPost('message')),
-                'kd_jbtn'     => session()->get('kd_jabatan'),
-                'headsection' => $kategori['headsection'],
-                'valid'       => $flow['valid'],
+                'kategori_id'       => $kategoriId,
+                'petugas_id'        => $this->request->getPost('petugas_id') ?? null,
+                'petugas_id_nama'   => $this->request->getPost('petugas_id_nama') ?? null,
+                'judul'             => trim($this->request->getPost('judul')),
+                'message'           => trim($this->request->getPost('message')),
+                'kd_jbtn'           => session()->get('kd_jabatan'),
+                'headsection'       => $kategori['headsection'],
+                'valid'             => $flow['valid'],
+                'valid_nama'        => $flow['valid_nama'],
+
             ]);
 
             if (!$ticketId) {
@@ -543,66 +562,17 @@ class ETicket extends BaseController
         // Jika bukan headsection atau user adalah headsection
         if ($kategori['headsection'] == 0 || session()->get('headsection')) {
             return [
-                'valid'  => session()->get('nip'),
+                'valid'  => session()->get('nip') ?? null,
+                'valid_nama'  => session()->get('nama') ?? null,
                 'proses' => $kategori['unit_penanggung_jawab'][0]['kd_jbtn'] ?? null,
             ];
         }
 
-        return ['valid' => null, 'proses' => null];
+        return ['valid' => null, 'valid_nama' => null, 'proses' => null];
     }
     /* =========================================================
      * ATTACH HELPERS
      * ========================================================= */
-    private function attachPetugasToTickets(array $tickets): array
-    {
-        $nips = [];
-
-        foreach ($tickets as $t) {
-            foreach (['petugas_id', 'valid', 'selesai', 'reject'] as $field) {
-                if (!empty($t[$field])) {
-                    $nips[] = (string)$t[$field];
-                }
-            }
-        }
-
-        $nips = array_unique($nips);
-        $map  = $this->buildPetugasMap($nips);
-
-        foreach ($tickets as &$t) {
-            $t = $this->attachPetugasToTicket($t, $map);
-        }
-
-        return $tickets;
-    }
-    private function attachPetugasToTicket(array $ticket, array $map = null): array
-    {
-        $nipFields = ['petugas_id', 'valid', 'selesai', 'reject'];
-
-        if ($map === null) {
-            $nips = [];
-            foreach ($nipFields as $field) {
-                if (!empty($ticket[$field])) {
-                    $nips[] = (string)$ticket[$field];
-                }
-            }
-            $map = $this->buildPetugasMap($nips);
-        }
-
-        foreach ($nipFields as $field) {
-
-            $nip = $ticket[$field] ?? null;
-            $p   = $map[(string)$nip] ?? null;
-
-            $ticket[$field . '_nama'] = $p['nama'] ?? '-';
-
-            // khusus petugas_id tambahkan nm_jbtn
-            if ($field === 'petugas_id') {
-                $ticket['nm_jbtn'] = $p['nm_jbtn'] ?? '-';
-            }
-        }
-
-        return $ticket;
-    }
     private function attachNamaJabatanToUnits(array $data): array
     {
         $jabatanMap = $this->getJabatanMap();
@@ -624,6 +594,19 @@ class ETicket extends BaseController
             $k = $this->attachNamaJabatanToUnits($k);
         }
         return $kategori;
+    }
+    private function attachNamaJabatanToTickets(array $tickets): array
+    {
+        $jabatanMap = $this->getJabatanMap();
+
+        foreach ($tickets as &$t) {
+
+            $kd = $t['kd_jbtn'] ?? null;
+
+            $t['nm_jbtn'] = $jabatanMap[$kd] ?? '-';
+        }
+
+        return $tickets;
     }
     /* =========================================================
      * API HELPERS
@@ -708,23 +691,6 @@ class ETicket extends BaseController
     // =====================================================
     // HELPER METHODS
     // =====================================================
-
-    private function attachPetugasDetail(array $detail, array $petugasMap): array
-    {
-        $nipDetail = (string) $detail['petugas_id'];
-
-        $p = $petugasMap[$nipDetail]
-            ?? ($this->getPetugas([$nipDetail])[0] ?? null);
-
-        if ($p) {
-            $detail['petugas_id']   = $p['nip'];
-            $detail['petugas_nama'] = $p['nama'];
-            $detail['kd_jbtn']      = $p['kd_jbtn'];
-            $detail['nm_jbtn']      = $p['nm_jbtn'];
-        }
-
-        return $detail;
-    }
     private function mapUnitWithJabatan(array $detail): array
     {
         $jabatanList = $this->getJabatan();
@@ -847,7 +813,6 @@ class ETicket extends BaseController
                 ->with('error', 'Data E-Ticket tidak ditemukan');
         }
 
-        $detail = $this->attachPetugasToTicket($detail);
         $detail = $this->attachNamaJabatanToUnits($detail);
         $detail = $this->attachNamaJabatanToProses($detail);
         $detail = $this->mapUnitWithJabatan($detail);

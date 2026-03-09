@@ -19,6 +19,28 @@
         <?php
         //dd($data);
         ?>
+        <?php if ($msg = session()->getFlashdata('success')): ?>
+            <div class="modal fade" id="exampleModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <?= esc($msg) ?>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    var myModal = new bootstrap.Modal(document.getElementById('exampleModal'));
+                    myModal.show();
+                });
+            </script>
+        <?php endif; ?>
+
         <div class="row">
             <!-- FORM/DETAIL (ATAS) -->
             <?php if (!empty($data['detailTicket'])): ?>

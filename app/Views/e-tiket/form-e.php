@@ -24,11 +24,9 @@
                     </b>
                 </div>
                 <div class="card-body">
-                    <div class="text-muted small">
-                        <strong>
-                            <?= esc($data['detailTicket']['kode_kategori']) ?><br>
-                            (<?= esc($data['detailTicket']['nama_kategori']) ?>)
-                        </strong>
+                    <div class="fw-semibold">
+                        <?= esc($data['detailTicket']['kode_kategori']) ?><br>
+                        (<?= esc($data['detailTicket']['nama_kategori']) ?>)
                     </div>
                     <!-- Unit Penanggung Jawab -->
                     <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
