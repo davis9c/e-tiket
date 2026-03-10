@@ -425,10 +425,11 @@ class ETicket2 extends BaseController
         // Simpan Log Proses
         // ========================
         $this->eticketProsesModel->insert([
-            'id_eticket' => $ticketId,
-            'kd_jbtn'    => $kdJbtn,
-            'id_petugas' => $nip,
-            'catatan'    => $keterangan,
+            'id_eticket'        => $ticketId,
+            'kd_jbtn'           => $kdJbtn,
+            'id_petugas'        => $nip,
+            'id_petugas_nama'   => $nip,
+            'catatan'           => $keterangan,
         ]);
 
         // ========================
@@ -791,7 +792,12 @@ class ETicket2 extends BaseController
         }
 
         $detail = $this->attachNamaJabatanToUnits($detail);
+        /**
+         * Bagian ini memberikan nm_petugas dan nm_jbtn
+         * Berencana akan di buat statis
+         */
         $detail = $this->attachNamaJabatanToProses($detail);
+        //--------------------------------------------------
         $detail = $this->attachNamaJabatanToDetail($detail);
         $detail = $this->mapUnitWithJabatan($detail);
         dd($detail);
