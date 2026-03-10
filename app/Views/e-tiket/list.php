@@ -39,11 +39,11 @@
                             <td>
                                 <?php if ($p['valid'] == null): ?>
                                     <span class="badge bg-secondary">
-                                        Menunggu Persetujuan $Atasan
+                                        Menunggu Persetujuan
                                     </span>
                                 <?php elseif ($p['valid'] != null): ?>
                                     <span class="badge bg-success">
-                                        Disetujui $Atasan
+                                        Disetujui <?= esc($p['valid_nama']) ?>
                                     </span>
                                     <?php if ($p['selesai'] == null): ?>
                                         <span class="badge bg-warning">
@@ -52,17 +52,17 @@
                                     <?php else: ?>
                                         <?php if ($p['reject'] != null): ?>
                                             <span class="badge bg-danger">
-                                                Ditolak $penolak
+                                                Ditolak <?= esc($p['reject_nama']) ?>
                                             </span>
                                         <?php else: ?>
                                             <span class="badge bg-primary">
-                                                Diselesaikan $penyelesai
+                                                Diselesaikan <?= esc($p['selesai_nama']) ?>
                                             </span>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 <?php else: ?>
                                     <span class="badge bg-danger">
-                                        Ditolak $penolak
+                                        Ditolak <?= esc($p['reject_nama']) ?>
                                     </span>
                                 <?php endif; ?>
                             </td>

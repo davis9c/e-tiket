@@ -21,21 +21,18 @@
 
             <div class="card border-primary">
                 <div class="card-header bg-primary text-white">
-                    Tindakan Penolakan / Persetujuan
+                    Tindakan Penolakan / Penyelesaian
                 </div>
-
                 <div class="card-body">
-
                     <!-- CATATAN -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Catatan</label>
+                        <label class="form-label fw-semibold">Catatan Penolakan / Penyelesaian</label>
                         <textarea
                             name="catatan_headsection"
                             rows="3"
                             class="form-control"
                             placeholder="Masukkan alasan penolakan..."></textarea>
                     </div>
-
                     <div class="d-flex gap-2">
                         <button type="submit"
                             class="btn btn-danger"
@@ -45,7 +42,7 @@
                         <button type="submit"
                             class="btn btn-primary"
                             onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
-                            ✅ Setujui
+                            ✅ Selesaikan
                         </button>
                     </div>
 

@@ -14,6 +14,9 @@
             </div>
         <?php endif; ?>
     </div>
+    <?php
+    //dd($data['detailTicket']);
+    ?>
     <div class="row g-3 mb-4">
         <!-- ===== KATEGORI E-TIKET ===== -->
         <div class="col-md-3">
@@ -83,9 +86,7 @@
                 <div class="card-header">
                     <b>Status</b>
                 </div>
-
                 <div class="card-body">
-
                     <div class="timeline">
                         <div class="timeline-item">
                             <div class="timeline-dot bg-primary"></div>
@@ -116,37 +117,49 @@
                                 </div>
                             </div>
                         <?php endif ?>
-                        <?php if ($data['detailTicket']['valid'] !== null) : ?>
+                        <?php if ($data['detailTicket']['valid_nama'] !== null) : ?>
                             <!-- Gunakan perulangan nanti -->
                             <div class="timeline-item">
                                 <div class="timeline-dot bg-info"></div>
                                 <div class="timeline-content">
                                     <div class="fw-semibold">
-                                        <i class="fa-solid fa-clock"></i> Diproses oleh $
+                                        <?php
+                                        //dd($data['detailTicket']);
+                                        ?>
+                                        <i class="fa-solid fa-clock"></i> Diproses oleh <?= esc($data['detailTicket']['proses_unit'] ?? null) ?>
                                     </div>
                                 </div>
                             </div>
                         <?php endif ?>
-                        <?php if ($data['detailTicket']['selesai'] !== null) : ?>
-                            <div class="timeline-item">
-                                <div class="timeline-dot bg-success"></div>
-                                <div class="timeline-content">
-                                    <div class="fw-semibold">
-                                        <p class="fst-italic mb-3 text-secondary">
-                                            Sampai / Ditolak / Selesai
-                                        </p>
-                                    </div>
-                                    <div class="text-muted small">
-                                        pada $
+                        <?php
+                        //dd($data['detailTicket']);
+                        ?>
+                        <?php if ($data['detailTicket']['selesai_nama'] !== null) : ?>
+                            <?php if ($data['detailTicket']['reject_nama'] !== null) : ?>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot bg-danger"></div>
+                                    <div class="timeline-content">
+                                        <div class="fw-semibold">
+                                            <p class="fst-italic mb-3 text-secondary">
+                                                Diselesaikan <?= esc($data['detailTicket']['selesai_nama']) ?>
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            <?php else: ?>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot bg-success"></div>
+                                    <div class="timeline-content">
+                                        <div class="fw-semibold">
+                                            <p class="fst-italic mb-3 text-secondary">
+                                                Diselesaikan <?= esc($data['detailTicket']['selesai_nama']) ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif ?>
                         <?php endif ?>
-
-
-
                     </div>
-
                 </div>
                 <?php if ($data['detailTicket']['selesai'] != null): ?>
                     <div class="card-footer">

@@ -593,11 +593,11 @@ class ETicket extends BaseController
             $nip = $ticket[$field] ?? null;
             $p   = $map[(string)$nip] ?? null;
 
-            $ticket[$field . '_nama'] = $p['nama'] ?? '-';
+            $ticket[$field . '_nama_api'] = $p['nama'] ?? null;
 
             // khusus petugas_id tambahkan nm_jbtn
             if ($field === 'petugas_id') {
-                $ticket['nm_jbtn'] = $p['nm_jbtn'] ?? '-';
+                $ticket['nm_jbtn'] = $p['nm_jbtn_api'] ?? null;
             }
         }
 

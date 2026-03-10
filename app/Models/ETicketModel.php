@@ -102,6 +102,7 @@ class ETicketModel extends Model
         'petugas_id',
         'petugas_id_nama',
         'kd_jbtn',
+        'proses_jbtn',
         'valid',
         'valid_nama',
         'respon_message',

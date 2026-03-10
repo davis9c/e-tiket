@@ -99,6 +99,11 @@ class ETicket extends Migration
                 'constraint' => 4,
                 'null'       => true,
             ],
+            'proses_unit' => [
+                'type'       => 'CHAR',
+                'constraint' => 4,
+                'null'       => true,
+            ],
             /**
              * SELESAI
              * default adalah null
@@ -160,6 +165,7 @@ class ETicket extends Migration
         $this->forge->addKey('selesai');
         $this->forge->addKey('reject');
         $this->forge->addKey('proses');
+        $this->forge->addKey('proses_unit');
         $this->forge->createTable('e_ticket', true);
     }
 
