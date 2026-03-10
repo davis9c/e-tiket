@@ -96,20 +96,9 @@ class ETicket2 extends BaseController
         $data['kategori'] = $this->attachNamaJabatanToKategori(
             $this->kategoriModel->findByUnitPengajuan($kdJbtn)
         );
-        //dd($data['kategori']);
-        // =====================================================
-        // MODE LIST (Kategori & Ticket)
-        // =====================================================
         $etickets = $this->eticketModel->getByPetugas($nip);
-
-        // tambahkan nama jabatan
         $etickets = $this->attachNamaJabatanToTickets($etickets);
-        //dd($etickets);
-        /**
-         * tambahkan nama jabatan nm_jbtn disini
-         *
-         * */
-
+        $etickets = $this->attachNamaJabatanToTicketsProsesUnit($etickets);
         $listData = $this->buildTicketPage([
             'tickets' => $etickets,
             'id'      => $id,
@@ -143,7 +132,8 @@ class ETicket2 extends BaseController
 
                 // tambahkan nm_jbtn untuk ticket utama
                 $jabatanMap = $this->getJabatanMap();
-                $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? '-';
+                $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
+                $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit']] ?? null;
 
                 $detail = $this->attachNamaJabatanToUnits($detail);
                 $detail = $this->attachNamaJabatanToProses($detail);
@@ -178,12 +168,16 @@ class ETicket2 extends BaseController
         }
 
         $kdJbtn = session()->get('kd_jabatan');
+        $tickets = $this->eticketModel->getBelumValid($kdJbtn, false);
+        $tickets = $this->attachNamaJabatanToTickets($tickets);
+        $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
+        //dd($tickets);
 
         $data = $this->buildTicketPage([
-            'tickets' => $this->eticketModel->getBelumValid($kdJbtn, false),
+            'tickets' => $tickets,
             'id'      => $id,
         ]);
-
+        //dd($data['detailTicket']);
         if (!empty($data['detailTicket']['id'])) {
             $data['detailTicket']['hashid'] =
                 $this->hashids->encode($data['detailTicket']['id']);
@@ -216,6 +210,9 @@ class ETicket2 extends BaseController
         $catatan        = $this->request->getPost('catatan_headsection');
         //$proses         = (array) $this->request->getPost('proses');
         $nip            = session()->get('nip');
+        $nama            = session()->get('nama');
+        //print_r(session()->get());
+        //die;
         $kdJabatan      = session()->get('kd_jabatan');
 
         // ========================
@@ -279,7 +276,7 @@ class ETicket2 extends BaseController
                 'valid'   => $nip,
                 'valid_nama' => $nama,
                 //ini update V2
-                'proses_jbtn' => $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
+                'proses_unit' => $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
                 //sampai sini
                 'reject'  => null,
                 'reject_nama' => null,
@@ -326,16 +323,12 @@ class ETicket2 extends BaseController
 
             return redirect()->back()->with('error', $errorMessage);
         }
-        /**
-         * TODO
-         * Tidak diperlukan untuk next
-         */
-        $this->eticketProsesModel->insert([
-            'id_eticket' => $realId,
-            'kd_jbtn'    => $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
-            'id_petugas' => null,
-            'catatan'    => null,
-        ]);
+        //$this->eticketProsesModel->insert([
+        //    'id_eticket' => $realId,
+        //    'kd_jbtn'    => $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
+        //    'id_petugas' => null,
+        //    'catatan'    => null,
+        //]);
 
         return redirect()->to(base_url('headsection/' . $this->hashids->encode($id)))
             ->with('success', 'Status berhasil diperbarui.');
@@ -364,8 +357,13 @@ class ETicket2 extends BaseController
 
         $kdJbtn = session()->get('kd_jabatan');
 
+        $tickets = $this->eticketModel->getSudahValid($kdJbtn, true);
+        dd($tickets);
+        $tickets = $this->attachNamaJabatanToTickets($tickets);
+        $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
+
         $data = $this->buildTicketPage([
-            'tickets' => $this->eticketModel->getSudahValidByProses($kdJbtn, true),
+            'tickets' => $tickets,
             'id'      => $id,
         ]);
         if (!empty($data['detailTicket']['id'])) {
@@ -375,6 +373,7 @@ class ETicket2 extends BaseController
         $data['eticket'] = $data['eticket'];
         $data['detailTicket'] = $data['detailTicket'];
         $data['user'] = session()->get();
+
         foreach ($data['eticket'] as &$row) {
             $row['hashid'] = $this->hashids->encode($row['id']);
         }
@@ -449,53 +448,32 @@ class ETicket2 extends BaseController
                 $this->eticketModel->update($ticketId, [
                     'selesai'        => $nip,
                     'selesai_nama'   => $nama,
+                    'proses_unit'    => null,
                     'reject'         => $nip,
                     'reject_nama'    => $nama,
                     'respon_message' => $keterangan,
                 ]);
-                /**
-                 * TODO
-                 * INSERT
-                 * 
-                 */
-                /**
-                 * OLD
-                 */
-                //$this->eticketProsesModel->update($prosesId, [
-                //    'id_petugas' => $nip,
-                //    'catatan'    => $keterangan,
-                //]);
+                $this->eticketProsesModel->insert([
+                    'id_eticket' => $ticketId,
+                    'kd_jbtn'    => $$kdJbtn, //ini tidak ditemukan
+                    'id_petugas' => $nip,
+                    'catatan'    => $nama,
+                ]);
                 break;
 
             // ========================
             // 1 = Teruskan
             // ========================
             case '1':
-                /**
-                 * TODO baru
-                 * > Insert proses
-                 * > update proses_jbtn tb e-ticket ke next kd_jbtn
-                 */
-
-
-                /**
-                 * LOGIC LAMA
-                 * > Update proses saat ini
-                 * > Insert Proses baru next kd_unit
-                 */
-                // Update proses saat ini
-                //$this->eticketProsesModel->update($prosesId, [
-                //    'id_petugas' => $nip,
-                //    'catatan'    => $keterangan,
-                //]);
-
-                // Insert proses berikutnya
-                //$this->eticketProsesModel->insert([
-                //    'id_eticket' => $ticketId,
-                //    'kd_jbtn'    => $unitSelanjutnya, //ini tidak ditemukan
-                //    'id_petugas' => null,
-                //    'catatan'    => null,
-                //]);
+                $this->eticketModel->update($ticketId, [
+                    'proses_unit'    => $unitSelanjutnya,
+                ]);
+                $this->eticketProsesModel->insert([
+                    'id_eticket' => $ticketId,
+                    'kd_jbtn'    => $$kdJbtn, //ini tidak ditemukan
+                    'id_petugas' => $nip,
+                    'catatan'    => $nama,
+                ]);
                 break;
 
             // ========================
@@ -503,16 +481,10 @@ class ETicket2 extends BaseController
             // ========================
             case '2':
                 $this->eticketModel->update($ticketId, [
+                    'proses_unit'   => null,
                     'selesai'        => $nip,
                     'selesai_nama'   => $nama,
                     'respon_message' => $keterangan,
-                ]);
-                /** TODO 
-                 * Tambahkan Hapus proses_jbtn
-                 */
-                $this->eticketProsesModel->update($prosesId, [
-                    'id_petugas' => $nip,
-                    'catatan'    => $keterangan,
                 ]);
                 break;
         }
@@ -542,7 +514,7 @@ class ETicket2 extends BaseController
                 ->with('error', 'Kategori tidak ditemukan.');
         }
         $flow = $this->determineFlow($kategori);
-
+        //dd($flow);
         $db = \Config\Database::connect();
         $db->transBegin();
 
@@ -555,7 +527,7 @@ class ETicket2 extends BaseController
                 'judul'             => trim($this->request->getPost('judul')),
                 'message'           => trim($this->request->getPost('message')),
                 'kd_jbtn'           => session()->get('kd_jabatan'),
-                'proses_jbtn'       => ($flow['valid'] !== null) ? $flow['proses'] : null,
+                'proses_unit' => !empty($flow['valid']) ? $flow['proses'] : null,
                 'headsection'       => $kategori['headsection'],
                 'valid'             => $flow['valid'],
                 'valid_nama'        => $flow['valid_nama'],
@@ -639,10 +611,18 @@ class ETicket2 extends BaseController
 
             $kd = $t['kd_jbtn'] ?? null;
             $t['nm_jbtn'] = $jabatanMap[$kd] ?? null;
-            $kd = $t['proses_jbtn'] ?? null;
-            $t['proses_jbtn_nama'] = $jabatanMap[$kd] ?? null;
         }
+        return $tickets;
+    }
+    private function attachNamaJabatanToTicketsProsesUnit(array $tickets): array
+    {
+        $jabatanMap = $this->getJabatanMap();
 
+        foreach ($tickets as &$t) {
+
+            $kd = $t['proses_unit'] ?? null;
+            $t['proses_unit_nama'] = $jabatanMap[$kd] ?? null;
+        }
         return $tickets;
     }
     /* =========================================================

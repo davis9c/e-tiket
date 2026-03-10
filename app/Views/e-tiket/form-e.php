@@ -126,7 +126,7 @@
                                         <?php
                                         //dd($data['detailTicket']);
                                         ?>
-                                        <i class="fa-solid fa-clock"></i> Diproses oleh <?= esc($data['detailTicket']['proses_unit'] ?? null) ?>
+                                        <i class="fa-solid fa-clock"></i> Diproses oleh <?= esc($data['detailTicket']['proses_unit_nama'] ?? null) ?>
                                     </div>
                                 </div>
                             </div>

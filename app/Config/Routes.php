@@ -42,13 +42,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     //$routes->post('etiket/submit', 'ETicket::submit');
     //$routes->get('report/(:any)', 'ETicket::report/$1');
 
-    $routes->get('headsection', 'ETicket::headsection');
-    $routes->get('headsection/(:any)', 'ETicket::headsection/$1');
-    $routes->post('headsection/headsection_approve', 'ETicket::headsection_approve');
+    $routes->get('headsection', 'ETicket2::headsection');
+    $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
+    $routes->post('headsection/headsection_approve', 'ETicket2::headsection_approve');
 
-    $routes->get('pelaksana', 'ETicket::pelaksana');
-    $routes->get('pelaksana/(:any)', 'ETicket::pelaksana/$1');
-    $routes->post('pelaksana/pelaksana_proses', 'ETicket::pelaksana_proses');
+    $routes->get('pelaksana', 'ETicket2::pelaksana');
+    $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
+    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::pelaksana_proses');
 
 
 

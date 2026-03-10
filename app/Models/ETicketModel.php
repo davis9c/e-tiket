@@ -102,7 +102,7 @@ class ETicketModel extends Model
         'petugas_id',
         'petugas_id_nama',
         'kd_jbtn',
-        'proses_jbtn',
+        'proses_unit',
         'valid',
         'valid_nama',
         'respon_message',
@@ -267,6 +267,32 @@ class ETicketModel extends Model
     }
 
 
+    public function getSudahValidByProses2(string $kd_jbtn, bool $penanggungJawab): array
+    {
+        $rows = $this->baseQuery()
+            ->join(
+                'kategori_unit_jabatan kuj',
+                'kuj.kategori_id = e.kategori_id',
+                'inner'
+            )
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'inner'
+            )
+            ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.valid_nama IS NOT NULL', null, false)
+            ->where('e.proses_unit', $kd_jbtn) // 🔥 filter proses
+            ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
+            ->where('e.created_at >=', $this->enamBulanLalu())
+            ->groupBy('e.id') // penting supaya tidak duplicate
+            ->orderBy('e.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $this->attachProsesToRows($rows);
+    }
     public function getSudahValidByProses(string $kd_jbtn, bool $penanggungJawab): array
     {
         $rows = $this->baseQuery()
@@ -282,7 +308,8 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            //->where('e.valid IS NOT NULL', null, false)
+            ->where('e.valid_nama IS NOT NULL', null, false)
+            ->where('e.proses_unit', $kd_jbtn) // 🔥 filter proses
             ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
             ->where('e.created_at >=', $this->enamBulanLalu())
             ->groupBy('e.id') // penting supaya tidak duplicate
