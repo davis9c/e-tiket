@@ -47,7 +47,7 @@
                                     </span>
                                     <?php if ($p['selesai'] == null): ?>
                                         <span class="badge bg-warning">
-                                            Sampai Pada $Pelaksana
+                                            Sampai Pada <?= esc($p['proses_unit_nama']) ?>
                                         </span>
                                     <?php else: ?>
                                         <?php if ($p['reject'] != null): ?>

@@ -7,7 +7,7 @@ $formDitampilkan = false;
 <div class="mb-4">
     <h6 class="fw-semibold mb-3">Proses Unit Penanggung Jawab</h6>
     <?php
-    //dd($proses);
+    dd($data['user']);
     ?>
     <!-- tampilkan berdasarkan unit penanggung jawab -->
     <?php foreach ($units as $index => $unit): ?>
@@ -18,9 +18,13 @@ $formDitampilkan = false;
 
         foreach ($proses as $p) {
             if (
-                isset($p['kd_jbtn']) &&
-                $p['kd_jbtn'] === $kd //&&
-                //$p['kd_jbtn'] === session()->get('kd_jabatan')
+                isset(
+                    $p['kd_jbtn']
+                )
+                &&
+                $p['kd_jbtn'] === $kd
+                &&
+                $p['kd_jbtn'] === session()->get('kd_jabatan')
             ) {
                 $prosesItem = $p;
                 break;
@@ -42,7 +46,7 @@ $formDitampilkan = false;
             <!---->
             <?php if ($prosesItem): ?>
                 <?php if (empty($prosesItem['catatan']) && !$formDitampilkan && ($prosesItem['kd_jbtn'] === session()->get('kd_jabatan'))): ?>
-                    <?php if ($data['detailTicket']['selesai'] == null): ?>
+                    <?php if ($data['detailTicket']['selesai_nama'] == null): ?>
                         <?php $formDitampilkan = true; ?>
                         <div class="row">
 
@@ -142,9 +146,9 @@ $formDitampilkan = false;
                         </div>
                     <?php endif; ?>
                 <?php elseif (!empty($prosesItem['catatan'])): ?>
-                    <div class="alert <?= !empty($data['detailTicket']['reject']) ? 'alert-danger' : 'alert-success' ?> mb-0">
+                    <div class="alert <?= !empty($data['detailTicket']['reject_nama']) ? 'alert-danger' : 'alert-success' ?> mb-0">
                         <strong>
-                            <?= !empty($data['detailTicket']['reject']) ? 'Ditolak' : 'Selesai'; ?>
+                            <?= !empty($data['detailTicket']['reject_nama']) ? 'Ditolak' : 'Selesai'; ?>
                         </strong>
                         <br>
                         <?= esc($prosesItem['catatan']) ?>

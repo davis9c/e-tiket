@@ -174,14 +174,14 @@
         </div>
     </div>
     <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
-    <?php if ($data['detailTicket']['valid'] != null) : ?>
+    <?php if ($data['detailTicket']['valid_nama'] != null) : ?>
         <!-- Jika valid == selesai maka proses dianggap final -->
-        <?php if ($data['detailTicket']['valid'] == $data['detailTicket']['selesai']) : ?>
+        <?php if ($data['detailTicket']['valid_nama'] == $data['detailTicket']['selesai_nama']) : ?>
 
-            <div class="alert <?= $data['detailTicket']['reject'] ? 'alert-danger' : 'alert-info' ?> mb-4">
+            <div class="alert <?= $data['detailTicket']['reject_nama'] ? 'alert-danger' : 'alert-info' ?> mb-4">
                 <i class="fas fa-check-circle me-2"></i>
 
-                <?php if ($data['detailTicket']['reject']) : ?>
+                <?php if ($data['detailTicket']['reject_nama']) : ?>
                     Ditolak oleh:
                     <strong><?= esc($data['detailTicket']['reject_nama']) ?></strong>
                 <?php else: ?>
@@ -194,7 +194,7 @@
                 </div>
             </div>
         <?php endif; ?>
-    <?php elseif ($data['detailTicket']['valid'] == null): ?>
+    <?php elseif ($data['detailTicket']['valid_nama'] == null): ?>
         <?php if (session()->get('headsection') != null): ?>
             <!-- Form Valid muncul disini -->
             <?= $this->include('e-tiket/validasi') ?>
@@ -202,5 +202,5 @@
     <?php endif; ?>
     <hr>
     <!-- tampilkan penanggung jawab/pelaksana -->
-    <?= $this->include('e-tiket/unit-pelaksana') ?>
+    <?= $this->include('e-tiket/unit-pelaksana2') ?>
 </div>

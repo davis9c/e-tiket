@@ -358,7 +358,7 @@ class ETicket2 extends BaseController
         $kdJbtn = session()->get('kd_jabatan');
 
         $tickets = $this->eticketModel->getSudahValid($kdJbtn, true);
-        dd($tickets);
+        //dd($tickets);
         $tickets = $this->attachNamaJabatanToTickets($tickets);
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
 
@@ -389,10 +389,7 @@ class ETicket2 extends BaseController
     // ====================================================
     public function pelaksana_proses()
     {
-        // ========================
-        // Hanya boleh POST
-        // ========================
-        if (! $this->request->is('post')) {
+        if (!$this->request->is('post')) {
             return redirect()->back();
         }
 
@@ -404,84 +401,58 @@ class ETicket2 extends BaseController
         $unitSelanjutnya = $this->request->getPost('unit_selanjutnya');
         $keterangan      = $this->request->getPost('catatan');
         $status          = $this->request->getPost('status_validasi');
-        $nip             = session()->get('nip');
+
+        $nip  = session()->get('nip');
         $nama = session()->get('nama');
+
         // ========================
-        // Validasi Input
+        // Validasi
         // ========================
         $rules = [
-            'ticket_id'         => 'required|numeric',
-            'kd_jbtn'           => 'required|string',
-            'status_validasi'   => 'required|in_list[0,1,2]',
-            'catatan'           => 'required|min_length[3]',
+            'ticket_id'       => 'required|numeric',
+            'kd_jbtn'         => 'required|string',
+            'status_validasi' => 'required|in_list[0,1,2]',
+            'catatan'         => 'required|min_length[3]',
         ];
 
-        if (! $this->validate($rules)) {
+        if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors());
         }
 
         // ========================
-        // Ambil Proses Aktif
+        // Simpan Log Proses
         // ========================
-        $prosesItem = $this->eticketProsesModel
-            ->where('id_eticket', $ticketId)
-            ->where('kd_jbtn', $kdJbtn)
-            ->first();
-
-        if (! $prosesItem) {
-            return redirect()->to(base_url('pelaksana/' . $this->hashids->encode($ticketId)))->with('error', 'Proses item tidak ditemukan.');
-        }
-
-        $prosesId = $prosesItem['id'];
+        $this->eticketProsesModel->insert([
+            'id_eticket' => $ticketId,
+            'kd_jbtn'    => $kdJbtn,
+            'id_petugas' => $nip,
+            'catatan'    => $keterangan,
+        ]);
 
         // ========================
-        // Update berdasarkan Status
+        // Proses Berdasarkan Status
         // ========================
         switch ($status) {
-
-            // ========================
-            // 0 = Tolak
-            // ========================
-            case '0':
+            case '0': // 0 = Tolak
                 $this->eticketModel->update($ticketId, [
+                    'proses_unit'    => null,
                     'selesai'        => $nip,
                     'selesai_nama'   => $nama,
-                    'proses_unit'    => null,
                     'reject'         => $nip,
                     'reject_nama'    => $nama,
                     'respon_message' => $keterangan,
                 ]);
-                $this->eticketProsesModel->insert([
-                    'id_eticket' => $ticketId,
-                    'kd_jbtn'    => $$kdJbtn, //ini tidak ditemukan
-                    'id_petugas' => $nip,
-                    'catatan'    => $nama,
+                break;
+            case '1': // 1 = Teruskan
+                $this->eticketModel->update($ticketId, [
+                    'proses_unit' => $unitSelanjutnya,
                 ]);
                 break;
-
-            // ========================
-            // 1 = Teruskan
-            // ========================
-            case '1':
+            case '2': // 2 = Selesai
                 $this->eticketModel->update($ticketId, [
-                    'proses_unit'    => $unitSelanjutnya,
-                ]);
-                $this->eticketProsesModel->insert([
-                    'id_eticket' => $ticketId,
-                    'kd_jbtn'    => $$kdJbtn, //ini tidak ditemukan
-                    'id_petugas' => $nip,
-                    'catatan'    => $nama,
-                ]);
-                break;
-
-            // ========================
-            // 2 = Selesai
-            // ========================
-            case '2':
-                $this->eticketModel->update($ticketId, [
-                    'proses_unit'   => null,
+                    'proses_unit'    => null,
                     'selesai'        => $nip,
                     'selesai_nama'   => $nama,
                     'respon_message' => $keterangan,
@@ -537,17 +508,6 @@ class ETicket2 extends BaseController
             if (!$ticketId) {
                 throw new \Exception('Gagal menyimpan ticket: ' . json_encode($this->eticketModel->errors()));
             }
-
-            // Insert Proses Pertama (hanya jika belum valid)
-            //if ($flow['valid'] !== null) {
-            //    $prosesInsert = $this->eticketProsesModel->insert([
-            //        'id_eticket' => $ticketId,
-            //        'kd_jbtn'    => $kategori['unit_penanggung_jawab'][0]['kd_jbtn'],
-            //    ]);
-            //    if (!$prosesInsert) {
-            //        throw new \Exception('Gagal menyimpan proses: ' . json_encode($this->eticketProsesModel->errors()));
-            //    }
-            //}
 
             $db->transCommit();
 
@@ -832,11 +792,21 @@ class ETicket2 extends BaseController
 
         $detail = $this->attachNamaJabatanToUnits($detail);
         $detail = $this->attachNamaJabatanToProses($detail);
+        $detail = $this->attachNamaJabatanToDetail($detail);
         $detail = $this->mapUnitWithJabatan($detail);
-
+        dd($detail);
         return view('e-tiket/report', [
             'title' => 'Report E-Ticket #' . $id,
             'detailTicket' => $detail,
         ]);
+    }
+    private function attachNamaJabatanToDetail(array $detail): array
+    {
+        $jabatanMap = $this->getJabatanMap();
+
+        $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
+        $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit'] ?? null] ?? null;
+
+        return $detail;
     }
 }
