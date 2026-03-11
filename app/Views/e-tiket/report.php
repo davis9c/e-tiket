@@ -148,7 +148,18 @@
                     <td><span class="label">Kategori</span></td>
                     <td>: <?= esc($detailTicket['nama_kategori']) ?> (<?= esc($detailTicket['kode_kategori']) ?>)</td>
                     <td class="text-right"><span class="label">Status</span></td>
-                    <td>: <?= strtoupper($detailTicket['status']) ?></td>
+                    <td>:
+                        <?php
+                        if ($detailTicket['selesai_nama'] != null) {
+                            if ($detailTicket['reject_nama'] != null) {
+                                echo strtoupper('ditolak');
+                            } else {
+                                echo strtoupper('selesai');
+                            }
+                        }
+                        //dd($detailTicket);
+                        ?>
+                    </td>
                 </tr>
             </table>
         </div>
@@ -165,11 +176,17 @@
                     NIP: <?= esc($detailTicket['petugas_id']) ?>
                 </div>
             </div>
-
             <!-- KOLOM KANAN -->
             <div class="column">
+                <?php if ($detailTicket['headsection'] == 1): ?>
+                    <div class="label">Disetujui</div>
+                    <div class="box">
+                        <?= esc($detailTicket['valid_nama']) ?>
+                    </div>
+                <?php endif ?>
                 <div class="label">Detail Kategori</div>
                 <div class="box">
+                    <?= esc($detailTicket['deskripsi']) ?>
                 </div>
             </div>
 
@@ -238,12 +255,22 @@
         <!-- ================== TANDA TANGAN ================== -->
         <table class="signature">
             <tr>
-                <td>
-                    Mengetahui,<br>
-                    Atasan
-                </td>
+                <?php if ($detailTicket['headsection'] == 1): ?>
+                    <td>
+                        Mengetahui,<br>
+                        Atasan<br><br><br><br><br><br>
+                        <?= esc($detailTicket['valid_nama']) ?>
+                    </td>
+                <?php else: ?>
+                    <td>
+                        Mengetahui,<br>
+                        Atasan
+                    </td>
+                <?php endif ?>
                 <td>
                     Pemohon
+                    <br><br><br><br><br><br><br>
+                    <?= esc($detailTicket['petugas_id_nama']) ?>
                 </td>
             </tr>
         </table>

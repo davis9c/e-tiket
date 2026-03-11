@@ -80,96 +80,140 @@
                 </div>
             </div>
         </div>
+        <?php
+        $ticket = $data['detailTicket'];
+        $prosesJabatan = array_column($ticket['proses'] ?? [], 'nm_jbtn');
+        ?>
+
         <!-- ===== STATUS ===== -->
         <div class="col-md-3">
             <div class="card h-100 border-start border-primary border-4">
+
                 <div class="card-header">
                     <b>Status</b>
                 </div>
+
                 <div class="card-body">
                     <div class="timeline">
+
+                        <!-- Tiket Dibuat -->
                         <div class="timeline-item">
                             <div class="timeline-dot bg-primary"></div>
-                            <div class="timeline-content">
+                            <div class="timeline-content text-primary">
                                 <div class="fw-semibold">
-                                    <i class="fa-solid fa-pencil"></i> Tiket Dibuat <?= date('d M Y', strtotime($data['detailTicket']['created_at'])) ?>
+                                    <i class="fa-solid fa-pencil"></i>
+                                    Tiket Dibuat <?= date('d M Y', strtotime($ticket['created_at'])) ?>
                                 </div>
                             </div>
                         </div>
-                        <?php
-                        //dd($data['detailTicket']);
-                        ?>
-                        <?php if ((int)$data['detailTicket']['headsection'] === 1): ?>
+
+                        <!-- Persetujuan -->
+                        <?php if ((int)$ticket['headsection'] === 1): ?>
                             <div class="timeline-item">
-                                <div class="timeline-dot bg-warning"></div>
-                                <div class="timeline-content">
-                                    <?php if ($data['detailTicket']['valid'] !== null) : ?>
+                                <?php if (!empty($ticket['valid_nama'])): ?>
+
+                                    <div class="timeline-dot bg-success"></div>
+                                    <div class="timeline-content text-success">
                                         <div class="fw-semibold">
-                                            <i class="fa-solid fa-check"></i> Disetujui <?= esc($data['detailTicket']['valid_nama']) ?>
+                                            <i class="fa-solid fa-check-square"></i>
+                                            Disetujui <?= esc($ticket['valid_nama']) ?>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="fw-semibold">
-                                            <p class="fst-italic mb-3 text-secondary">
-                                                <i class="fa-solid fa-clock"></i> Menunggu Persetujuan
-                                            </p>
-                                        </div>
-                                    <?php endif ?>
-                                </div>
-                            </div>
-                        <?php endif ?>
-                        <?php if ($data['detailTicket']['valid_nama'] !== null) : ?>
-                            <!-- Gunakan perulangan nanti -->
-                            <div class="timeline-item">
-                                <div class="timeline-dot bg-info"></div>
-                                <div class="timeline-content">
-                                    <div class="fw-semibold">
-                                        <?php
-                                        //dd($data['detailTicket']);
-                                        ?>
-                                        <i class="fa-solid fa-clock"></i> Diproses oleh <?= esc($data['detailTicket']['proses_unit_nama'] ?? null) ?>
                                     </div>
-                                </div>
+
+                                <?php else: ?>
+
+                                    <div class="timeline-dot bg-warning"></div>
+                                    <div class="timeline-content text-warning">
+                                        <p class="fst-italic mb-0">
+                                            <i class="fa-solid fa-clock"></i>
+                                            Menunggu Persetujuan
+                                        </p>
+                                    </div>
+
+                                <?php endif; ?>
                             </div>
-                        <?php endif ?>
-                        <?php
-                        //dd($data['detailTicket']);
-                        ?>
-                        <?php if ($data['detailTicket']['selesai_nama'] !== null) : ?>
-                            <?php if ($data['detailTicket']['reject_nama'] !== null) : ?>
+                        <?php endif; ?>
+
+                        <!-- Proses Unit -->
+                        <?php if (!empty($ticket['valid_nama'])): ?>
+
+                            <?php foreach ($ticket['unit_penanggung_jawab'] as $upj): ?>
+
+                                <?php if (in_array($upj['nm_jbtn'], $prosesJabatan)): ?>
+
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot bg-success"></div>
+                                        <div class="timeline-content text-success">
+                                            <div class="fw-semibold">
+                                                <i class="fas fa-check-square"></i>
+                                                Diselesaikan <?= esc($upj['nm_jbtn']) ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                <?php else: ?>
+
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot bg-warning"></div>
+                                        <div class="timeline-content text-warning">
+                                            <div class="fw-semibold">
+                                                <i class="fa-solid fa-clock"></i>
+                                                Diproses oleh <?= esc($upj['nm_jbtn']) ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                <?php endif; ?>
+
+                            <?php endforeach; ?>
+
+                        <?php endif; ?>
+
+                        <!-- Status Akhir -->
+                        <?php if (!empty($ticket['selesai_nama'])): ?>
+
+                            <?php if (!empty($ticket['reject_nama'])): ?>
+
                                 <div class="timeline-item">
                                     <div class="timeline-dot bg-danger"></div>
-                                    <div class="timeline-content">
+                                    <div class="timeline-content text-danger">
                                         <div class="fw-semibold">
-                                            <p class="fst-italic mb-3 text-secondary">
-                                                Diselesaikan <?= esc($data['detailTicket']['selesai_nama']) ?>
-                                            </p>
+                                            <i class="fa-solid fa-xmark-circle"></i>
+                                            Ditolak <?= esc($ticket['reject_nama']) ?>
                                         </div>
                                     </div>
                                 </div>
+
                             <?php else: ?>
+
                                 <div class="timeline-item">
                                     <div class="timeline-dot bg-success"></div>
-                                    <div class="timeline-content">
+                                    <div class="timeline-content text-success">
                                         <div class="fw-semibold">
-                                            <p class="fst-italic mb-3 text-secondary">
-                                                Diselesaikan <?= esc($data['detailTicket']['selesai_nama']) ?>
-                                            </p>
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            Diselesaikan <?= esc($ticket['selesai_nama']) ?>
                                         </div>
                                     </div>
                                 </div>
-                            <?php endif ?>
-                        <?php endif ?>
+
+                            <?php endif; ?>
+
+                        <?php endif; ?>
+
                     </div>
                 </div>
-                <?php if ($data['detailTicket']['selesai'] != null): ?>
+
+                <!-- Footer -->
+                <?php if (!empty($ticket['selesai_nama'])): ?>
                     <div class="card-footer">
-                        <a href="<?= base_url('report/' . $data['detailTicket']['hashid']) ?>"
+                        <a href="<?= base_url('report/' . $ticket['hashid']) ?>"
                             target="_blank"
-                            class="btn btn-sm btn-primary ">
+                            class="btn btn-sm btn-primary">
                             <i class="fas fa-print"></i> Cetak E-Ticket
                         </a>
                     </div>
                 <?php endif; ?>
+
             </div>
         </div>
     </div>

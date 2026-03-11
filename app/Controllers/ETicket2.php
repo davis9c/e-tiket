@@ -53,7 +53,7 @@ class ETicket2 extends BaseController
     public function index($hashid = null)
     {
         $id = null;
-
+        //dd(session()->get());
         if ($hashid !== null) {
             $decoded = $this->hashids->decode($hashid);
 
@@ -261,34 +261,34 @@ class ETicket2 extends BaseController
 
         $statusMap = [
             0 => [
-                'selesai' => $nip,
+                //'selesai' => $nip,
                 'selesai_nama' => $nama,
-                'valid'   => $nip,
+                //'valid'   => $nip,
                 'valid_nama' => $nama,
-                'reject'  => $nip,
+                //'reject'  => $nip,
                 'reject_nama' => $nama,
                 'respon_message' => $catatan,
             ],
             1 =>
             [
-                'selesai' => null,
+                //'selesai' => null,
                 'selesai_nama' => null,
-                'valid'   => $nip,
+                //'valid'   => $nip,
                 'valid_nama' => $nama,
                 //ini update V2
                 'proses_unit' => $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
                 //sampai sini
-                'reject'  => null,
+                //'reject'  => null,
                 'reject_nama' => null,
                 'respon_message' => $catatan,
             ],
             2 =>
             [
-                'selesai' => $nip,
+                //'selesai' => $nip,
                 'selesai_nama' => $nama,
-                'valid'   => $nip,
+                //'valid'   => $nip,
                 'valid_nama' => $nama,
-                'reject'  => null,
+                //'reject'  => null,
                 'reject_nama' => null,
                 'respon_message' => $catatan,
             ],
@@ -357,7 +357,7 @@ class ETicket2 extends BaseController
 
         $kdJbtn = session()->get('kd_jabatan');
 
-        $tickets = $this->eticketModel->getSudahValid($kdJbtn, true);
+        $tickets = $this->eticketModel->getSudahValid2($kdJbtn, true);
         //dd($tickets);
         $tickets = $this->attachNamaJabatanToTickets($tickets);
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
@@ -439,9 +439,9 @@ class ETicket2 extends BaseController
             case '0': // 0 = Tolak
                 $this->eticketModel->update($ticketId, [
                     'proses_unit'    => null,
-                    'selesai'        => $nip,
+                    //'selesai'        => $nip,
                     'selesai_nama'   => $nama,
-                    'reject'         => $nip,
+                    //'reject'         => $nip,
                     'reject_nama'    => $nama,
                     'respon_message' => $keterangan,
                 ]);
@@ -454,7 +454,7 @@ class ETicket2 extends BaseController
             case '2': // 2 = Selesai
                 $this->eticketModel->update($ticketId, [
                     'proses_unit'    => null,
-                    'selesai'        => $nip,
+                    //'selesai'        => $nip,
                     'selesai_nama'   => $nama,
                     'respon_message' => $keterangan,
                 ]);
@@ -494,6 +494,7 @@ class ETicket2 extends BaseController
             // Insert Ticket
             $ticketId = $this->eticketModel->insert([
                 'kategori_id'       => $kategoriId,
+                'kd_pegawai'        => session()->get('id_pegawai'),
                 'petugas_id'        => $this->request->getPost('petugas_id') ?? null,
                 'petugas_id_nama'   => $this->request->getPost('petugas_id_nama') ?? null,
                 'judul'             => trim($this->request->getPost('judul')),
@@ -501,8 +502,8 @@ class ETicket2 extends BaseController
                 'kd_jbtn'           => session()->get('kd_jabatan'),
                 'proses_unit' => !empty($flow['valid']) ? $flow['proses'] : null,
                 'headsection'       => $kategori['headsection'],
-                'valid'             => $flow['valid'],
-                'valid_nama'        => $flow['valid_nama'],
+                //'valid'             => $flow['valid'] ?? null,
+                'valid_nama'        => $flow['valid_nama'] ?? null,
 
             ]);
 

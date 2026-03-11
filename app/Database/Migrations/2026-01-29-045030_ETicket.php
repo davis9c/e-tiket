@@ -77,12 +77,12 @@ class ETicket extends Migration
              * jika null, maka artinya tidak valid.
              * valid berisikan nip/id_user,
              */
-            'valid' => [
-                'type'       => 'BIGINT',
-                'constraint' => 20,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
+            //'valid' => [
+            //    'type'       => 'BIGINT',
+            //    'constraint' => 20,
+            //    'unsigned'   => true,
+            //    'null'       => true,
+            //],
             'valid_nama' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
@@ -110,12 +110,12 @@ class ETicket extends Migration
              * jika valid sudah terisi otomatis ini akan berisi kd_jbtn(penanggungjawab)
              * 
              */
-            'selesai' => [
-                'type'       => 'BIGINT',
-                'constraint' => 20,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
+            //'selesai' => [
+            //    'type'       => 'BIGINT',
+            //    'constraint' => 20,
+            //    'unsigned'   => true,
+            //    'null'       => true,
+            //],
             'selesai_nama' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
@@ -127,12 +127,12 @@ class ETicket extends Migration
              * jika valid sudah terisi otomatis ini akan berisi kd_jbtn(penanggungjawab)
              * 
              */
-            'reject' => [
-                'type'       => 'BIGINT',
-                'constraint' => 20,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
+            //'reject' => [
+            //    'type'       => 'BIGINT',
+            //    'constraint' => 20,
+            //    'unsigned'   => true,
+            //    'null'       => true,
+            //],
             'reject_nama' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 100,
@@ -161,9 +161,9 @@ class ETicket extends Migration
         $this->forge->addKey('petugas_id');
         $this->forge->addKey('kd_jbtn');
         $this->forge->addKey('kd_pegawai');
-        $this->forge->addKey('valid');
-        $this->forge->addKey('selesai');
-        $this->forge->addKey('reject');
+        //$this->forge->addKey('valid');
+        //$this->forge->addKey('selesai');
+        //$this->forge->addKey('reject');
         $this->forge->addKey('proses');
         $this->forge->addKey('proses_unit');
         $this->forge->createTable('e_ticket', true);

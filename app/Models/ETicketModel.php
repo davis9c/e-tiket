@@ -96,6 +96,7 @@ class ETicketModel extends Model
     protected $allowedFields = [
         'kode_ticket',
         'judul',
+        'kd_pegawai',
         'message',
         'headsection',
         'kategori_id',
@@ -216,15 +217,14 @@ class ETicketModel extends Model
                 'kuj.kategori_id = e.kategori_id',
                 'inner'
             )
+            //->join(
+            //    'eticket_proses ep',
+            //    'ep.id_eticket = e.id',
+            //    'inner'
+            //)
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid IS NOT NULL', null, false);
-        // 🔥 FILTER SELESAI BERDASARKAN NULL
-        if ($selesai === true) {
-            $builder->where('e.selesai IS NOT NULL', null, false);
-        } elseif ($selesai === false) {
-            $builder->where('e.selesai IS NULL', null, false);
-        }
+            ->where('e.valid_nama IS NOT NULL', null, false);
 
         $rows = $builder
             ->orderBy('e.created_at', 'DESC')
@@ -247,13 +247,13 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid IS NOT NULL', null, false)
+            ->where('e.valid_nama IS NOT NULL', null, false)
             ->where('e.created_at >=', $this->enamBulanLalu()); // 🔥 tambahkan ini
 
         if ($selesai === true) {
-            $builder->where('e.selesai IS NOT NULL', null, false);
+            $builder->where('e.selesai_nama IS NOT NULL', null, false);
         } elseif ($selesai === false) {
-            $builder->where('e.selesai IS NULL', null, false);
+            $builder->where('e.selesai_nama IS NULL', null, false);
         }
 
         $rows = $builder
@@ -280,9 +280,10 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.proses_unit', $kd_jbtn) // 🔥 filter proses
-            ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
+
+            //->where('e.valid_nama IS NOT NULL', null, false)
+            //->where('e.proses_unit', $kd_jbtn) // OR
+            //->where('ep.kd_jbtn', $kd_jbtn) // OR
             ->where('e.created_at >=', $this->enamBulanLalu())
             ->groupBy('e.id') // penting supaya tidak duplicate
             ->orderBy('e.created_at', 'DESC')
