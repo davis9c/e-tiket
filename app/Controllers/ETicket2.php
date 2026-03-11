@@ -428,7 +428,7 @@ class ETicket2 extends BaseController
             'id_eticket'        => $ticketId,
             'kd_jbtn'           => $kdJbtn,
             'id_petugas'        => $nip,
-            'id_petugas_nama'   => $nip,
+            'id_petugas_nama'   => $nama,
             'catatan'           => $keterangan,
         ]);
 
@@ -799,8 +799,9 @@ class ETicket2 extends BaseController
         $detail = $this->attachNamaJabatanToProses($detail);
         //--------------------------------------------------
         $detail = $this->attachNamaJabatanToDetail($detail);
+        //dd($detail);
         $detail = $this->mapUnitWithJabatan($detail);
-        dd($detail);
+        //dd($detail);
         return view('e-tiket/report', [
             'title' => 'Report E-Ticket #' . $id,
             'detailTicket' => $detail,

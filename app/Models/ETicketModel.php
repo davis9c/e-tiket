@@ -210,7 +210,6 @@ class ETicketModel extends Model
         bool $penanggungJawab,
         ?bool $selesai = null
     ): array {
-
         $builder = $this->baseQuery()
             ->join(
                 'kategori_unit_jabatan kuj',
@@ -220,7 +219,6 @@ class ETicketModel extends Model
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
             ->where('e.valid IS NOT NULL', null, false);
-
         // 🔥 FILTER SELESAI BERDASARKAN NULL
         if ($selesai === true) {
             $builder->where('e.selesai IS NOT NULL', null, false);
