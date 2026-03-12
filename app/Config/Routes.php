@@ -50,7 +50,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
-    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::pelaksana_proses');
+    //$routes->post('pelaksana/pelaksana_proses', 'ETicket2::pelaksana_proses');
+    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses');
+    $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
 
 
 

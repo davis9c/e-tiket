@@ -11,14 +11,6 @@
 
             <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
             <input type="hidden" name="status_validasi" value="0">
-
-            <!-- UNIT PROSES -->
-            <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
-                <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
-                    <input type="hidden" name="proses[]" value="<?= esc($unit['kd_jbtn']) ?>">
-                <?php endforeach; ?>
-            <?php endif; ?>
-
             <div class="card border-primary">
                 <div class="card-header bg-primary text-white">
                     Tindakan Penolakan / Penyelesaian
