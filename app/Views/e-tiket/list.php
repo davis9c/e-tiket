@@ -46,7 +46,7 @@
                                         Disetujui <?= esc($p['valid_nama']) ?>
                                     </span>
                                     <?php if ($p['selesai_nama'] == null): ?>
-                                        <span class="badge bg-warning ">
+                                        <span class="badge bg-warning text-dark">
                                             Diproses di <?= esc($p['proses_unit_nama']) ?>
                                         </span>
                                     <?php else: ?>

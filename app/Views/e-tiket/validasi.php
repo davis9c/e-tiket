@@ -1,4 +1,4 @@
-<div class="row">
+<div class="row mb-2">
 
     <?php
     $errors = session('errors') ?? [];
@@ -6,10 +6,10 @@
 
     <!-- FORM KIRI : TOLAK / SELESAI -->
     <div class="col-md-6">
-        <form action="<?= base_url('headsection/headsection_approve') ?>" method="post">
+        <form action="<?= base_url('headsection/headsection_final') ?>" method="post">
             <?= csrf_field() ?>
 
-            <input type="hidden" name="id" value="<?= esc($data['detailTicket']['id']) ?>">
+            <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
             <input type="hidden" name="status_validasi" value="0">
 
             <!-- UNIT PROSES -->
@@ -28,7 +28,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Catatan Penolakan / Penyelesaian</label>
                         <textarea
-                            name="catatan_headsection"
+                            name="catatan"
                             rows="3"
                             class="form-control"
                             placeholder="Masukkan alasan penolakan..."></textarea>
@@ -57,7 +57,7 @@
         <form action="<?= base_url('headsection/headsection_approve') ?>" method="post">
             <?= csrf_field() ?>
 
-            <input type="hidden" name="id" value="<?= esc($data['detailTicket']['id']) ?>">
+            <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
             <input type="hidden" name="status_validasi" value="1">
 
             <!-- UNIT PROSES -->
@@ -74,31 +74,31 @@
 
                 <div class="card-body">
                     <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
-                        <div class="mb-3">
-                            <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
-                                <div class="mb-3 p-3 border rounded">
 
-                                    <div class="fw-semibold mb-2">
-                                        <i class="fas fa-sitemap me-2"></i>
-                                        <?= esc($unit['nm_jbtn']) ?>
-                                    </div>
-                                </div>
+                        <div class="p-3 border rounded bg-light mb-2">
+
+                            <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
+                                <span class="badge bg-secondary me-2 mb-2">
+                                    <i class="fas fa-sitemap me-1"></i>
+                                    <?= esc($unit['nm_jbtn']) ?>
+                                </span>
                             <?php endforeach; ?>
-                            <!---->
 
                         </div>
                     <?php endif; ?>
                     <!-- CATATAN -->
-                    <!-- 
+
                     <div class="mb-3">
+                        <!--
                         <label class="form-label fw-semibold">Catatan</label>
+                        -->
                         <textarea
-                            name="catatan_headsection"
+                            name="catatan"
                             rows="3"
                             class="form-control"
-                            placeholder="Masukkan pesan untuk unit terkait..."></textarea>
+                            placeholder="Masukkan pesan untuk unit terkait... (Opsional)"></textarea>
                     </div>
-                    -->
+
 
                     <div class="d-grid">
                         <button type="submit"

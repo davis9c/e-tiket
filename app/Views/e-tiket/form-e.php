@@ -32,7 +32,7 @@
                         (<?= esc($data['detailTicket']['nama_kategori']) ?>)
                     </div>
                     <!-- Unit Penanggung Jawab -->
-                    <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
+                    <?php if (empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
                         <div class="mb-3">
                             <div class="small text-muted">Penanggung Jawab</div>
                             <?php $i = 1; ?>
@@ -217,34 +217,49 @@
             </div>
         </div>
     </div>
-    <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
-    <?php if ($data['detailTicket']['valid_nama'] != null) : ?>
-        <!-- Jika valid == selesai maka proses dianggap final -->
-        <?php if ($data['detailTicket']['valid_nama'] == $data['detailTicket']['selesai_nama']) : ?>
+    <?php
+    $ticket = $data['detailTicket'];
+    ?>
 
-            <div class="alert <?= $data['detailTicket']['reject_nama'] ? 'alert-danger' : 'alert-info' ?> mb-4">
+    <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
+
+    <?php if (!empty($ticket['valid_nama'])): ?>
+
+        <?php if ($ticket['valid_nama'] === $ticket['selesai_nama']): ?>
+            <div class="alert <?= !empty($ticket['reject_nama']) ? 'alert-danger' : 'alert-info' ?> mb-4">
+
                 <i class="fas fa-check-circle me-2"></i>
 
-                <?php if ($data['detailTicket']['reject_nama']) : ?>
+                <?php if (!empty($ticket['reject_nama'])): ?>
                     Ditolak oleh:
-                    <strong><?= esc($data['detailTicket']['reject_nama']) ?></strong>
+                    <strong><?= esc($ticket['reject_nama']) ?></strong>
                 <?php else: ?>
                     Diselesaikan oleh:
-                    <strong><?= esc($data['detailTicket']['selesai_nama']) ?></strong>
+                    <strong><?= esc($ticket['selesai_nama']) ?></strong>
                 <?php endif; ?>
-                <textarea class="form-control bg-light" rows="4" readonly><?= esc($data['detailTicket']['respon_message']) ?></textarea>
+
+                <textarea class="form-control bg-light mt-2" rows="4" readonly>
+<?= esc($ticket['respon_message']) ?>
+            </textarea>
+
                 <div class="small text-muted mt-2">
-                    <?= esc($data['detailTicket']['updated_at']) ?>
+                    <?= esc($ticket['updated_at']) ?>
                 </div>
+
             </div>
         <?php endif; ?>
-    <?php elseif ($data['detailTicket']['valid_nama'] == null): ?>
-        <?php if (session()->get('headsection') != null): ?>
+
+    <?php else: ?>
+
+        <?php if (session()->get('headsection') !== null): ?>
             <!-- Form Valid muncul disini -->
             <?= $this->include('e-tiket/validasi') ?>
         <?php endif; ?>
+
     <?php endif; ?>
+
     <hr>
-    <!-- tampilkan penanggung jawab/pelaksana -->
+
+    <!-- tampilkan penanggung jawab / pelaksana -->
     <?= $this->include('e-tiket/unit-pelaksana2') ?>
 </div>
