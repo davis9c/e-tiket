@@ -518,16 +518,18 @@ class ETicket2 extends BaseController
         }
 
         $this->eticketModel->update($ticketId, $updateData);
-
-        // simpan log proses
-        //$this->simpanLogProses(
-        //    $ticketId,
-        //    $kdJbtn,
-        //    $jabatan,
-        //    $nip,
-        //    $nama,
-        //    $catatan
-        //);
+        if (empty(trim($catatan))) {
+            $catatan = "Menutup Tiket permintaan";
+        }
+        //simpan log proses
+        $this->simpanLogProses(
+            $ticketId,
+            $kdJbtn,
+            $jabatan,
+            $nip,
+            $nama,
+            $catatan
+        );
         return redirect()->back()->with('success', $pesan);
     }
     public function submit_approve()
@@ -577,9 +579,10 @@ class ETicket2 extends BaseController
         ]);
 
         // Insert log hanya jika ada catatan
-        if (!empty(trim($catatan))) {
-            $this->simpanLogProses($ticketId, $kdJbtn, $jabatan, $nip, $nama, $catatan);
+        if (empty(trim($catatan))) {
+            $catatan = "Menyetujui dan Meneruskan";
         }
+        $this->simpanLogProses($ticketId, $kdJbtn, $jabatan, $nip, $nama, $catatan);
 
         return redirect()->back()->with('success', 'Ticket berhasil di approve.');
     }
@@ -588,33 +591,26 @@ class ETicket2 extends BaseController
         if (!$this->request->is('post')) {
             return redirect()->back();
         }
-
         $ticketId        = $this->request->getPost('ticket_id');
         $unitSelanjutnya = $this->request->getPost('unit_selanjutnya');
         $catatan         = $this->request->getPost('catatan');
-
         $nip  = session()->get('nip');
         $nama = session()->get('nama');
         $kdJbtn = session()->get('kd_jabatan');
         $jabatan = session()->get('jabatan');
-
         $rules = [
             'ticket_id' => 'required|numeric',
             'catatan'   => 'required|min_length[3]',
         ];
-
         if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors());
         }
-
         $this->eticketModel->update($ticketId, [
             'proses_unit' => $unitSelanjutnya,
         ]);
-
         $this->simpanLogProses($ticketId, $kdJbtn, $jabatan, $nip, $nama, $catatan);
-
         return redirect()->back()->with('success', 'Proses ticket berhasil.');
     }
     private function simpanLogProses($ticketId, $kdJbtn, $nmJbtn, $nip, $nama, $catatan = null)
@@ -701,7 +697,6 @@ class ETicket2 extends BaseController
                 'proses' => $kategori['unit_penanggung_jawab'][0]['kd_jbtn'] ?? null,
             ];
         }
-
         return ['valid' => null, 'valid_nama' => null, 'proses' => null];
     }
     /* =========================================================
@@ -710,16 +705,13 @@ class ETicket2 extends BaseController
     private function attachNamaJabatanToUnits(array $data): array
     {
         $jabatanMap = $this->getJabatanMap();
-
         foreach (['unit_penanggung_jawab', 'unit_pengajuan'] as $key) {
             if (empty($data[$key])) continue;
-
             $data[$key] = array_map(fn($u) => [
                 'kd_jbtn' => $u['kd_jbtn'],
                 'nm_jbtn' => $jabatanMap[$u['kd_jbtn']] ?? '-',
             ], $data[$key]);
         }
-
         return $data;
     }
     private function attachNamaJabatanToKategori(array $kategori): array
