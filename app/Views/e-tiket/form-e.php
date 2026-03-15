@@ -4,7 +4,7 @@
         <?php if ($msg = session()->getFlashdata('success')): ?>
             <div class="alert alert-success alert-dismissible fade show">
                 <?= esc($msg) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close " data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
         <?php if ($msg = session()->getFlashdata('error')): ?>
@@ -17,7 +17,7 @@
     <?php
     //dd($data['detailTicket']);
     ?>
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-3">
         <!-- ===== KATEGORI E-TIKET ===== -->
         <div class="col-md-3">
             <div class="card h-100 border-start border-primary border-4">
@@ -84,7 +84,6 @@
         $ticket = $data['detailTicket'];
         $prosesJabatan = array_column($ticket['proses'] ?? [], 'nm_jbtn');
         ?>
-
         <!-- ===== STATUS ===== -->
         <div class="col-md-3">
             <div class="card h-100 border-start border-primary border-4">
@@ -208,7 +207,7 @@
                     <div class="card-footer">
                         <a href="<?= base_url('report/' . $ticket['hashid']) ?>"
                             target="_blank"
-                            class="btn btn-sm btn-primary">
+                            class="btn btn-sm btn-primary btn-sm">
                             <i class="fas fa-print"></i> Cetak E-Ticket
                         </a>
                     </div>
@@ -217,49 +216,432 @@
             </div>
         </div>
     </div>
+
     <?php
     $ticket = $data['detailTicket'];
     ?>
 
     <!-- ===== STATUS VALIDASI DAN PROSES ===== -->
+    <!-- ===== MUCNUL KETIKA TIDAK VALID DAN VALIDATOR LOGIN ===== -->
 
-    <?php if (!empty($ticket['valid_nama'])): ?>
-
-        <?php if ($ticket['valid_nama'] === $ticket['selesai_nama']): ?>
-            <div class="alert <?= !empty($ticket['reject_nama']) ? 'alert-danger' : 'alert-info' ?> mb-4">
-
-                <i class="fas fa-check-circle me-2"></i>
-
-                <?php if (!empty($ticket['reject_nama'])): ?>
-                    Ditolak oleh:
-                    <strong><?= esc($ticket['reject_nama']) ?></strong>
-                <?php else: ?>
-                    Diselesaikan oleh:
-                    <strong><?= esc($ticket['selesai_nama']) ?></strong>
-                <?php endif; ?>
-
-                <textarea class="form-control bg-light mt-2" rows="4" readonly>
-<?= esc($ticket['respon_message']) ?>
-            </textarea>
-
-                <div class="small text-muted mt-2">
-                    <?= esc($ticket['updated_at']) ?>
+    <div class="mb-3">
+        <?php if (!empty($ticket['valid_nama'])): ?>
+            <?php if ($ticket['valid_nama'] === $ticket['selesai_nama']): ?>
+                <div class="alert <?= !empty($ticket['reject_nama']) ? 'alert-danger' : 'alert-info' ?> mb-4">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <?php if (!empty($ticket['reject_nama'])): ?>
+                        Ditolak oleh:
+                        <strong><?= esc($ticket['reject_nama']) ?></strong>
+                    <?php else: ?>
+                        Diselesaikan oleh:
+                        <strong><?= esc($ticket['selesai_nama']) ?></strong>
+                    <?php endif; ?>
+                    <textarea class="form-control bg-light mt-2" rows="4" readonly><?= esc($ticket['respon_message']) ?></textarea>
+                    <div class="small text-muted mt-2">
+                        <?= esc($ticket['updated_at']) ?>
+                    </div>
                 </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <?php if (session()->get('headsection') !== null): ?>
+                <!-- Form Valid muncul disini -->
+                <div class="row mb-2">
 
-            </div>
+                    <?php
+                    $errors = session('errors') ?? [];
+                    ?>
+
+                    <!-- FORM KIRI : TOLAK / SELESAI -->
+                    <div class="col-md-6">
+                        <form action="<?= base_url('headsection/headsection_final') ?>" method="post">
+                            <?= csrf_field() ?>
+
+                            <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                            <input type="hidden" name="status_validasi" value="0">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    Tindakan Penolakan / Penyelesaian
+                                </div>
+                                <div class="card-body">
+                                    <!-- CATATAN -->
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Catatan Penolakan / Penyelesaian</label>
+                                        <textarea
+                                            name="catatan"
+                                            rows="3"
+                                            class="form-control"
+                                            placeholder="Masukkan alasan penolakan..."></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
+                                            ❌ Tidak Menyetujui
+                                        </button>
+                                        <button type="submit"
+                                            class="btn btn-primary btn-sm"
+                                            onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
+                                            ✅ Selesaikan
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+
+                    <!-- FORM KANAN : TERUSKAN -->
+                    <div class="col-md-6">
+                        <form action="<?= base_url('headsection/headsection_approve') ?>" method="post">
+                            <?= csrf_field() ?>
+
+                            <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                            <input type="hidden" name="status_validasi" value="1">
+
+                            <!-- UNIT PROSES -->
+                            <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
+                                <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
+                                    <input type="hidden" name="proses[]" value="<?= esc($unit['kd_jbtn']) ?>">
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    Teruskan ke Unit Penanggung Jawab
+                                </div>
+
+                                <div class="card-body">
+                                    <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
+
+                                        <div class="p-3 border rounded bg-light mb-2">
+
+                                            <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
+                                                <span class="badge bg-secondary me-2 mb-2">
+                                                    <i class="fas fa-sitemap me-1"></i>
+                                                    <?= esc($unit['nm_jbtn']) ?>
+                                                </span>
+                                            <?php endforeach; ?>
+
+                                        </div>
+                                    <?php endif; ?>
+                                    <!-- CATATAN -->
+
+                                    <div class="mb-3">
+                                        <!--
+                        <label class="form-label fw-semibold">Catatan</label>
+                        -->
+                                        <textarea
+                                            name="catatan"
+                                            rows="3"
+                                            class="form-control"
+                                            placeholder="Masukkan pesan untuk unit terkait... (Opsional)"></textarea>
+                                    </div>
+
+
+                                    <div class="d-grid">
+                                        <button type="submit"
+                                            class="btn btn-success btn-sm"
+                                            onclick="this.form.status_validasi.value=1; return confirm('Teruskan tiket ke unit berikutnya?')">
+                                            ✔ Teruskan
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
-
-    <?php else: ?>
-
-        <?php if (session()->get('headsection') !== null): ?>
-            <!-- Form Valid muncul disini -->
-            <?= $this->include('e-tiket/validasi') ?>
-        <?php endif; ?>
-
-    <?php endif; ?>
-
+    </div>
     <hr>
 
-    <!-- tampilkan penanggung jawab / pelaksana -->
-    <?= $this->include('e-tiket/unit-pelaksana2') ?>
+    <?php
+    $ticket      = $data['detailTicket'];
+    $units       = $ticket['unit_penanggung_jawab'] ?? [];
+    $proses      = $ticket['proses'] ?? [];
+    $userJabatan = $data['user']['kd_jabatan'] ?? null;
+    $prosesUnit  = $ticket['proses_unit'] ?? null;
+    ?>
+
+    <div class="row g-4 mb-3">
+
+        <!-- ============================= -->
+        <!-- KOLOM KIRI -->
+        <!-- ============================= -->
+        <div class="col-md-7">
+            <?php if (false): ?>
+                <!-- UNIT PENANGGUNG JAWAB -->
+                <div class="mb-4">
+                    <h6 class="fw-semibold mb-3">Unit Penanggung Jawab</h6>
+                    <?php foreach ($units as $unit): ?>
+                        <div class="border rounded p-3 mb-2">
+                            <i class="fas fa-sitemap me-2"></i>
+                            <?= esc($unit['nm_jbtn']) ?>
+                        </div>
+                    <?php endforeach ?>
+                </div>
+            <?php endif ?>
+            <!-- ============================= -->
+            <!-- TINDAKAN PELAKSANA -->
+            <!-- ============================= -->
+            <?php foreach ($units as $index => $unit): ?>
+                <?php
+                $kd      = $unit['kd_jbtn'];
+                $nextKd  = $units[$index + 1]['kd_jbtn'] ?? null;
+                $boleh   = ($prosesUnit == $userJabatan && $kd == $userJabatan);
+                ?>
+                <?php if ($boleh): ?>
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning">
+                            <strong>Tindakan Pelaksana</strong>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <!-- FORM TOLAK / SELESAI -->
+                                <div class="col-md-6">
+                                    <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
+                                        <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
+                                        <?php if ($nextKd): ?>
+                                            <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                        <?php endif ?>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Tindakan Penyelesaian/Penolakan</label>
+                                            <textarea
+                                                name="catatan"
+                                                class="form-control"
+                                                rows="3"
+                                                placeholder="Masukkan keterangan proses..."></textarea>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button
+                                                type="submit"
+                                                name="status_validasi"
+                                                value="0"
+                                                class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Apakah Anda yakin menolak tiket ini?')">
+                                                ❌ Tolak
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                name="status_validasi"
+                                                value="2"
+                                                class="btn btn-primary btn-sm"
+                                                onclick="return confirm('Selesaikan tiket ini?')">
+                                                ✅ Selesaikan
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                <!-- FORM TERUSKAN -->
+                                <?php if ($nextKd): ?>
+                                    <div class="col-md-6">
+                                        <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
+                                            <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
+                                            <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Teruskan ke Unit/Pelaksana selanjutnya</label>
+                                                <textarea
+                                                    name="catatan"
+                                                    class="form-control"
+                                                    rows="3"
+                                                    placeholder="Masukkan keterangan proses..."></textarea>
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                class="btn btn-success btn-sm"
+                                                onclick="return confirm('Teruskan tiket ke unit berikutnya?')">
+                                                ✔ Teruskan
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php endif ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif ?>
+            <?php endforeach ?>
+        </div>
+        <!-- ============================= -->
+        <!-- KOLOM KANAN -->
+        <!-- ============================= -->
+        <div class="col-md-5">
+            <!-- RIWAYAT PROSES -->
+            <div>
+                <h6 class="fw-semibold mb-3">Riwayat Proses</h6>
+                <?php if (!empty($proses)): ?>
+                    <div class="d-flex flex-column gap-2">
+                        <?php foreach ($proses as $p): ?>
+                            <div class="bg-light border rounded p-3 shadow-sm">
+                                <div class="fw-semibold small">
+                                    <?= esc($p['nm_jbtn']) ?>
+                                    <?php if (!empty($p['nm_petugas'])): ?>
+                                        | <?= esc($p['nm_petugas']) ?>
+                                    <?php endif ?>
+                                </div>
+                                <div class="mt-1">
+                                    <?= esc($p['catatan'] ?? '-') ?>
+                                </div>
+                                <?php if (!empty($p['updated_at'])): ?>
+                                    <div class="small text-muted mt-1">
+                                        <?= date('d M Y H:i', strtotime($p['updated_at'])) ?>
+                                    </div>
+                                <?php endif ?>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                <?php else: ?>
+                    <div class="text-muted small">
+                        Belum ada riwayat proses.
+                    </div>
+                <?php endif ?>
+            </div>
+        </div>
+    </div>
+    <?php if (false): ?>
+        <hr>
+        <!-- tampilkan penanggung jawab / pelaksana -->
+        <?php
+        $units   = $data['detailTicket']['unit_penanggung_jawab'] ?? [];
+        $proses  = $data['detailTicket']['proses'] ?? [];
+
+        $userJabatan = $data['user']['kd_jabatan'] ?? null;
+        $prosesUnit  = $data['detailTicket']['proses_unit'] ?? null;
+
+        $formDitampilkan = false;
+        ?>
+
+        <div class="mb-4">
+            <h6 class="fw-semibold mb-3">Proses Unit Penanggung Jawab</h6>
+            <?php foreach ($units as $index => $unit): ?>
+                <?php
+                $kd = $unit['kd_jbtn'];
+                $nextKd = $units[$index + 1]['kd_jbtn'] ?? null;
+                $bolehForm = $prosesUnit == $userJabatan && $kd == $userJabatan;
+                $petugasNama = null;
+
+                foreach ($proses as $p) {
+                    if ($p['kd_jbtn'] == $kd) {
+                        $petugasNama = $p['nm_petugas'] ?? null;
+                        break;
+                    }
+                }
+                ?>
+
+                <div class="mb-3 p-3 border rounded">
+                    <div class="fw-semibold mb-2">
+                        <i class="fas fa-sitemap me-2"></i>
+                        <?= esc($unit['nm_jbtn']) ?>
+
+                        <?php if ($petugasNama): ?>
+                            | <strong><?= esc($petugasNama) ?></strong>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($bolehForm && !$formDitampilkan): ?>
+                        <?php $formDitampilkan = true; ?>
+                        <div class="row">
+                            <!-- FORM KIRI : TOLAK / SELESAI -->
+                            <div class="col-md-6">
+                                <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                                    <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
+                                    <input type="hidden" name="status_validasi" value="0">
+                                    <?php if ($nextKd): ?>
+                                        <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                    <?php endif; ?>
+                                    <div class="card border-danger">
+                                        <div class="card-header bg-danger text-white">
+                                            Tindakan Pelaksana
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Catatan Proses</label>
+                                                <textarea name="catatan"
+                                                    class="form-control"
+                                                    rows="3"
+                                                    placeholder="Masukkan keterangan proses..."></textarea>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="submit"
+                                                    class="btn btn-danger btn-sm"
+                                                    onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
+                                                    ❌ Tolak
+                                                </button>
+                                                <button type="submit"
+                                                    class="btn btn-primary btn-sm"
+                                                    onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
+                                                    ✅ Selesaikan
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <!-- FORM KANAN : TERUSKAN -->
+                            <div class="col-md-6">
+                                <?php if ($nextKd): ?>
+                                    <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                                        <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
+                                        <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                        <input type="hidden" name="status_validasi" value="1">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white">
+                                                Teruskan ke Unit Berikutnya
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Catatan Proses</label>
+                                                    <textarea name="catatan"
+                                                        class="form-control"
+                                                        rows="3"
+                                                        placeholder="Masukkan keterangan proses..."></textarea>
+                                                </div>
+                                                <div class="d-grid">
+                                                    <button type="submit"
+                                                        class="btn btn-success"
+                                                        onclick="return confirm('Teruskan tiket ke unit berikutnya?')">
+                                                        ✔ Teruskan
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <!-- DETAIL / RIWAYAT PROSES -->
+                        <?php if (!empty($proses)): ?>
+                            <?php foreach ($proses as $p): ?>
+                                <?php if ($p['kd_jbtn'] == $kd): ?>
+                                    <div class="alert alert-success mb-2">
+                                        <?= esc($p['catatan'] ?? '-') ?>
+                                        <?php if (!empty($p['updated_at'])): ?>
+                                            <div class="small text-muted mt-2">
+                                                <?= esc($p['updated_at']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-muted small">
+                                Belum ada proses.
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif ?>
 </div>

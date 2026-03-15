@@ -494,6 +494,77 @@ class ETicket2 extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
+        // Ambil data ticket terlebih dahulu
+        $ticket = $this->eticketModel->find($ticketId);
+
+        // Default update data tanpa valid_nama
+        $updateData = [
+            'proses_unit'    => null,
+            'respon_message' => $catatan,
+        ];
+
+        // Jika valid_nama masih kosong maka isi
+        if (empty($ticket['valid_nama'])) {
+            $updateData['valid_nama'] = $nama;
+        }
+
+        // Mapping tindakan
+        if ($statusValidasi == '0') {
+            // TOLAK
+            $updateData['reject_nama']  = $nama;
+            $updateData['selesai_nama'] = $nama;
+
+            $pesan = 'Ticket berhasil ditolak.';
+        } else {
+            // SELESAI
+            $updateData['reject_nama']  = null;
+            $updateData['selesai_nama'] = $nama;
+
+            $pesan = 'Ticket berhasil diselesaikan.';
+        }
+
+        $this->eticketModel->update($ticketId, $updateData);
+        if (empty(trim($catatan))) {
+            $catatan = "Menutup Tiket permintaan";
+        }
+        //simpan log proses
+        $this->simpanLogProses(
+            $ticketId,
+            $kdJbtn,
+            $jabatan,
+            $nip,
+            $nama,
+            $catatan
+        );
+        return redirect()->back()->with('success', $pesan);
+    }
+    public function submit_finaHSl()
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        $ticketId       = $this->request->getPost('ticket_id');
+        $statusValidasi = $this->request->getPost('status_validasi');
+        $catatan        = trim($this->request->getPost('catatan'));
+
+        $nip     = session()->get('nip');
+        $nama    = session()->get('nama');
+        $kdJbtn  = session()->get('kd_jabatan');
+        $jabatan = session()->get('jabatan');
+
+        $rules = [
+            'ticket_id'       => 'required|numeric',
+            'status_validasi' => 'required|in_list[0,2]',
+            'catatan'         => 'required|min_length[3]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
         // Mapping tindakan
         if ($statusValidasi == '0') {
             // TOLAK
