@@ -18,6 +18,7 @@
                 <?php
                 //dd($data['eticket']);
                 ?>
+
                 <?php if (!empty($data['eticket'])): ?>
                     <?php foreach ($data['eticket'] as $index => $p): ?>
                         <tr>
@@ -42,10 +43,14 @@
                                         Menunggu Persetujuan
                                     </span>
                                 <?php elseif ($p['valid_nama'] != null): ?>
-                                    <span class="badge bg-success">
-                                        Disetujui <?= esc($p['valid_nama']) ?>
-                                    </span>
+                                    <?php if ($p['selesai_nama'] == $p['reject_nama']): ?>
+                                    <?php else: ?>
+                                        <span class="badge bg-success">
+                                            Disetujui <?= esc($p['valid_nama']) ?>
+                                        </span>
+                                    <?php endif ?>
                                     <?php if ($p['selesai_nama'] == null): ?>
+
                                         <span class="badge bg-warning text-dark">
                                             Diproses di <?= esc($p['proses_unit_nama']) ?>
                                         </span>

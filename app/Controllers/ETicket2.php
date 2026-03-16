@@ -513,12 +513,13 @@ class ETicket2 extends BaseController
             // TOLAK
             $updateData['reject_nama']  = $nama;
             $updateData['selesai_nama'] = $nama;
-
+            $pesanProses = "Menolak Ticket ini.";
             $pesan = 'Ticket berhasil ditolak.';
         } else {
             // SELESAI
             $updateData['reject_nama']  = null;
             $updateData['selesai_nama'] = $nama;
+            $pesanProses = "Menyelesaikan Ticket ini.";
 
             $pesan = 'Ticket berhasil diselesaikan.';
         }
@@ -534,7 +535,7 @@ class ETicket2 extends BaseController
             $jabatan,
             $nip,
             $nama,
-            $catatan
+            $pesanProses
         );
         return redirect()->back()->with('success', $pesan);
     }

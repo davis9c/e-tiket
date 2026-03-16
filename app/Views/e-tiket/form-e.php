@@ -106,20 +106,19 @@
                             </div>
                         </div>
 
-                        <!-- Persetujuan -->
-                        <?php if ((int)$ticket['headsection'] === 1): ?>
+                        <?php
+                        $validNama   = $ticket['valid_nama'] ?? null;
+                        $selesaiNama = $ticket['selesai_nama'] ?? null;
+                        $rejectNama  = $ticket['reject_nama'] ?? null;
+                        $isHead      = (int)$ticket['headsection'] === 1;
+                        ?>
+
+                        <!-- ===== PERSETUJUAN HEADSECTION ===== -->
+                        <?php if ($isHead): ?>
+
                             <div class="timeline-item">
-                                <?php if (!empty($ticket['valid_nama'])): ?>
 
-                                    <div class="timeline-dot bg-success"></div>
-                                    <div class="timeline-content text-success">
-                                        <div class="fw-semibold">
-                                            <i class="fa-solid fa-check-square"></i>
-                                            Disetujui <?= esc($ticket['valid_nama']) ?>
-                                        </div>
-                                    </div>
-
-                                <?php else: ?>
+                                <?php if (!$validNama): ?>
 
                                     <div class="timeline-dot bg-warning"></div>
                                     <div class="timeline-content text-warning">
@@ -129,85 +128,122 @@
                                         </p>
                                     </div>
 
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
+                                <?php elseif ($validNama === $rejectNama): ?>
 
-                        <!-- Proses Unit -->
-                        <?php if (!empty($ticket['valid_nama'])): ?>
+                                    <div class="timeline-dot bg-danger"></div>
+                                    <div class="timeline-content text-danger">
+                                        <div class="fw-semibold">
+                                            <i class="fa-solid fa-xmark-circle"></i>
+                                            Ditolak <?= esc($validNama) ?>
+                                        </div>
+                                    </div>
 
-                            <?php foreach ($ticket['unit_penanggung_jawab'] as $upj): ?>
+                                <?php elseif ($validNama === $selesaiNama): ?>
 
-                                <?php if (in_array($upj['nm_jbtn'], $prosesJabatan)): ?>
-
-                                    <div class="timeline-item">
-                                        <div class="timeline-dot bg-success"></div>
-                                        <div class="timeline-content text-success">
-                                            <div class="fw-semibold">
-                                                <i class="fas fa-check-square"></i>
-                                                Diselesaikan <?= esc($upj['nm_jbtn']) ?>
-                                            </div>
+                                    <div class="timeline-dot bg-success"></div>
+                                    <div class="timeline-content text-success">
+                                        <div class="fw-semibold">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            Diselesaikan <?= esc($validNama) ?>
                                         </div>
                                     </div>
 
                                 <?php else: ?>
 
-                                    <div class="timeline-item">
-                                        <div class="timeline-dot bg-warning"></div>
-                                        <div class="timeline-content text-warning">
-                                            <div class="fw-semibold">
-                                                <i class="fa-solid fa-clock"></i>
-                                                Diproses oleh <?= esc($upj['nm_jbtn']) ?>
-                                            </div>
+                                    <div class="timeline-dot bg-primary"></div>
+                                    <div class="timeline-content text-primary">
+                                        <div class="fw-semibold">
+                                            <i class="fa-solid fa-check-square"></i>
+                                            Disetujui <?= esc($validNama) ?>
                                         </div>
                                     </div>
+                                    <!-- ===== PROSES UNIT PENANGGUNG JAWAB ===== -->
+                                    <?php if ($validNama && !empty($ticket['unit_penanggung_jawab'])): ?>
 
+                                        <?php foreach ($ticket['unit_penanggung_jawab'] as $upj): ?>
+
+                                            <?php
+                                            $namaJabatan = $upj['nm_jbtn'];
+                                            $sudahProses = in_array($namaJabatan, $prosesJabatan);
+                                            ?>
+                                            <div class="timeline-item">
+                                                <?php if ($sudahProses): ?>
+                                                    <div class="timeline-dot bg-success"></div>
+                                                    <div class="timeline-content text-success">
+                                                        <div class="fw-semibold">
+                                                            <i class="fas fa-check-square"></i>
+                                                            Diselesaikan <?= esc($namaJabatan) ?>
+                                                        </div>
+                                                    </div>
+
+                                                <?php else: ?>
+
+                                                    <div class="timeline-dot bg-warning"></div>
+                                                    <div class="timeline-content text-warning">
+                                                        <div class="fw-semibold">
+                                                            <i class="fa-solid fa-clock"></i>
+                                                            Diproses oleh <?= esc($namaJabatan) ?>
+                                                        </div>
+                                                    </div>
+
+                                                <?php endif; ?>
+
+                                            </div>
+
+                                        <?php endforeach; ?>
+
+                                    <?php endif; ?>
+
+
+                                    <!-- ===== STATUS AKHIR ===== -->
+                                    <?php if ($selesaiNama): ?>
+
+                                        <div class="timeline-item">
+
+                                            <?php if ($rejectNama): ?>
+
+                                                <div class="timeline-dot bg-danger"></div>
+                                                <div class="timeline-content text-danger">
+                                                    <div class="fw-semibold">
+                                                        <i class="fa-solid fa-xmark-circle"></i>
+                                                        Ditolak <?= esc($rejectNama) ?>
+                                                    </div>
+                                                </div>
+
+                                            <?php else: ?>
+
+                                                <div class="timeline-dot bg-success"></div>
+                                                <div class="timeline-content text-success">
+                                                    <div class="fw-semibold">
+                                                        <i class="fa-solid fa-circle-check"></i>
+                                                        Diselesaikan <?= esc($selesaiNama) ?>
+                                                    </div>
+                                                </div>
+
+                                            <?php endif; ?>
+
+                                        </div>
+
+                                    <?php endif; ?>
                                 <?php endif; ?>
 
-                            <?php endforeach; ?>
+                            </div>
 
                         <?php endif; ?>
 
-                        <!-- Status Akhir -->
-                        <?php if (!empty($ticket['selesai_nama'])): ?>
 
-                            <?php if (!empty($ticket['reject_nama'])): ?>
 
-                                <div class="timeline-item">
-                                    <div class="timeline-dot bg-danger"></div>
-                                    <div class="timeline-content text-danger">
-                                        <div class="fw-semibold">
-                                            <i class="fa-solid fa-xmark-circle"></i>
-                                            Ditolak <?= esc($ticket['reject_nama']) ?>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            <?php else: ?>
-
-                                <div class="timeline-item">
-                                    <div class="timeline-dot bg-success"></div>
-                                    <div class="timeline-content text-success">
-                                        <div class="fw-semibold">
-                                            <i class="fa-solid fa-circle-check"></i>
-                                            Diselesaikan <?= esc($ticket['selesai_nama']) ?>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            <?php endif; ?>
-
-                        <?php endif; ?>
 
                     </div>
                 </div>
 
+
                 <!-- Footer -->
-                <?php if (!empty($ticket['selesai_nama'])): ?>
+                <?php if ($selesaiNama): ?>
                     <div class="card-footer">
                         <a href="<?= base_url('report/' . $ticket['hashid']) ?>"
                             target="_blank"
-                            class="btn btn-sm btn-primary btn-sm">
+                            class="btn btn-sm btn-primary">
                             <i class="fas fa-print"></i> Cetak E-Ticket
                         </a>
                     </div>
@@ -226,22 +262,24 @@
 
     <div class="mb-3">
         <?php if (!empty($ticket['valid_nama'])): ?>
-            <?php if ($ticket['valid_nama'] === $ticket['selesai_nama']): ?>
-                <div class="alert <?= !empty($ticket['reject_nama']) ? 'alert-danger' : 'alert-info' ?> mb-4">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <?php if (!empty($ticket['reject_nama'])): ?>
-                        Ditolak oleh:
-                        <strong><?= esc($ticket['reject_nama']) ?></strong>
-                    <?php else: ?>
-                        Diselesaikan oleh:
-                        <strong><?= esc($ticket['selesai_nama']) ?></strong>
-                    <?php endif; ?>
-                    <textarea class="form-control bg-light mt-2" rows="4" readonly><?= esc($ticket['respon_message']) ?></textarea>
-                    <div class="small text-muted mt-2">
-                        <?= esc($ticket['updated_at']) ?>
+            <?php if (false): ?>
+                <?php if ($ticket['valid_nama'] === $ticket['selesai_nama']): ?>
+                    <div class="alert <?= !empty($ticket['reject_nama']) ? 'alert-danger' : 'alert-info' ?> mb-4">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <?php if (!empty($ticket['reject_nama'])): ?>
+                            Ditolak oleh:
+                            <strong><?= esc($ticket['reject_nama']) ?></strong>
+                        <?php else: ?>
+                            Diselesaikan oleh:
+                            <strong><?= esc($ticket['selesai_nama']) ?></strong>
+                        <?php endif; ?>
+                        <textarea class="form-control bg-light mt-2" rows="4" readonly><?= esc($ticket['respon_message']) ?></textarea>
+                        <div class="small text-muted mt-2">
+                            <?= esc($ticket['updated_at']) ?>
+                        </div>
                     </div>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            <?php endif ?>
         <?php else: ?>
             <?php if (session()->get('headsection') !== null): ?>
                 <!-- Form Valid muncul disini -->
@@ -371,103 +409,148 @@
         <!-- ============================= -->
         <!-- KOLOM KIRI -->
         <!-- ============================= -->
-        <div class="col-md-7">
-            <?php if (false): ?>
-                <!-- UNIT PENANGGUNG JAWAB -->
-                <div class="mb-4">
-                    <h6 class="fw-semibold mb-3">Unit Penanggung Jawab</h6>
-                    <?php foreach ($units as $unit): ?>
-                        <div class="border rounded p-3 mb-2">
-                            <i class="fas fa-sitemap me-2"></i>
-                            <?= esc($unit['nm_jbtn']) ?>
+        <?php if (!empty($ticket['selesai_nama'])): ?>
+            <?php
+            $isReject = !empty($ticket['reject_nama']);
+
+            $color  = $isReject ? 'danger' : 'success';
+            $label  = $isReject ? 'Ditolak oleh' : 'Diselesaikan oleh';
+            $icon   = $isReject ? 'fa-circle-xmark' : 'fa-circle-check';
+            $nama   = $isReject ? $ticket['reject_nama'] : $ticket['selesai_nama'];
+            ?>
+
+            <div class="col-md-7">
+                <div class="card shadow-sm border-<?= $color ?>">
+
+                    <div class="card-header bg-<?= $color ?> text-white">
+                        <h5 class="mb-0">
+                            <i class="fas <?= $icon ?> me-2"></i>
+                            Keputusan Final
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="mb-3">
+                            <label class="text-muted small"><?= $label ?></label>
+                            <h5 class="mb-0">
+                                <i class="fas fa-user-check text-<?= $color ?> me-1"></i>
+                                <?= esc($nama) ?>
+                            </h5>
                         </div>
-                    <?php endforeach ?>
+
+                        <hr>
+
+                        <div>
+                            <label class="text-muted small mb-2">Pesan / Respon</label>
+                            <div class="p-3 bg-light rounded border">
+                                <?= nl2br(esc($ticket['respon_message'])) ?>
+                            </div>
+                        </div>
+
+                    </div>
+
                 </div>
-            <?php endif ?>
-            <!-- ============================= -->
-            <!-- TINDAKAN PELAKSANA -->
-            <!-- ============================= -->
-            <?php foreach ($units as $index => $unit): ?>
-                <?php
-                $kd      = $unit['kd_jbtn'];
-                $nextKd  = $units[$index + 1]['kd_jbtn'] ?? null;
-                $boleh   = ($prosesUnit == $userJabatan && $kd == $userJabatan);
-                ?>
-                <?php if ($boleh): ?>
-                    <div class="card border-warning">
-                        <div class="card-header bg-warning">
-                            <strong>Tindakan Pelaksana</strong>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <!-- FORM TOLAK / SELESAI -->
-                                <div class="col-md-6">
-                                    <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
-                                        <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
-                                        <?php if ($nextKd): ?>
-                                            <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
-                                        <?php endif ?>
-                                        <div class="mb-3">
-                                            <label class="form-label fw-semibold">Tindakan Penyelesaian/Penolakan</label>
-                                            <textarea
-                                                name="catatan"
-                                                class="form-control"
-                                                rows="3"
-                                                placeholder="Masukkan keterangan proses..."></textarea>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button
-                                                type="submit"
-                                                name="status_validasi"
-                                                value="0"
-                                                class="btn btn-danger btn-sm"
-                                                onclick="return confirm('Apakah Anda yakin menolak tiket ini?')">
-                                                ❌ Tolak
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                name="status_validasi"
-                                                value="2"
-                                                class="btn btn-primary btn-sm"
-                                                onclick="return confirm('Selesaikan tiket ini?')">
-                                                ✅ Selesaikan
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                                <!-- FORM TERUSKAN -->
-                                <?php if ($nextKd): ?>
+            </div>
+        <?php else: ?>
+            <div class="col-md-7">
+                <?php if (false): ?>
+                    <!-- UNIT PENANGGUNG JAWAB -->
+                    <div class="mb-4">
+                        <h6 class="fw-semibold mb-3">Unit Penanggung Jawab</h6>
+                        <?php foreach ($units as $unit): ?>
+                            <div class="border rounded p-3 mb-2">
+                                <i class="fas fa-sitemap me-2"></i>
+                                <?= esc($unit['nm_jbtn']) ?>
+                            </div>
+                        <?php endforeach ?>
+                    </div>
+                <?php endif ?>
+                <!-- ============================= -->
+                <!-- TINDAKAN PELAKSANA -->
+                <!-- ============================= -->
+                <?php foreach ($units as $index => $unit): ?>
+                    <?php
+                    $kd      = $unit['kd_jbtn'];
+                    $nextKd  = $units[$index + 1]['kd_jbtn'] ?? null;
+                    $boleh   = ($prosesUnit == $userJabatan && $kd == $userJabatan);
+                    ?>
+                    <?php if ($boleh): ?>
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning">
+                                <strong>Tindakan Pelaksana</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- FORM TOLAK / SELESAI -->
                                     <div class="col-md-6">
-                                        <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
+                                        <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
                                             <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
-                                            <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                            <?php if ($nextKd): ?>
+                                                <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                            <?php endif ?>
                                             <div class="mb-3">
-                                                <label class="form-label fw-semibold">Teruskan ke Unit/Pelaksana selanjutnya</label>
+                                                <label class="form-label fw-semibold">Tindakan Penyelesaian/Penolakan</label>
                                                 <textarea
                                                     name="catatan"
                                                     class="form-control"
                                                     rows="3"
                                                     placeholder="Masukkan keterangan proses..."></textarea>
                                             </div>
-                                            <button
-                                                type="submit"
-                                                class="btn btn-success btn-sm"
-                                                onclick="return confirm('Teruskan tiket ke unit berikutnya?')">
-                                                ✔ Teruskan
-                                            </button>
+                                            <div class="d-flex gap-2">
+                                                <button
+                                                    type="submit"
+                                                    name="status_validasi"
+                                                    value="0"
+                                                    class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Apakah Anda yakin menolak tiket ini?')">
+                                                    ❌ Tolak
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    name="status_validasi"
+                                                    value="2"
+                                                    class="btn btn-primary btn-sm"
+                                                    onclick="return confirm('Selesaikan tiket ini?')">
+                                                    ✅ Selesaikan
+                                                </button>
+                                            </div>
                                         </form>
                                     </div>
-                                <?php endif ?>
+                                    <!-- FORM TERUSKAN -->
+                                    <?php if ($nextKd): ?>
+                                        <div class="col-md-6">
+                                            <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
+                                                <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
+                                                <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Teruskan ke Unit/Pelaksana selanjutnya</label>
+                                                    <textarea
+                                                        name="catatan"
+                                                        class="form-control"
+                                                        rows="3"
+                                                        placeholder="Masukkan keterangan proses..."></textarea>
+                                                </div>
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-success btn-sm"
+                                                    onclick="return confirm('Teruskan tiket ke unit berikutnya?')">
+                                                    ✔ Teruskan
+                                                </button>
+                                            </form>
+                                        </div>
+                                    <?php endif ?>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                <?php endif ?>
-            <?php endforeach ?>
-        </div>
+                    <?php endif ?>
+                <?php endforeach ?>
+            </div>
+        <?php endif ?>
         <!-- ============================= -->
         <!-- KOLOM KANAN -->
         <!-- ============================= -->
