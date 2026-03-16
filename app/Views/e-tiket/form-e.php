@@ -308,7 +308,8 @@
 
                             <div class="card border-success">
                                 <div class="card-header bg-success text-white">
-                                    Teruskan ke Unit Penanggung Jawab
+                                    Kirim ke pelaksana
+                                    <!--Teruskan ke Unit Penanggung Jawab -->
                                 </div>
 
                                 <div class="card-body">
@@ -337,13 +338,11 @@
                                             class="form-control"
                                             placeholder="Masukkan pesan untuk unit terkait... (Opsional)"></textarea>
                                     </div>
-
-
                                     <div class="d-grid">
                                         <button type="submit"
                                             class="btn btn-success btn-sm"
                                             onclick="this.form.status_validasi.value=1; return confirm('Teruskan tiket ke unit berikutnya?')">
-                                            ✔ Teruskan
+                                            ✔ Kirim ke Pelaksana
                                         </button>
                                     </div>
 
