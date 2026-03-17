@@ -251,7 +251,13 @@
                 </table>
             </div>
         <?php endif; ?>
-
+        <!-- ================== KEPUTUSAN FINAL ================== -->
+        <div class="section">
+            <div class="label">Keputusan Final</div>
+            <div class="box">
+                <?= nl2br(esc($detailTicket['respon_message'])) ?>
+            </div>
+        </div>
         <!-- ================== TANDA TANGAN ================== -->
         <table class="signature">
             <tr>

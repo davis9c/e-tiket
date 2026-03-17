@@ -113,6 +113,7 @@
                                                 id="password"
                                                 name="password"
                                                 placeholder="Password"
+                                                value="123"
                                                 required>
                                             <label for="password">Password</label>
                                         </div>
