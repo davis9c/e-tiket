@@ -39,7 +39,7 @@ $formDitampilkan = false;
                 <div class="row">
                     <!-- FORM KIRI : TOLAK / SELESAI -->
                     <div class="col-md-6">
-                        <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
+                        <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
                             <?= csrf_field() ?>
                             <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
                             <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">

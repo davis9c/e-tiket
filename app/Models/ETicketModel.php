@@ -96,6 +96,7 @@ class ETicketModel extends Model
     protected $allowedFields = [
         'kode_ticket',
         'judul',
+        'kd_pegawai',
         'message',
         'headsection',
         'kategori_id',
@@ -217,16 +218,51 @@ class ETicketModel extends Model
                 'kuj.kategori_id = e.kategori_id',
                 'inner'
             )
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left'
+            )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid IS NOT NULL', null, false);
+            ->where('e.valid_nama IS NOT NULL', null, false)
+            ->groupStart()
+            ->where('e.proses_unit', $kd_jbtn)
+            ->orWhere('ep.kd_jbtn', $kd_jbtn)
+            ->groupEnd();
 
-        // 🔥 FILTER SELESAI BERDASARKAN NULL
-        if ($selesai === true) {
-            $builder->where('e.selesai IS NOT NULL', null, false);
-        } elseif ($selesai === false) {
-            $builder->where('e.selesai IS NULL', null, false);
-        }
+        $rows = $builder
+            ->groupBy('e.id') // penting untuk cegah duplikat
+            ->orderBy('e.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $this->attachProsesToRows($rows);
+    }
+    public function getSudahValid2_old(
+        string $kd_jbtn,
+        bool $penanggungJawab,
+        ?bool $selesai = null
+    ): array {
+
+        $builder = $this->baseQuery()
+            ->join(
+                'kategori_unit_jabatan kuj',
+                'kuj.kategori_id = e.kategori_id',
+                'inner'
+            )
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left' // penting
+            )
+            ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.valid_nama IS NOT NULL', null, false)
+            ->groupStart()
+            ->where('e.proses_unit', $kd_jbtn)
+            ->orWhere('ep.kd_jbtn', $kd_jbtn)
+            ->groupEnd();
 
         $rows = $builder
             ->orderBy('e.created_at', 'DESC')
@@ -249,13 +285,13 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid IS NOT NULL', null, false)
+            ->where('e.valid_nama IS NOT NULL', null, false)
             ->where('e.created_at >=', $this->enamBulanLalu()); // 🔥 tambahkan ini
 
         if ($selesai === true) {
-            $builder->where('e.selesai IS NOT NULL', null, false);
+            $builder->where('e.selesai_nama IS NOT NULL', null, false);
         } elseif ($selesai === false) {
-            $builder->where('e.selesai IS NULL', null, false);
+            $builder->where('e.selesai_nama IS NULL', null, false);
         }
 
         $rows = $builder
@@ -282,9 +318,10 @@ class ETicketModel extends Model
             )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.proses_unit', $kd_jbtn) // 🔥 filter proses
-            ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
+
+            //->where('e.valid_nama IS NOT NULL', null, false)
+            //->where('e.proses_unit', $kd_jbtn) // OR
+            //->where('ep.kd_jbtn', $kd_jbtn) // OR
             ->where('e.created_at >=', $this->enamBulanLalu())
             ->groupBy('e.id') // penting supaya tidak duplicate
             ->orderBy('e.created_at', 'DESC')

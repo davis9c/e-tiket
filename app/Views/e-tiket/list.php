@@ -18,6 +18,7 @@
                 <?php
                 //dd($data['eticket']);
                 ?>
+
                 <?php if (!empty($data['eticket'])): ?>
                     <?php foreach ($data['eticket'] as $index => $p): ?>
                         <tr>
@@ -37,20 +38,24 @@
                             <td><?= esc($p['message']) ?></td>
                             <!-- STATUS -->
                             <td>
-                                <?php if ($p['valid'] == null): ?>
+                                <?php if ($p['valid_nama'] == null): ?>
                                     <span class="badge bg-secondary">
                                         Menunggu Persetujuan
                                     </span>
-                                <?php elseif ($p['valid'] != null): ?>
-                                    <span class="badge bg-success">
-                                        Disetujui <?= esc($p['valid_nama']) ?>
-                                    </span>
-                                    <?php if ($p['selesai'] == null): ?>
-                                        <span class="badge bg-warning">
-                                            Sampai Pada <?= esc($p['proses_unit_nama']) ?>
+                                <?php elseif ($p['valid_nama'] != null): ?>
+                                    <?php if ($p['selesai_nama'] == $p['reject_nama']): ?>
+                                    <?php else: ?>
+                                        <span class="badge bg-success">
+                                            Disetujui <?= esc($p['valid_nama']) ?>
+                                        </span>
+                                    <?php endif ?>
+                                    <?php if ($p['selesai_nama'] == null): ?>
+
+                                        <span class="badge bg-warning text-dark">
+                                            Diproses di <?= esc($p['proses_unit_nama']) ?>
                                         </span>
                                     <?php else: ?>
-                                        <?php if ($p['reject'] != null): ?>
+                                        <?php if ($p['reject_nama'] != null): ?>
                                             <span class="badge bg-danger">
                                                 Ditolak <?= esc($p['reject_nama']) ?>
                                             </span>

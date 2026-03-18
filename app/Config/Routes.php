@@ -44,11 +44,15 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     $routes->get('headsection', 'ETicket2::headsection');
     $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
-    $routes->post('headsection/headsection_approve', 'ETicket2::headsection_approve');
+    //$routes->post('headsection/headsection_approve', 'ETicket2::headsection_approve');
+    $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve');
+    $routes->post('headsection/headsection_final', 'ETicket2::submit_final');
 
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
-    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::pelaksana_proses');
+    //$routes->post('pelaksana/pelaksana_proses', 'ETicket2::pelaksana_proses');
+    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses');
+    $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
 
 
 
