@@ -8,7 +8,7 @@
     <meta name="description" content="Login E-Ticket System">
     <meta name="author" content="">
     <title>Login - E-Ticket</title>
-
+    <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/logo.ico') ?>">
     <link href="<?= base_url('sb/css/styles.css') ?>" rel="stylesheet">
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
 </head>
