@@ -225,7 +225,27 @@
             </div>
         </div>
     </div>
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
 
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p id="confirmMessage">Apakah Anda yakin?</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" id="confirmSubmit" class="btn btn-primary">Ya, Lanjutkan</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
     <?php
     $ticket = $data['detailTicket'];
     ?>
@@ -268,47 +288,128 @@
                             <?= csrf_field() ?>
 
                             <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
-                            <input type="hidden" name="status_validasi" value="0">
-                            <div class="card border-primary">
-                                <div class="card-header bg-primary text-white">
+
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-primary text-white fw-semibold">
+                                    <i class="fas fa-gavel me-2"></i>
                                     Tindakan Penolakan / Penyelesaian
                                 </div>
+
                                 <div class="card-body">
+
                                     <!-- CATATAN -->
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold">Catatan Penolakan / Penyelesaian</label>
+                                        <label class="form-label fw-semibold">
+                                            Catatan Penolakan / Penyelesaian
+                                        </label>
                                         <textarea
                                             name="catatan"
                                             rows="3"
                                             class="form-control"
-                                            placeholder="Masukkan alasan penolakan..."></textarea>
+                                            placeholder="Masukkan alasan penolakan atau penyelesaian..."></textarea>
                                     </div>
+
+                                    <!-- ACTION BUTTON -->
                                     <div class="d-flex gap-2">
-                                        <button type="submit"
+                                        <button type="button"
                                             class="btn btn-danger btn-sm"
-                                            onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalTolak">
                                             ❌ Tidak Menyetujui
                                         </button>
-                                        <button type="submit"
+
+                                        <button type="button"
                                             class="btn btn-primary btn-sm"
-                                            onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalSelesai">
                                             ✅ Selesaikan
                                         </button>
                                     </div>
 
                                 </div>
                             </div>
+
+                            <!-- ================= MODAL TOLAK ================= -->
+                            <div class="modal fade" id="modalTolak" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-times-circle me-2"></i>
+                                                Konfirmasi Penolakan
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            Apakah Anda yakin ingin <strong>menolak</strong> tiket ini?
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                                Batal
+                                            </button>
+
+                                            <!-- TANPA JS -->
+                                            <button type="submit"
+                                                name="status_validasi"
+                                                value="0"
+                                                class="btn btn-danger btn-sm">
+                                                Ya, Tolak
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ================= MODAL SELESAI ================= -->
+                            <div class="modal fade" id="modalSelesai" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-check-circle me-2"></i>
+                                                Konfirmasi Penyelesaian
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            Apakah Anda yakin ingin <strong>menyelesaikan</strong> tiket ini?
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                                Batal
+                                            </button>
+
+                                            <!-- TANPA JS -->
+                                            <button type="submit"
+                                                name="status_validasi"
+                                                value="2"
+                                                class="btn btn-primary btn-sm">
+                                                Ya, Selesaikan
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
                         </form>
                     </div>
 
 
+                    <!-- FORM KANAN : TERUSKAN -->
                     <!-- FORM KANAN : TERUSKAN -->
                     <div class="col-md-6">
                         <form action="<?= base_url('headsection/headsection_approve') ?>" method="post">
                             <?= csrf_field() ?>
 
                             <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
-                            <input type="hidden" name="status_validasi" value="1">
 
                             <!-- UNIT PROSES -->
                             <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
@@ -317,46 +418,88 @@
                                 <?php endforeach; ?>
                             <?php endif; ?>
 
-                            <div class="card border-success">
-                                <div class="card-header bg-success text-white">
-                                    Kirim ke pelaksana
-                                    <!--Teruskan ke Unit Penanggung Jawab -->
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-success text-white fw-semibold">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Setujui dan Kirim ke Pelaksana
                                 </div>
 
                                 <div class="card-body">
+
+                                    <!-- LIST UNIT / ALERT -->
                                     <?php if (!empty($data['detailTicket']['unit_penanggung_jawab'])): ?>
 
-                                        <div class="p-3 border rounded bg-light mb-2">
-
+                                        <div class="p-3 border rounded bg-light mb-3">
                                             <?php foreach ($data['detailTicket']['unit_penanggung_jawab'] as $unit): ?>
                                                 <span class="badge bg-secondary me-2 mb-2">
                                                     <i class="fas fa-sitemap me-1"></i>
                                                     <?= esc($unit['nm_jbtn']) ?>
                                                 </span>
                                             <?php endforeach; ?>
-
                                         </div>
+
+                                    <?php else: ?>
+
+                                        <div class="alert alert-warning">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            Tidak ada unit tujuan.
+                                        </div>
+
                                     <?php endif; ?>
                                     <!-- CATATAN -->
-
                                     <div class="mb-3">
-                                        <!--
-                        <label class="form-label fw-semibold">Catatan</label>
-                        -->
                                         <textarea
                                             name="catatan"
                                             rows="3"
                                             class="form-control"
                                             placeholder="Masukkan pesan untuk unit terkait... (Opsional)"></textarea>
                                     </div>
+
+                                    <!-- BUTTON -->
                                     <div class="d-grid">
-                                        <button type="submit"
+                                        <button type="button"
                                             class="btn btn-success btn-sm"
-                                            onclick="this.form.status_validasi.value=1; return confirm('Teruskan tiket ke unit berikutnya?')">
-                                            ✔ Kirim ke Pelaksana
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalTeruskan">
+                                            ✔ Setujui dan Kirim ke Pelaksana
                                         </button>
                                     </div>
 
+                                </div>
+                            </div>
+
+                            <!-- ================= MODAL TERUSKAN ================= -->
+                            <div class="modal fade" id="modalTeruskan" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header bg-success text-white">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-paper-plane me-2"></i>
+                                                Konfirmasi Persetujuan
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            Apakah Anda yakin ingin <strong>menjetujui</strong> dan <strong>meneruskan</strong> tiket ke unit pelaksana?
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                                                Batal
+                                            </button>
+
+                                            <!-- TANPA JS -->
+                                            <button type="submit"
+                                                name="status_validasi"
+                                                value="1"
+                                                class="btn btn-success btn-sm">
+                                                Ya, Setujui dan Kirimkan
+                                            </button>
+                                        </div>
+
+                                    </div>
                                 </div>
                             </div>
 
@@ -452,6 +595,7 @@
                         <div class="card-body">
                             <?php if ($isCurrentUser): ?>
                                 <div class="row g-3">
+
                                     <!-- ============================= -->
                                     <!-- FORM TOLAK / SELESAI -->
                                     <!-- ============================= -->
@@ -479,26 +623,88 @@
                                             </div>
 
                                             <div class="d-flex gap-2">
-                                                <button
-                                                    type="submit"
-                                                    name="status_validasi"
-                                                    value="0"
+                                                <button type="button"
                                                     class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('Tolak tiket ini?')">
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalTolakPelaksana">
                                                     ❌ Tolak
                                                 </button>
 
-                                                <button
-                                                    type="submit"
-                                                    name="status_validasi"
-                                                    value="2"
+                                                <button type="button"
                                                     class="btn btn-primary btn-sm"
-                                                    onclick="return confirm('Selesaikan tiket ini?')">
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalSelesaiPelaksana">
                                                     ✅ Selesai
                                                 </button>
                                             </div>
+
+                                            <!-- ===== MODAL TOLAK ===== -->
+                                            <div class="modal fade" id="modalTolakPelaksana" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+
+                                                        <div class="modal-header bg-danger text-white">
+                                                            <h5 class="modal-title">
+                                                                <i class="fas fa-times-circle me-2"></i>
+                                                                Konfirmasi Penolakan
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+
+                                                        <div class="modal-body">
+                                                            Tolak tiket ini?
+                                                        </div>
+
+                                                        <div class="modal-footer">
+                                                            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+
+                                                            <button type="submit"
+                                                                name="status_validasi"
+                                                                value="0"
+                                                                class="btn btn-danger btn-sm">
+                                                                Ya, Tolak
+                                                            </button>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- ===== MODAL SELESAI ===== -->
+                                            <div class="modal fade" id="modalSelesaiPelaksana" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+
+                                                        <div class="modal-header bg-primary text-white">
+                                                            <h5 class="modal-title">
+                                                                <i class="fas fa-check-circle me-2"></i>
+                                                                Konfirmasi Penyelesaian
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+
+                                                        <div class="modal-body">
+                                                            Selesaikan tiket ini?
+                                                        </div>
+
+                                                        <div class="modal-footer">
+                                                            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+
+                                                            <button type="submit"
+                                                                name="status_validasi"
+                                                                value="2"
+                                                                class="btn btn-primary btn-sm">
+                                                                Ya, Selesai
+                                                            </button>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                         </form>
                                     </div>
+
                                     <!-- ============================= -->
                                     <!-- FORM TERUSKAN -->
                                     <!-- ============================= -->
@@ -522,15 +728,48 @@
                                                         rows="2"
                                                         placeholder="Masukkan keterangan..."></textarea>
                                                 </div>
-                                                <button
-                                                    type="submit"
+
+                                                <button type="button"
                                                     class="btn btn-success btn-sm"
-                                                    onclick="return confirm('Teruskan ke unit berikutnya?')">
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalTeruskanPelaksana">
                                                     ✔ Teruskan
                                                 </button>
+
+                                                <!-- ===== MODAL TERUSKAN ===== -->
+                                                <div class="modal fade" id="modalTeruskanPelaksana" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+
+                                                            <div class="modal-header bg-success text-white">
+                                                                <h5 class="modal-title">
+                                                                    <i class="fas fa-paper-plane me-2"></i>
+                                                                    Konfirmasi Teruskan
+                                                                </h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                            </div>
+
+                                                            <div class="modal-body">
+                                                                Teruskan ke unit berikutnya?
+                                                            </div>
+
+                                                            <div class="modal-footer">
+                                                                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+
+                                                                <button type="submit"
+                                                                    class="btn btn-success btn-sm">
+                                                                    Ya, Teruskan
+                                                                </button>
+                                                            </div>
+
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                             </form>
                                         </div>
                                     <?php endif; ?>
+
                                 </div>
                             <?php else: ?>
                                 <!-- Jika bukan giliran -->
