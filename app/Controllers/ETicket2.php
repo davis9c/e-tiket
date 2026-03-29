@@ -55,23 +55,44 @@ class ETicket2 extends BaseController
         /**
          * Hanya untuk pengujian, saya ingin menguji pengambilan 1 tiket
          * code disini id=pP36avWYBOlgJ45r
-         * 
          * di akhiri die;
-         * 
          */
-        if (false) { //tes pengujian pengambilan 1 tiket
+        if (false) { // tes pengujian pengambilan 1 tiket
             if ($redirect = $this->guard()) return $redirect;
 
             $id = $this->decodeHashId($hashid);
 
             if ($hashid && !$id) {
                 return $this->response->setJSON([
-                    'status' => false,
+                    'status'  => false,
                     'message' => 'ID tidak valid'
                 ])->setStatusCode(400);
             }
 
             $detail = $this->eticketModel->findOneLengkap($id);
+
+            if (!$detail) {
+                return $this->response->setJSON([
+                    'status'  => false,
+                    'message' => 'Data tidak ditemukan'
+                ]);
+            }
+
+            // =========================
+            // 🔥 ATTACH TAMBAHAN
+            // =========================
+
+            // nama jabatan unit
+            $detail = $this->attachNamaJabatanToUnits($detail);
+
+            // nama petugas + jabatan di proses
+            $detail = $this->attachNamaJabatanToProses($detail);
+
+            // nama jabatan utama + proses_unit
+            $detail = $this->attachNamaJabatanToDetail($detail);
+
+            // mapping final biar konsisten
+            $detail = $this->mapUnitWithJabatan($detail);
 
             return $this->response->setJSON($detail);
             die;
