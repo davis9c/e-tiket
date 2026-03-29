@@ -52,30 +52,48 @@ class ETicket2 extends BaseController
     * ========================================================= */
     public function index($hashid = null)
     {
-        $id = null;
-        //dd(session()->get());
-        if ($hashid !== null) {
-            $decoded = $this->hashids->decode($hashid);
+        /**
+         * Hanya untuk pengujian, saya ingin menguji pengambilan 1 tiket
+         * code disini id=pP36avWYBOlgJ45r
+         * 
+         * di akhiri die;
+         * 
+         */
+        if (false) { //tes pengujian pengambilan 1 tiket
+            if ($redirect = $this->guard()) return $redirect;
 
-            if (empty($decoded)) {
-                return redirect()->to('etiket/' . $hashid)
-                    ->with('error', 'ID tidak valid');
+            $id = $this->decodeHashId($hashid);
+
+            if ($hashid && !$id) {
+                return $this->response->setJSON([
+                    'status' => false,
+                    'message' => 'ID tidak valid'
+                ])->setStatusCode(400);
             }
 
-            $id = $decoded[0];
+            $detail = $this->eticketModel->findOneLengkap($id);
+
+            return $this->response->setJSON($detail);
+            die;
         }
-        if ($redirect = $this->guard()) {
-            return $redirect;
+        if ($redirect = $this->guard()) return $redirect;
+
+        $id = $this->decodeHashId($hashid);
+
+        if ($hashid && !$id) {
+            return redirect()->to('etiket/' . $hashid)
+                ->with('error', 'ID tidak valid');
         }
 
         $data = [];
-        $kategoriId = (int) $this->request->getGet('kategori');
-
-        // =====================================================
-        // MODE CREATE (FORM)
-        // =====================================================
         $kdJbtn = session()->get('kd_jabatan');
         $nip    = session()->get('nip');
+
+        $kategoriId = (int) $this->request->getGet('kategori');
+
+        // =========================
+        // MODE CREATE
+        // =========================
         if ($kategoriId) {
             $kategori = $this->kategoriModel->findDetail($kategoriId);
 
@@ -93,32 +111,72 @@ class ETicket2 extends BaseController
 
             $data['kategoriData'] = $kategori;
         }
+
         $data['kategori'] = $this->attachNamaJabatanToKategori(
             $this->kategoriModel->findByUnitPengajuan($kdJbtn)
         );
-        $etickets = $this->eticketModel->getByPetugas($nip);
-        $etickets = $this->attachNamaJabatanToTickets($etickets);
-        $etickets = $this->attachNamaJabatanToTicketsProsesUnit($etickets);
-        $listData = $this->buildTicketPage([
-            'tickets' => $etickets,
-            'id'      => $id,
-        ]);
-        $data = array_merge($data, $listData);
 
-        if (!empty($data['detailTicket'])) {
-            $data['detailTicket']['hashid'] = $this->hashids->encode($data['detailTicket']['id']);
-        }
+        $tickets = $this->eticketModel->getByPetugas($nip);
 
-        foreach ($data['eticket'] as &$row) {
-            $row['hashid'] = $this->hashids->encode($row['id']);
-        }
-
-        $data['user'] = session()->get();
-        return view('e-tiket', [
-            'title' => 'Pengajuan E-Ticket',
-            'data'  => $data,
-        ]);
+        return $this->renderTicketPage(
+            $tickets,
+            $id,
+            'e-tiket',
+            'Pengajuan E-Ticket'
+        );
     }
+    /* =========================================================
+     * HEADSECTION
+     * ========================================================= */
+    public function headsection($hashid = null)
+    {
+        if ($redirect = $this->guard()) return $redirect;
+
+        $id = $this->decodeHashId($hashid);
+
+        if ($hashid && !$id) {
+            return redirect()->to('etiket/' . $hashid)
+                ->with('error', 'ID tidak valid');
+        }
+
+        $kdJbtn = session()->get('kd_jabatan');
+
+        $tickets = $this->eticketModel->getBelumValid($kdJbtn, false);
+
+        return $this->renderTicketPage(
+            $tickets,
+            $id,
+            'headsection',
+            'Persetujuan E-Ticket'
+        );
+    }
+    /* =========================================================
+     * PELAKSANA
+     * ========================================================= */
+    public function pelaksana($hashid = null)
+    {
+        if ($redirect = $this->guard()) return $redirect;
+
+        $id = $this->decodeHashId($hashid);
+
+        if ($hashid && !$id) {
+            return redirect()->to('etiket/' . $hashid)
+                ->with('error', 'ID tidak valid');
+        }
+
+        $kdJbtn = session()->get('kd_jabatan');
+
+        $tickets = $this->eticketModel->getSudahValid2($kdJbtn, true);
+
+        return $this->renderTicketPage(
+            $tickets,
+            $id,
+            'pelaksana',
+            'Pelaksana'
+        );
+    }
+
+
     private function buildTicketPage(array $config)
     {
         $tickets = $this->attachNamaJabatanToTickets($config['tickets']);
@@ -126,8 +184,8 @@ class ETicket2 extends BaseController
         $detail = null;
 
         if (!empty($config['id'])) {
-            $detail = $this->eticketModel->findDetailLengkap($config['id']);
-
+            //$detail = $this->eticketModel->findDetailLengkap($config['id']);
+            $detail = $this->eticketModel->findOneLengkap($config['id']);
             if ($detail) {
 
                 // tambahkan nm_jbtn untuk ticket utama
@@ -146,56 +204,6 @@ class ETicket2 extends BaseController
             'detailTicket' => $detail,
         ];
     }
-
-    /* =========================================================
-     * HEADSECTION
-     * ========================================================= */
-    public function headsection($hashid = null)
-    {
-        if ($redirect = $this->guard()) return $redirect;
-
-        $id = null;
-
-        if ($hashid !== null) {
-            $decoded = $this->hashids->decode($hashid);
-
-            if (empty($decoded)) {
-                return redirect()->to('etiket/' . $hashid)
-                    ->with('error', 'ID tidak valid');
-            }
-
-            $id = $decoded[0];
-        }
-
-        $kdJbtn = session()->get('kd_jabatan');
-        $tickets = $this->eticketModel->getBelumValid($kdJbtn, false);
-        $tickets = $this->attachNamaJabatanToTickets($tickets);
-        $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
-        //dd($tickets);
-
-        $data = $this->buildTicketPage([
-            'tickets' => $tickets,
-            'id'      => $id,
-        ]);
-        //dd($data['detailTicket']);
-        if (!empty($data['detailTicket']['id'])) {
-            $data['detailTicket']['hashid'] =
-                $this->hashids->encode($data['detailTicket']['id']);
-        }
-        $data['eticket'] = $data['eticket'];
-        $data['detailTicket'] = $data['detailTicket'];
-        $data['user'] = session()->get();
-
-        foreach ($data['eticket'] as &$row) {
-            $row['hashid'] = $this->hashids->encode($row['id']);
-        }
-        //dd($data);
-        return view('headsection', [
-            'title' => 'Persetujuan E-Ticket',
-            'data'  => $data,
-        ]);
-    }
-
     // =====================================================
     // PROCESS WORKFLOW HEADSECTION
     // =====================================================
@@ -332,52 +340,45 @@ class ETicket2 extends BaseController
             ->with('success', 'Status berhasil diperbarui.');
     }
 
-    /* =========================================================
-     * PELAKSANA
-     * ========================================================= */
-    public function pelaksana($hashid = null)
+    private function decodeHashId($hashid): ?int
     {
-        if ($redirect = $this->guard()) return $redirect;
+        if (!$hashid) return null;
 
-        $id = null;
+        $decoded = $this->hashids->decode($hashid);
 
-        if ($hashid !== null) {
-            $decoded = $this->hashids->decode($hashid);
-
-            if (empty($decoded)) {
-                return redirect()->to('etiket/' . $hashid)
-                    ->with('error', 'ID tidak valid');
-            }
-
-            $id = $decoded[0];
+        if (empty($decoded)) {
+            return null;
         }
-        if ($redirect = $this->guard()) return $redirect;
 
-        $kdJbtn = session()->get('kd_jabatan');
-
-        $tickets = $this->eticketModel->getSudahValid2($kdJbtn, true);
-        //dd($tickets);
+        return (int)$decoded[0];
+    }
+    private function renderTicketPage(array $tickets, ?int $id, string $view, string $title)
+    {
+        // attach nama jabatan
         $tickets = $this->attachNamaJabatanToTickets($tickets);
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
 
+        // build detail + list
         $data = $this->buildTicketPage([
             'tickets' => $tickets,
             'id'      => $id,
         ]);
+
+        // inject hashid detail
         if (!empty($data['detailTicket']['id'])) {
             $data['detailTicket']['hashid'] =
                 $this->hashids->encode($data['detailTicket']['id']);
         }
-        $data['eticket'] = $data['eticket'];
-        $data['detailTicket'] = $data['detailTicket'];
-        $data['user'] = session()->get();
 
+        // inject hashid list
         foreach ($data['eticket'] as &$row) {
             $row['hashid'] = $this->hashids->encode($row['id']);
         }
-        return view('pelaksana', [
-            //'page'  => 'list_pelaksana',
-            'title' => 'Pelaksana',
+
+        $data['user'] = session()->get();
+
+        return view($view, [
+            'title' => $title,
             'data'  => $data,
         ]);
     }
@@ -1012,7 +1013,8 @@ class ETicket2 extends BaseController
                 ->with('error', 'ID tidak valid');
         }
 
-        $detail = $this->eticketModel->findDetailLengkap($id);
+        //$detail = $this->eticketModel->findDetailLengkap($id);
+        $detail = $this->eticketModel->findOneLengkap($id);
         //dd($detail);
         if (!$detail) {
             return redirect()

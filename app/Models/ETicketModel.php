@@ -147,6 +147,69 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    public function findOneLengkap(int $id): ?array
+    {
+        // ================================
+        // Ambil data utama tiket
+        // ================================
+        $row = $this->baseQuery()
+            ->where('e.id', $id)
+            ->get()
+            ->getRowArray();
+
+        if (!$row) {
+            return null;
+        }
+
+        // ================================
+        // Ambil proses (langsung, bukan array loop)
+        // ================================
+        $proses = $this->prosesModel
+            ->where('id_eticket', $id)
+            ->orderBy('created_at', 'ASC')
+            ->findAll();
+
+        $row['proses'] = $proses;
+
+        // ================================
+        // Ambil unit penanggung jawab
+        // ================================
+        $units = $this->getUnitByKategori(
+            (int)$row['kategori_id'],
+            1
+        );
+
+        $prosesKdjbtn = array_column($proses, 'kd_jbtn');
+
+        foreach ($units as &$unit) {
+            $unit['is_proses'] = in_array($unit['kd_jbtn'], $prosesKdjbtn);
+        }
+
+        $row['unit_penanggung_jawab'] = $units;
+
+        // ================================
+        // Unit pengajuan (opsional biar lengkap)
+        // ================================
+        $row['unit_pengajuan'] = $this->getUnitByKategori(
+            (int)$row['kategori_id'],
+            0
+        );
+
+        // ================================
+        // STATUS LOGIC (tanpa array loop)
+        // ================================
+        if (!empty($row['reject'])) {
+            $row['status'] = 'reject';
+        } elseif (empty($row['valid'])) {
+            $row['status'] = 'belum_valid';
+        } elseif (count($prosesKdjbtn) < count($units)) {
+            $row['status'] = 'proses';
+        } else {
+            $row['status'] = 'selesai';
+        }
+
+        return $row;
+    }
     public function getByUnit(string $kd_jbtn): array
     {
         $rows = $this->baseQuery()
