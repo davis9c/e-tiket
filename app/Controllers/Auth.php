@@ -44,8 +44,7 @@ class Auth extends BaseController
         // sukses
         $this->setUserSession($result['data']);
         $this->syncUser($result['data'], $userId);
-
-        return redirect()->to(base_url('etiket'))
+        return redirect()->to(base_url('index'))
             ->with('success', 'Login berhasil, selamat datang ' . $result['data']['data']['nama']);
     }
     public function logout()

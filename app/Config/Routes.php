@@ -32,8 +32,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     | E-Ticket
     |--------------------------------------------------------------------------
     */
-    $routes->get('etiket', 'ETicket2::index');
-    $routes->get('etiket/(:any)', 'ETicket2::index/$1');
+    $routes->get('index', 'ETicket2::index');
+    $routes->get('etiket', 'ETicket2::eticket');
+    $routes->get('etiket/(:any)', 'ETicket2::eticket/$1');
     $routes->post('etiket/submit', 'ETicket2::submit');
     $routes->get('report/(:any)', 'ETicket2::report/$1');
 

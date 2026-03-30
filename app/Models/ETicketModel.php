@@ -302,6 +302,27 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    public function isSudahValid2(
+        string $kd_jbtn,
+        bool $penanggungJawab,
+        ?bool $selesai = null
+    ): bool {
+
+        $builder = $this->baseQuery()
+            ->select('1', false)
+            ->join('kategori_unit_jabatan kuj', 'kuj.kategori_id = e.kategori_id', 'inner')
+            ->join('eticket_proses ep', 'ep.id_eticket = e.id', 'left')
+            ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.valid_nama IS NOT NULL', null, false)
+            ->groupStart()
+            ->where('e.proses_unit', $kd_jbtn)
+            ->orWhere('ep.kd_jbtn', $kd_jbtn)
+            ->groupEnd()
+            ->limit(1);
+
+        return $builder->get()->getRow() !== null;
+    }
     public function getSudahValid2_old(
         string $kd_jbtn,
         bool $penanggungJawab,

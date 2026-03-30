@@ -50,7 +50,32 @@ class ETicket2 extends BaseController
     /* =========================================================
     * LIST & CREATE E-TICKET
     * ========================================================= */
-    public function index($hashid = null)
+    public function index()
+    {
+        /**
+         * 
+         */
+        //dd(session()->get('headsection'));
+        if (session()->get('headsection') != null) {
+            //redirect to hS
+            return redirect()->to('headsection/');
+        } else {
+            /**
+             * kondisi apakah dia memiliki data pelaksana,
+             * jika tidak, redirect to e-ticket.
+             */
+
+            $kdJbtn = session()->get('kd_jabatan');
+            if ($this->eticketModel->isSudahValid2($kdJbtn, true) == true) { //cek apakah ada data atau tidak
+                //redirect to pelaksana
+                return redirect()->to('pelaksana/');
+            } else {
+                //redirect to e-ticket
+                return redirect()->to('etiket/');
+            }
+        }
+    }
+    public function eticket($hashid = null)
     {
         /**
          * Hanya untuk pengujian, saya ingin menguji pengambilan 1 tiket
