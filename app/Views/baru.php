@@ -2,7 +2,7 @@
 <?= $this->section('content') ?>
 <main>
     <div class="container-fluid px-4">
-        <h1 class="mt-4">E-Tiket</h1>
+        <h1 class="mt-4">Buat E-Tiket Baru</h1>
         <!--UPDATE 2 START-->
         <p>Pilih kategori ticket yang akan anda ajukan</p>
         <!--UPDATE 2 END-->
@@ -40,11 +40,24 @@
                 });
             </script>
         <?php endif; ?>
+
         <div class="row">
-            <!-- LIST (Bawah) -->
-            <div class="col-md-9">
-                <?= $this->include('e-tiket/list') ?>
-            </div>
+            <!-- FORM/DETAIL (ATAS) -->
+            <?php if (!empty($data['detailTicket'])): ?>
+                <div class="col-md-9">
+                    <?= $this->include('e-tiket/form-e') ?>
+                </div>
+            <?php else: ?>
+                <?php if (!empty($data['kategoriData'])): ?>
+                    <div class="col-md-9">
+                        <?= $this->include('e-tiket/form') ?>
+                    </div>
+                <?php else: ?>
+                    <div class="col-md-9">
+                        <?= $this->include('e-tiket/card') ?>
+                    </div>
+                <?php endif ?>
+            <?php endif ?>
         </div>
     </div>
 </main>

@@ -23,7 +23,7 @@
                     <!-- Footer -->
                     <div class="card-footer d-flex align-items-center justify-content-between">
                         <a class="small text-white stretched-link"
-                            href="<?= base_url('etiket?kategori=' . $p['id']) ?>">
+                            href="<?= base_url('baru?kategori=' . $p['id']) ?>">
                             Buat Tiket
                         </a>
                         <div class="small text-white">

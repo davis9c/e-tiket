@@ -12,7 +12,7 @@ $kdJabatan = session('kd_jabatan');
                 <!-- ===================== -->
                 <div class="sb-sidenav-menu-heading">My E-Ticket</div>
 
-                <a class="nav-link" href="<?= base_url('etiket?status=berjalan') ?>">
+                <a class="nav-link" href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
                     Berjalan
                 </a>
@@ -28,7 +28,7 @@ $kdJabatan = session('kd_jabatan');
                 <?php if ((int) session('headsection') === 1): ?>
                     <div class="sb-sidenav-menu-heading">Persetujuan</div>
 
-                    <a class="nav-link" href="<?= base_url('headsection?status=pending') ?>">
+                    <a class="nav-link" href="<?= base_url('headsection') ?>">
                         <div class="sb-nav-link-icon"><i class="fas fa-clock"></i></div>
                         Persetujuan
                     </a>
@@ -49,7 +49,7 @@ $kdJabatan = session('kd_jabatan');
                 <!-- ===================== -->
                 <div class="sb-sidenav-menu-heading">Pelaksana</div>
 
-                <a class="nav-link" href="<?= base_url('pelaksana?status=berjalan') ?>">
+                <a class="nav-link" href="<?= base_url('pelaksana') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-user-cog"></i></div>
                     Berjalan
                 </a>
