@@ -26,18 +26,45 @@
                             placeholder="Masukkan alasan penolakan..."></textarea>
                     </div>
                     <div class="d-flex gap-2">
-                        <button type="submit"
-                            class="btn btn-danger"
-                            onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
-                            ❌ Tidak Menyetujui
-                        </button>
-                        <button type="submit"
-                            class="btn btn-primary"
-                            onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
-                            ✅ Selesaikan
+                        <?php if (false): ?>
+                            <button type="submit"
+                                class="btn btn-danger"
+                                onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
+                                ❌ Tidak Menyetujui
+                            </button>
+                            <button type="submit"
+                                class="btn btn-primary"
+                                onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
+                                ✅ Selesaikan
+                            </button>
+                        <?php endif ?>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Pilih Aksi</label>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="status_validasi" id="tolak" value="0">
+                                <label class="form-check-label text-danger" for="tolak">
+                                    ❌ Tidak Menyetujui
+                                </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="status_validasi" id="selesai" value="2" checked>
+                                <label class="form-check-label text-primary" for="selesai">
+                                    ✅ Selesaikan
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary"
+                            onclick="return confirm(
+        document.querySelector('input[name=status_validasi]:checked').value == '0'
+        ? 'Apakah Anda yakin menolak tiket ini?'
+        : 'Selesaikan tiket ini?'
+    )">
+                            Kirim
                         </button>
                     </div>
-
                 </div>
             </div>
         </form>

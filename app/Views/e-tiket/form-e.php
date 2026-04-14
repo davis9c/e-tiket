@@ -4,7 +4,7 @@
         <?php if ($msg = session()->getFlashdata('success')): ?>
             <div class="alert alert-success alert-dismissible fade show">
                 <?= esc($msg) ?>
-                <button type="button" class="btn-close " data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         <?php endif; ?>
         <?php if ($msg = session()->getFlashdata('error')): ?>
@@ -119,7 +119,9 @@
                         <!-- PERSETUJUAN HEADSECTION -->
                         <!-- ============================= -->
                         <?php if ($isHead): ?>
-
+                            <!-- ============================= -->
+                            <!--  -->
+                            <!-- ============================= -->
                             <div class="timeline-item">
                                 <?php if (!$validNama): ?>
                                     <div class="timeline-dot bg-warning"></div>
@@ -148,61 +150,62 @@
                                         <i class="fa-solid fa-check-square me-1"></i>
                                         Disetujui <?= esc($validNama) ?>
                                     </div>
+
+                                    <!-- ============================= -->
+                                    <!-- PROSES UNIT -->
+                                    <!-- ============================= -->
+                                    <?php if ($validNama && !empty($ticket['unit_penanggung_jawab'])): ?>
+                                        <?php foreach ($ticket['unit_penanggung_jawab'] as $upj): ?>
+
+                                            <?php
+                                            $namaJabatan = $upj['nm_jbtn'];
+                                            $sudahProses = in_array($namaJabatan, $prosesJabatan);
+                                            ?>
+
+                                            <div class="timeline-item">
+                                                <?php if ($sudahProses): ?>
+                                                    <div class="timeline-dot bg-success"></div>
+                                                    <div class="timeline-content text-success fw-semibold">
+                                                        <i class="fas fa-check-square me-1"></i>
+                                                        Sampai pada <?= esc($namaJabatan) ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="timeline-dot bg-warning"></div>
+                                                    <div class="timeline-content text-warning fw-semibold">
+                                                        <i class="fa-solid fa-clock me-1"></i>
+                                                        Diproses oleh <?= esc($namaJabatan) ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                        <?php endforeach; ?>
+                                        <!-- ============================= -->
+                                        <!-- STATUS AKHIR -->
+                                        <!-- ============================= -->
+                                        <?php if ($selesaiNama): ?>
+                                            <div class="timeline-item">
+
+                                                <?php if ($rejectNama): ?>
+                                                    <div class="timeline-dot bg-danger"></div>
+                                                    <div class="timeline-content text-danger fw-semibold">
+                                                        <i class="fa-solid fa-xmark-circle me-1"></i>
+                                                        Ditolak <?= esc($rejectNama) ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="timeline-dot bg-success"></div>
+                                                    <div class="timeline-content text-success fw-semibold">
+                                                        <i class="fa-solid fa-circle-check me-1"></i>
+                                                        Diselesaikan <?= esc($selesaiNama) ?>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+
                                 <?php endif; ?>
                             </div>
 
-                            <!-- ============================= -->
-                            <!-- PROSES UNIT -->
-                            <!-- ============================= -->
-                            <?php if ($validNama && !empty($ticket['unit_penanggung_jawab'])): ?>
-                                <?php foreach ($ticket['unit_penanggung_jawab'] as $upj): ?>
-
-                                    <?php
-                                    $namaJabatan = $upj['nm_jbtn'];
-                                    $sudahProses = in_array($namaJabatan, $prosesJabatan);
-                                    ?>
-
-                                    <div class="timeline-item">
-                                        <?php if ($sudahProses): ?>
-                                            <div class="timeline-dot bg-success"></div>
-                                            <div class="timeline-content text-success fw-semibold">
-                                                <i class="fas fa-check-square me-1"></i>
-                                                Sampai pada <?= esc($namaJabatan) ?>
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="timeline-dot bg-warning"></div>
-                                            <div class="timeline-content text-warning fw-semibold">
-                                                <i class="fa-solid fa-clock me-1"></i>
-                                                Diproses oleh <?= esc($namaJabatan) ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-
-                            <!-- ============================= -->
-                            <!-- STATUS AKHIR -->
-                            <!-- ============================= -->
-                            <?php if ($selesaiNama): ?>
-                                <div class="timeline-item">
-
-                                    <?php if ($rejectNama): ?>
-                                        <div class="timeline-dot bg-danger"></div>
-                                        <div class="timeline-content text-danger fw-semibold">
-                                            <i class="fa-solid fa-xmark-circle me-1"></i>
-                                            Ditolak <?= esc($rejectNama) ?>
-                                        </div>
-                                    <?php else: ?>
-                                        <div class="timeline-dot bg-success"></div>
-                                        <div class="timeline-content text-success fw-semibold">
-                                            <i class="fa-solid fa-circle-check me-1"></i>
-                                            Diselesaikan <?= esc($selesaiNama) ?>
-                                        </div>
-                                    <?php endif; ?>
-
-                                </div>
-                            <?php endif; ?>
 
                         <?php endif; ?>
 
@@ -253,24 +256,6 @@
 
     <div class="mb-3">
         <?php if (!empty($ticket['valid_nama'])): ?>
-            <?php if (false): ?>
-                <?php if ($ticket['valid_nama'] === $ticket['selesai_nama']): ?>
-                    <div class="alert <?= !empty($ticket['reject_nama']) ? 'alert-danger' : 'alert-info' ?> mb-4">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <?php if (!empty($ticket['reject_nama'])): ?>
-                            Ditolak oleh:
-                            <strong><?= esc($ticket['reject_nama']) ?></strong>
-                        <?php else: ?>
-                            Diselesaikan oleh:
-                            <strong><?= esc($ticket['selesai_nama']) ?></strong>
-                        <?php endif; ?>
-                        <textarea class="form-control bg-light mt-2" rows="4" readonly><?= esc($ticket['respon_message']) ?></textarea>
-                        <div class="small text-muted mt-2">
-                            <?= esc($ticket['updated_at']) ?>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            <?php endif ?>
         <?php else: ?>
             <?php if (session()->get('headsection') !== null): ?>
                 <!-- Form Valid muncul disini -->
@@ -307,97 +292,49 @@
                                             placeholder="Masukkan alasan penolakan atau penyelesaian..."></textarea>
                                     </div>
 
-                                    <!-- ACTION BUTTON -->
-                                    <div class="d-flex gap-2">
-                                        <button type="button"
-                                            class="btn btn-danger btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalTolak">
-                                            ❌ Tidak Menyetujui
-                                        </button>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold d-block">Pilih Tindakan</label>
 
-                                        <button type="button"
-                                            class="btn btn-primary btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalSelesai">
-                                            ✅ Selesaikan
-                                        </button>
+                                        <div class="d-flex gap-2">
+
+                                            <!-- Tolak -->
+                                            <input type="radio" class="btn-check" name="status_validasi" id="tolak" value="0" autocomplete="off">
+                                            <label class="btn btn-outline-danger btn-sm" for="tolak">
+                                                ❌ Tidak Menyetujui
+                                            </label>
+
+                                            <!-- Selesai (default) -->
+                                            <input type="radio" class="btn-check" name="status_validasi" id="selesai" value="2" autocomplete="off" checked>
+                                            <label class="btn btn-outline-primary btn-sm" for="selesai">
+                                                ✅ Selesaikan
+                                            </label>
+
+                                        </div>
                                     </div>
 
+                                    <button type="button" class="btn btn-primary" onclick="openConfirmHeadsection()">
+                                        Kirim
+                                    </button>
                                 </div>
                             </div>
-
-                            <!-- ================= MODAL TOLAK ================= -->
-                            <div class="modal fade" id="modalTolak" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-
-                                        <div class="modal-header bg-danger text-white">
-                                            <h5 class="modal-title">
-                                                <i class="fas fa-times-circle me-2"></i>
-                                                Konfirmasi Penolakan
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-
-                                        <div class="modal-body">
-                                            Apakah Anda yakin ingin <strong>menolak</strong> tiket ini?
-                                        </div>
-
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                                                Batal
-                                            </button>
-
-                                            <!-- TANPA JS -->
-                                            <button type="submit"
-                                                name="status_validasi"
-                                                value="0"
-                                                class="btn btn-danger btn-sm">
-                                                Ya, Tolak
-                                            </button>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- ================= MODAL SELESAI ================= -->
-                            <div class="modal fade" id="modalSelesai" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-
-                                        <div class="modal-header bg-primary text-white">
-                                            <h5 class="modal-title">
-                                                <i class="fas fa-check-circle me-2"></i>
-                                                Konfirmasi Penyelesaian
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-
-                                        <div class="modal-body">
-                                            Apakah Anda yakin ingin <strong>menyelesaikan</strong> tiket ini?
-                                        </div>
-
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
-                                                Batal
-                                            </button>
-
-                                            <!-- TANPA JS -->
-                                            <button type="submit"
-                                                name="status_validasi"
-                                                value="2"
-                                                class="btn btn-primary btn-sm">
-                                                Ya, Selesaikan
-                                            </button>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-
                         </form>
+
+                        <!-- ===== MODAL KONFIRMASI HEADSECTION ===== -->
+                        <div class="modal fade" id="modalConfirmHeadsection" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header" id="modalHeaderHeadsection">
+                                        <h5 class="modal-title" id="modalTitleHeadsection"></h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body" id="modalBodyHeadsection"></div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                        <button type="button" id="btnConfirmHeadsection" class="btn btn-primary btn-sm">Ya, Lanjutkan</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
 
@@ -598,7 +535,7 @@
                                     <!-- FORM TOLAK / SELESAI -->
                                     <!-- ============================= -->
                                     <div class="col-md-6">
-                                        <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
+                                        <form id="pelaksanaFinalForm" action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
                                             <?= csrf_field() ?>
 
                                             <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
@@ -619,91 +556,52 @@
                                                     rows="2"
                                                     placeholder="Masukkan keterangan..."></textarea>
                                             </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold d-block">Pilih Aksi</label>
 
-                                            <div class="d-flex gap-2">
-                                                <button type="button"
-                                                    class="btn btn-danger btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalTolakPelaksana">
-                                                    ❌ Tolak
-                                                </button>
+                                                <div class="d-flex gap-2">
 
-                                                <button type="button"
-                                                    class="btn btn-primary btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalSelesaiPelaksana">
-                                                    ✅ Selesai
-                                                </button>
-                                            </div>
+                                                    <!-- Tolak -->
+                                                    <input type="radio" class="btn-check" name="status_validasi" id="tolakPelaksana" value="0" autocomplete="off">
+                                                    <label class="btn btn-outline-danger btn-sm" for="tolakPelaksana">
+                                                        ❌ Tolak
+                                                    </label>
 
-                                            <!-- ===== MODAL TOLAK ===== -->
-                                            <div class="modal fade" id="modalTolakPelaksana" tabindex="-1">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
+                                                    <!-- Selesai -->
+                                                    <input type="radio" class="btn-check" name="status_validasi" id="selesaiPelaksana" value="2" autocomplete="off" checked>
+                                                    <label class="btn btn-outline-primary btn-sm" for="selesaiPelaksana">
+                                                        ✅ Selesai
+                                                    </label>
 
-                                                        <div class="modal-header bg-danger text-white">
-                                                            <h5 class="modal-title">
-                                                                <i class="fas fa-times-circle me-2"></i>
-                                                                Konfirmasi Penolakan
-                                                            </h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                        </div>
-
-                                                        <div class="modal-body">
-                                                            Tolak tiket ini?
-                                                        </div>
-
-                                                        <div class="modal-footer">
-                                                            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-
-                                                            <button type="submit"
-                                                                name="status_validasi"
-                                                                value="0"
-                                                                class="btn btn-danger btn-sm">
-                                                                Ya, Tolak
-                                                            </button>
-                                                        </div>
-
-                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <!-- ===== MODAL SELESAI ===== -->
-                                            <div class="modal fade" id="modalSelesaiPelaksana" tabindex="-1">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-
-                                                        <div class="modal-header bg-primary text-white">
-                                                            <h5 class="modal-title">
-                                                                <i class="fas fa-check-circle me-2"></i>
-                                                                Konfirmasi Penyelesaian
-                                                            </h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                        </div>
-
-                                                        <div class="modal-body">
-                                                            Selesaikan tiket ini?
-                                                        </div>
-
-                                                        <div class="modal-footer">
-                                                            <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-
-                                                            <button type="submit"
-                                                                name="status_validasi"
-                                                                value="2"
-                                                                class="btn btn-primary btn-sm">
-                                                                Ya, Selesai
-                                                            </button>
-                                                        </div>
-
-                                                    </div>
-                                                </div>
-                                            </div>
-
+                                            <!-- SUBMIT -->
+                                            <button type="button" class="btn btn-primary btn-sm" onclick="openConfirmPelaksana()">
+                                                Kirim
+                                            </button>
                                         </form>
+
+                                        <!-- ===== MODAL KONFIRMASI PELAKSANA ===== -->
+                                        <div class="modal fade" id="modalConfirmPelaksana" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header" id="modalHeaderPelaksana">
+                                                        <h5 class="modal-title" id="modalTitlePelaksana"></h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body" id="modalBodyPelaksana"></div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+                                                        <button type="button" id="btnConfirmPelaksana" class="btn btn-primary btn-sm">Ya, Lanjutkan</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- ============================= -->
+
                                     <!-- FORM TERUSKAN -->
                                     <!-- ============================= -->
                                     <?php if ($nextKd): ?>
@@ -827,154 +725,84 @@
             </div>
         </div>
     </div>
-    <?php if (false): ?>
-        <hr>
-        <!-- tampilkan penanggung jawab / pelaksana -->
-        <?php
-        $units   = $data['detailTicket']['unit_penanggung_jawab'] ?? [];
-        $proses  = $data['detailTicket']['proses'] ?? [];
 
-        $userJabatan = $data['user']['kd_jabatan'] ?? null;
-        $prosesUnit  = $data['detailTicket']['proses_unit'] ?? null;
+    <script>
+        function openConfirmPelaksana() {
+            const form = document.getElementById('pelaksanaFinalForm');
+            if (!form) {
+                return;
+            }
 
-        $formDitampilkan = false;
-        ?>
+            const selected = form.querySelector('input[name="status_validasi"]:checked');
+            if (!selected) {
+                alert('Pilih aksi terlebih dahulu!');
+                return;
+            }
 
-        <div class="mb-4">
-            <h6 class="fw-semibold mb-3">Proses Unit Penanggung Jawab</h6>
-            <?php foreach ($units as $index => $unit): ?>
-                <?php
-                $kd = $unit['kd_jbtn'];
-                $nextKd = $units[$index + 1]['kd_jbtn'] ?? null;
-                $bolehForm = $prosesUnit == $userJabatan && $kd == $userJabatan;
-                $petugasNama = null;
+            const header = document.getElementById('modalHeaderPelaksana');
+            const title = document.getElementById('modalTitlePelaksana');
+            const body = document.getElementById('modalBodyPelaksana');
+            const btn = document.getElementById('btnConfirmPelaksana');
+            const modal = new bootstrap.Modal(document.getElementById('modalConfirmPelaksana'));
 
-                foreach ($proses as $p) {
-                    if ($p['kd_jbtn'] == $kd) {
-                        $petugasNama = $p['nm_petugas'] ?? null;
-                        break;
-                    }
-                }
-                ?>
+            if (selected.value === '0') {
+                header.className = 'modal-header bg-danger text-white';
+                title.textContent = 'Konfirmasi Penolakan';
+                body.innerHTML = 'Apakah Anda yakin ingin <strong>menolak</strong> tiket ini?';
+                btn.className = 'btn btn-danger btn-sm';
+                btn.textContent = 'Ya, Tolak';
+            } else {
+                header.className = 'modal-header bg-primary text-white';
+                title.textContent = 'Konfirmasi Penyelesaian';
+                body.innerHTML = 'Apakah Anda yakin ingin <strong>menyelesaikan</strong> tiket ini?';
+                btn.className = 'btn btn-primary btn-sm';
+                btn.textContent = 'Ya, Selesaikan';
+            }
 
-                <div class="mb-3 p-3 border rounded">
-                    <div class="fw-semibold mb-2">
-                        <i class="fas fa-sitemap me-2"></i>
-                        <?= esc($unit['nm_jbtn']) ?>
+            btn.onclick = function() {
+                form.submit();
+            };
 
-                        <?php if ($petugasNama): ?>
-                            | <strong><?= esc($petugasNama) ?></strong>
-                        <?php endif; ?>
-                    </div>
-                    <?php if ($bolehForm && !$formDitampilkan): ?>
-                        <?php $formDitampilkan = true; ?>
-                        <div class="row">
-                            <!-- FORM KIRI : TOLAK / SELESAI -->
-                            <div class="col-md-6">
-                                <form action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
-                                    <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
-                                    <input type="hidden" name="status_validasi" value="0">
-                                    <?php if ($nextKd): ?>
-                                        <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
-                                    <?php endif; ?>
-                                    <div class="card border-danger">
-                                        <div class="card-header bg-danger text-white">
-                                            Tindakan Pelaksana
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="mb-3">
-                                                <label class="form-label fw-semibold">Catatan Proses</label>
-                                                <textarea name="catatan"
-                                                    class="form-control"
-                                                    rows="3"
-                                                    placeholder="Masukkan keterangan proses..."></textarea>
-                                            </div>
-                                            <div class="d-flex gap-2">
-                                                <button type="submit"
-                                                    class="btn btn-danger btn-sm"
-                                                    onclick="this.form.status_validasi.value=0; return confirm('Apakah Anda yakin menolak tiket ini?')">
-                                                    ❌ Tolak
-                                                </button>
-                                                <button type="submit"
-                                                    class="btn btn-primary btn-sm"
-                                                    onclick="this.form.status_validasi.value=2; return confirm('Selesaikan tiket ini?')">
-                                                    ✅ Selesaikan
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <!-- FORM KANAN : TERUSKAN -->
-                            <div class="col-md-6">
-                                <?php if ($nextKd): ?>
-                                    <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
-                                        <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
-                                        <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
-                                        <input type="hidden" name="status_validasi" value="1">
-                                        <div class="card border-success">
-                                            <div class="card-header bg-success text-white">
-                                                Teruskan ke Unit Berikutnya
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Catatan Proses</label>
-                                                    <textarea name="catatan"
-                                                        class="form-control"
-                                                        rows="3"
-                                                        placeholder="Masukkan keterangan proses..."></textarea>
-                                                </div>
-                                                <div class="d-grid">
-                                                    <button type="submit"
-                                                        class="btn btn-success"
-                                                        onclick="return confirm('Teruskan tiket ke unit berikutnya?')">
-                                                        ✔ Teruskan
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </form>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <!-- DETAIL / RIWAYAT PROSES -->
-                        <?php if (!empty($proses)): ?>
-                            <?php foreach ($proses as $p): ?>
-                                <?php if ($p['kd_jbtn'] == $kd): ?>
-                                    <div class="alert alert-success mb-2">
-                                        <?= esc($p['catatan'] ?? '-') ?>
-                                        <?php if (!empty($p['updated_at'])): ?>
-                                            <div class="small text-muted mt-2">
-                                                <?= esc($p['updated_at']) ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <?php if (isset($prosesByKd[$kd])): ?>
-                                <div class="text-success small">
-                                    <i class="fas fa-check-circle me-1"></i>
-                                    <?= esc($unit['nm_jbtn']) ?> sudah diproses
-                                    <?php if (!empty($prosesByKd[$kd]['nm_petugas'])): ?>
-                                        oleh <strong><?= esc($prosesByKd[$kd]['nm_petugas']) ?></strong>
-                                    <?php endif; ?>
-                                </div>
-                            <?php else: ?>
-                                <div class="text-muted small">
-                                    <i class="fas fa-clock me-1"></i>
-                                    Menunggu giliran unit ini
-                                </div>
-                            <?php endif; ?>
-                        <?php endif; ?>
-                    <?php endif; ?>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif ?>
+            modal.show();
+        }
+
+        function openConfirmHeadsection() {
+            const form = document.querySelector('form[action*="headsection_final"]');
+            if (!form) {
+                return;
+            }
+
+            const selected = form.querySelector('input[name="status_validasi"]:checked');
+            if (!selected) {
+                alert('Pilih tindakan terlebih dahulu!');
+                return;
+            }
+
+            const header = document.getElementById('modalHeaderHeadsection');
+            const title = document.getElementById('modalTitleHeadsection');
+            const body = document.getElementById('modalBodyHeadsection');
+            const btn = document.getElementById('btnConfirmHeadsection');
+            const modal = new bootstrap.Modal(document.getElementById('modalConfirmHeadsection'));
+
+            if (selected.value === '0') {
+                header.className = 'modal-header bg-danger text-white';
+                title.textContent = 'Konfirmasi Penolakan';
+                body.innerHTML = 'Apakah Anda yakin ingin <strong>menolak</strong> tiket ini?';
+                btn.className = 'btn btn-danger btn-sm';
+                btn.textContent = 'Ya, Tolak';
+            } else {
+                header.className = 'modal-header bg-primary text-white';
+                title.textContent = 'Konfirmasi Penyelesaian';
+                body.innerHTML = 'Apakah Anda yakin ingin <strong>menyelesaikan</strong> tiket ini?';
+                btn.className = 'btn btn-primary btn-sm';
+                btn.textContent = 'Ya, Selesaikan';
+            }
+
+            btn.onclick = function() {
+                form.submit();
+            };
+
+            modal.show();
+        }
+    </script>
 </div>

@@ -2,7 +2,10 @@
 <?= $this->section('content') ?>
 <main>
     <div class="container-fluid px-4">
-        <h1 class="mt-4">Persetujuan E-Ticket</h1>
+
+        <h1 class="mt-4">
+            Persetujuan E-Tiket<?= ($s = service('request')->getGet('status')) ? ' ' . ucfirst($s) : '' ?>
+        </h1>
         <p>Pilih ticket yang akan anda setujui</p>
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">

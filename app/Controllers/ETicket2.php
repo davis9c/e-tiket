@@ -204,7 +204,7 @@ class ETicket2 extends BaseController
         foreach ($tickets as &$row) {
             $row['hashid'] = $this->hashids->encode($row['id']);
         }
-
+        //dd($detail);
         return view('e-tiket', [
             'title' => 'Pengajuan E-Ticket',
             'data'  => [

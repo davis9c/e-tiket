@@ -2,7 +2,9 @@
 <?= $this->section('content') ?>
 <main>
     <div class="container-fluid px-4">
-        <h1 class="mt-4">E-Tiket</h1>
+        <h1 class="mt-4">
+            E-Tiket<?= ($s = service('request')->getGet('status')) ? ' ' . ucfirst($s) : '' ?>
+        </h1>
         <!--UPDATE 2 START-->
         <p>Pilih kategori ticket yang akan anda ajukan</p>
         <!--UPDATE 2 END-->
@@ -40,6 +42,14 @@
                 });
             </script>
         <?php endif; ?>
+        <div class="row">
+            <!-- LIST (KIRI) -->
+            <?php if (!empty($data['detailTicket'])): ?>
+                <div class="col-md-9">
+                    <?= $this->include('e-tiket/form-e') ?>
+                </div>
+            <?php endif; ?>
+        </div>
         <div class="row">
             <!-- LIST (Bawah) -->
             <div class="col-md-9">

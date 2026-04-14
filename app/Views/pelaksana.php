@@ -2,7 +2,9 @@
 <?= $this->section('content') ?>
 <main>
     <div class="container-fluid px-4">
-        <h1 class="mt-4">Pelaksana</h1>
+        <h1 class="mt-4">
+            Pelaksana E-Tiket<?= ($s = service('request')->getGet('status')) ? ' ' . ucfirst($s) : '' ?>
+        </h1>
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">E-Ticket</a></li>
