@@ -54,9 +54,127 @@
                 btn.className = 'btn btn-primary btn-sm';
                 btn.innerHTML = 'Ya, Selesaikan';
             }
-
             modal.show();
         }
+    </script>
+    <script>
+        const BASE_URL = "<?= base_url() ?>";
+        const SOUND_URL = BASE_URL + "assets/audio/bell.mp3";
+
+        let lastId = localStorage.getItem('lastId') || 0;
+        let audioUnlocked = false;
+
+        // =======================
+        // 🔊 ICON UPDATE
+        // =======================
+        function updateAudioIcon() {
+            const icon = document.getElementById('audioIcon');
+
+            if (!audioUnlocked) {
+                icon.className = 'fas fa-volume-off text-danger'; // belum aktif
+            } else {
+                icon.className = 'fas fa-volume-up text-success'; // aktif
+            }
+        }
+
+
+        // =======================
+        // 🔓 UNLOCK AUDIO
+        // =======================
+        document.addEventListener('click', () => {
+            const audio = new Audio(SOUND_URL);
+
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+
+                audioUnlocked = true;
+                updateAudioIcon(); // 🔥 WAJIB
+
+                console.log("🔓 Audio unlocked");
+            }).catch(err => {
+                console.log("❌ Gagal unlock:", err);
+            });
+
+        }, {
+            once: true
+        });
+
+        // =======================
+        // 🔊 PLAY SOUND
+        // =======================
+        function playSound() {
+            if (!audioUnlocked) {
+                console.log("🔇 Audio belum aktif");
+                return;
+            }
+
+            const audio = new Audio(SOUND_URL);
+            audio.volume = 0.5;
+            audio.play();
+
+            console.log("🔊 Bunyi notif");
+        }
+
+        // =======================
+        // 🔔 UPDATE BADGE
+        // =======================
+        function updateBadge(count) {
+            const badge = document.getElementById('notifCount');
+
+            if (count > 0) {
+                badge.innerText = count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // klik notif → reset badge
+        document.getElementById('notifBtn').addEventListener('click', () => {
+            updateBadge(0);
+        });
+
+        // =======================
+        // 📡 FETCH NOTIF
+        // =======================
+        function fetchNotifikasi() {
+
+            fetch(BASE_URL + "notif")
+                .then(res => res.json())
+                .then(data => {
+
+                    if (!Array.isArray(data) || data.length === 0) return;
+
+                    let maxId = Math.max(...data.map(d => Number(d.id)));
+
+                    if (maxId > lastId) {
+
+                        let newData = data.filter(d => Number(d.id) > lastId);
+
+                        console.log("🆕 Notif baru:", newData);
+
+                        // 🔊 bunyi
+                        playSound();
+
+                        // 🔔 update badge
+                        updateBadge(newData.length);
+
+                        lastId = maxId;
+                        localStorage.setItem('lastId', lastId);
+                    }
+
+                })
+                .catch(err => console.log("❌ Error:", err));
+        }
+
+        // =======================
+        // LOOP
+        // =======================
+        setInterval(fetchNotifikasi, 3000);
+
+        // first load
+        fetchNotifikasi();
     </script>
     <script src="<?= base_url('BootStrap/bootstrap.bundle.min.js') ?>" crossorigin="anonymous"></script>
     <script src="<?= base_url('sb/js/scripts.js') ?>"></script>
