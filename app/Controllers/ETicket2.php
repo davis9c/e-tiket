@@ -136,11 +136,18 @@ class ETicket2 extends BaseController
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
 
         // ambil detail
+        // ambil detail
         $detail = null;
+        $timeline = [];
+
         if ($id) {
+
             $detail = $this->eticketModel->findOneLengkap($id);
 
             if ($detail) {
+
+                $timeline = $this->buildStatusTimeline($detail['id']);
+
                 $jabatanMap = $this->getJabatanMap();
 
                 $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
@@ -162,9 +169,10 @@ class ETicket2 extends BaseController
         return view('e-tiket', [
             'title' => 'Pengajuan E-Ticket',
             'data'  => [
-                'eticket'      => $tickets,
-                'detailTicket' => $detail,
-                'user'         => session()->get(),
+                'eticket'         => $tickets,
+                'detailTicket'    => $detail,
+                'timeline_status' => $timeline,
+                'user'            => session()->get(),
             ]
         ]);
     }
@@ -199,10 +207,12 @@ class ETicket2 extends BaseController
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
 
         $detail = null;
+        $timeline = [];
         if ($id) {
             $detail = $this->eticketModel->findOneLengkap($id);
 
             if ($detail) {
+                $timeline = $this->buildStatusTimeline($detail['id']);
                 $jabatanMap = $this->getJabatanMap();
 
                 $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
@@ -225,6 +235,7 @@ class ETicket2 extends BaseController
             'data'  => [
                 'eticket'      => $tickets,
                 'detailTicket' => $detail,
+                'timeline_status' => $timeline,
                 'user'         => session()->get(),
             ]
         ]);
@@ -255,10 +266,13 @@ class ETicket2 extends BaseController
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
 
         $detail = null;
+        $timeline = [];
         if ($id) {
             $detail = $this->eticketModel->findOneLengkap($id);
 
             if ($detail) {
+                $timeline = $this->buildStatusTimeline($detail['id']);
+
                 $jabatanMap = $this->getJabatanMap();
 
                 $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
@@ -281,6 +295,7 @@ class ETicket2 extends BaseController
             'data'  => [
                 'eticket'      => $tickets,
                 'detailTicket' => $detail,
+                'timeline_status' => $timeline,
                 'user'         => session()->get(),
             ]
         ]);
@@ -1202,5 +1217,181 @@ class ETicket2 extends BaseController
             ->where('id', $insertId)
             ->get()
             ->getRow();
+    }
+    /* =========================================================
+ * BUILD STATUS TIMELINE BY TICKET ID
+ * ========================================================= */
+    private function buildStatusTimeline(int $ticketId): array
+    {
+        // =====================================================
+        // AMBIL DETAIL TICKET
+        // =====================================================
+        $ticket = $this->eticketModel->findOneLengkap($ticketId);
+
+        if (!$ticket) {
+            return [];
+        }
+
+        // =====================================================
+        // LENGKAPI DATA
+        // =====================================================
+        $ticket = $this->attachNamaJabatanToUnits($ticket);
+        $ticket = $this->attachNamaJabatanToProses($ticket);
+        $ticket = $this->mapUnitWithJabatan($ticket);
+
+        // =====================================================
+        // VARIABLE DASAR
+        // =====================================================
+        $timeline = [];
+
+        $validNama   = $ticket['valid_nama'] ?? null;
+        $selesaiNama = $ticket['selesai_nama'] ?? null;
+        $rejectNama  = $ticket['reject_nama'] ?? null;
+
+        $isHead = (int)($ticket['headsection'] ?? 0) === 1;
+
+        // =====================================================
+        // AMBIL JABATAN YANG SUDAH MEMPROSES
+        // =====================================================
+        $prosesJabatan = [];
+
+        if (!empty($ticket['proses'])) {
+
+            foreach ($ticket['proses'] as $p) {
+
+                if (!empty($p['nm_jbtn'])) {
+                    $prosesJabatan[] = $p['nm_jbtn'];
+                }
+            }
+        }
+
+        // =====================================================
+        // STATUS : TIKET DIBUAT
+        // =====================================================
+        $timeline[] = [
+            'type'  => 'created',
+            'color' => 'primary',
+            'icon'  => 'fa-solid fa-pencil',
+            'text'  => 'Tiket Dibuat ' . date('d M Y', strtotime($ticket['created_at'])),
+        ];
+
+        // =====================================================
+        // FLOW HEADSECTION
+        // =====================================================
+        if ($isHead) {
+
+            // =============================================
+            // MENUNGGU PERSETUJUAN
+            // =============================================
+            if (!$validNama) {
+
+                $timeline[] = [
+                    'type'  => 'waiting_approval',
+                    'color' => 'warning',
+                    'icon'  => 'fa-solid fa-clock',
+                    'text'  => 'Menunggu Persetujuan',
+                ];
+
+                return $timeline;
+            }
+
+            // =============================================
+            // DITOLAK HEADSECTION
+            // =============================================
+            if ($validNama === $rejectNama) {
+
+                $timeline[] = [
+                    'type'  => 'rejected',
+                    'color' => 'danger',
+                    'icon'  => 'fa-solid fa-xmark-circle',
+                    'text'  => 'Ditolak ' . $rejectNama,
+                ];
+
+                return $timeline;
+            }
+
+            // =============================================
+            // SELESAI LANGSUNG
+            // =============================================
+            if ($validNama === $selesaiNama) {
+
+                $timeline[] = [
+                    'type'  => 'completed',
+                    'color' => 'success',
+                    'icon'  => 'fa-solid fa-circle-check',
+                    'text'  => 'Diselesaikan ' . $selesaiNama,
+                ];
+
+                return $timeline;
+            }
+
+            // =============================================
+            // APPROVED
+            // =============================================
+            $timeline[] = [
+                'type'  => 'approved',
+                'color' => 'primary',
+                'icon'  => 'fa-solid fa-check-square',
+                'text'  => 'Disetujui ' . $validNama,
+            ];
+        }
+
+        // =====================================================
+        // PROSES UNIT
+        // =====================================================
+        if (!empty($ticket['unit_penanggung_jawab'])) {
+
+            foreach ($ticket['unit_penanggung_jawab'] as $upj) {
+
+                $namaJabatan = $upj['nm_jbtn'] ?? '-';
+
+                $sudahProses = in_array($namaJabatan, $prosesJabatan);
+
+                if ($sudahProses) {
+
+                    $timeline[] = [
+                        'type'  => 'processed',
+                        'color' => 'success',
+                        'icon'  => 'fas fa-check-square',
+                        'text'  => 'Sampai pada ' . $namaJabatan,
+                    ];
+                } else {
+
+                    $timeline[] = [
+                        'type'  => 'onprogress',
+                        'color' => 'warning',
+                        'icon'  => 'fa-solid fa-clock',
+                        'text'  => 'Diproses oleh ' . $namaJabatan,
+                    ];
+                }
+            }
+        }
+
+        // =====================================================
+        // STATUS AKHIR
+        // =====================================================
+        if ($selesaiNama) {
+
+            // DITOLAK
+            if ($rejectNama) {
+
+                $timeline[] = [
+                    'type'  => 'rejected',
+                    'color' => 'danger',
+                    'icon'  => 'fa-solid fa-xmark-circle',
+                    'text'  => 'Ditolak ' . $rejectNama,
+                ];
+            } else {
+
+                $timeline[] = [
+                    'type'  => 'completed',
+                    'color' => 'success',
+                    'icon'  => 'fa-solid fa-circle-check',
+                    'text'  => 'Diselesaikan ' . $selesaiNama,
+                ];
+            }
+        }
+
+        return $timeline;
     }
 }
