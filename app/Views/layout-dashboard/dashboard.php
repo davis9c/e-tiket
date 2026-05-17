@@ -61,7 +61,7 @@
         const BASE_URL = "<?= base_url() ?>";
         const SOUND_URL = BASE_URL + "assets/audio/bell.mp3";
 
-        let lastId = localStorage.getItem('lastId') || 0;
+        let prevNotifCount = 0;
         let audioUnlocked = false;
 
         // =======================
@@ -69,35 +69,56 @@
         // =======================
         function updateAudioIcon() {
             const icon = document.getElementById('audioIcon');
-
-            if (!audioUnlocked) {
-                icon.className = 'fas fa-volume-off text-danger'; // belum aktif
-            } else {
-                icon.className = 'fas fa-volume-up text-success'; // aktif
+            if (!icon) {
+                console.log("❌ Audio icon element not found");
+                return;
             }
-        }
 
+            if (audioUnlocked) {
+                icon.className = 'fas fa-volume-up text-success';
+                icon.style.color = '#28a745';
+            } else {
+                icon.className = 'fas fa-volume-off text-danger';
+                icon.style.color = '#dc3545';
+            }
+
+            console.log("🔄 Icon updated to:", audioUnlocked ? "unlocked" : "locked");
+        }
 
         // =======================
         // 🔓 UNLOCK AUDIO
         // =======================
-        document.addEventListener('click', () => {
-            const audio = new Audio(SOUND_URL);
+        function unlockAudio() {
+            if (audioUnlocked) return;
 
+            console.log("🔓 Attempting to unlock audio...");
+
+            const audio = new Audio(SOUND_URL);
             audio.play().then(() => {
                 audio.pause();
                 audio.currentTime = 0;
-
                 audioUnlocked = true;
-                updateAudioIcon(); // 🔥 WAJIB
-
-                console.log("🔓 Audio unlocked");
+                updateAudioIcon();
+                console.log("✅ Audio unlocked successfully");
             }).catch(err => {
                 console.log("❌ Gagal unlock:", err);
+                audioUnlocked = true;
+                updateAudioIcon();
+                console.log("🔄 Fallback: Icon set to unlocked despite error");
             });
+        }
 
-        }, {
+        document.addEventListener('click', unlockAudio, {
             once: true
+        });
+
+        document.getElementById('audioToggle').addEventListener('click', (e) => {
+            e.preventDefault();
+            unlockAudio();
+        });
+
+        window.addEventListener('load', () => {
+            updateAudioIcon();
         });
 
         // =======================
@@ -130,40 +151,27 @@
             }
         }
 
-        // klik notif → reset badge
         document.getElementById('notifBtn').addEventListener('click', () => {
             updateBadge(0);
+            prevNotifCount = 0;
         });
 
         // =======================
         // 📡 FETCH NOTIF
         // =======================
         function fetchNotifikasi() {
-
             fetch(BASE_URL + "notif")
                 .then(res => res.json())
                 .then(data => {
+                    if (!Array.isArray(data)) return;
 
-                    if (!Array.isArray(data) || data.length === 0) return;
+                    updateBadge(data.length);
 
-                    let maxId = Math.max(...data.map(d => Number(d.id)));
-
-                    if (maxId > lastId) {
-
-                        let newData = data.filter(d => Number(d.id) > lastId);
-
-                        console.log("🆕 Notif baru:", newData);
-
-                        // 🔊 bunyi
+                    if (data.length > prevNotifCount) {
                         playSound();
-
-                        // 🔔 update badge
-                        updateBadge(newData.length);
-
-                        lastId = maxId;
-                        localStorage.setItem('lastId', lastId);
                     }
 
+                    prevNotifCount = data.length;
                 })
                 .catch(err => console.log("❌ Error:", err));
         }

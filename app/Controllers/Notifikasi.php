@@ -27,6 +27,13 @@ class Notifikasi extends Controller
                 ->orderBy('created_at', 'DESC')
                 ->get()
                 ->getResult();
+
+            // Hapus data di database berdasarkan data yang sudah di dapat
+            if (!empty($data)) {
+                $ids = array_map(fn($item) => $item->id, $data);
+                $this->db->table('notifikasi')->whereIn('id', $ids)->delete();
+            }
+
             return $this->response->setJSON($data);
         } else {
             $idPegawai = session()->get('id_pegawai');
@@ -41,6 +48,13 @@ class Notifikasi extends Controller
                 ->orderBy('created_at', 'DESC')
                 ->get()
                 ->getResult();
+
+            // Hapus data di database berdasarkan data yang sudah di dapat
+            if (!empty($data)) {
+                $ids = array_map(fn($item) => $item->id, $data);
+                $this->db->table('notifikasi')->whereIn('id', $ids)->delete();
+            }
+
             return $this->response->setJSON($data);
         }
     }
