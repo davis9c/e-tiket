@@ -15,69 +15,59 @@
                 </tr>
             </thead>
             <tbody>
-                <?php
-                //dd($data['eticket']);
-                ?>
-
-                <?php if (!empty($data['eticket'])): ?>
-                    <?php foreach ($data['eticket'] as $index => $p): ?>
-                        <tr>
-                            <td><?= $index + 1 ?></td>
-                            <td>
-                                <?php if (((int)($data['detailTicket']['id'] ?? 0) === (int)$p['id'])): ?>
-                                    <span class="badge bg-primary">
-                                        <?= esc($p['nama_kategori']) ?>
-                                    </span>
-                                <?php else: ?>
-                                    <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) ?>">
-                                        <?= esc($p['nama_kategori']) ?>
-                                    </a>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= esc($p['petugas_id_nama']) ?></td>
-                            <td><?= esc($p['message']) ?></td>
-                            <!-- STATUS -->
-                            <td>
-                                <?php if ($p['valid_nama'] == null): ?>
-                                    <span class="badge bg-secondary">
-                                        Menunggu Persetujuan
-                                    </span>
-                                <?php elseif ($p['valid_nama'] != null): ?>
-                                    <?php if ($p['selesai_nama'] == $p['reject_nama']): ?>
-                                    <?php else: ?>
-                                        <span class="badge bg-success">
-                                            Disetujui <?= esc($p['valid_nama']) ?>
-                                        </span>
-                                    <?php endif ?>
-                                    <?php if ($p['selesai_nama'] == null): ?>
-
-                                        <span class="badge bg-warning text-dark">
-                                            Diproses di <?= esc($p['proses_unit_nama']) ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <?php if ($p['reject_nama'] != null): ?>
-                                            <span class="badge bg-danger">
-                                                Ditolak <?= esc($p['reject_nama']) ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge bg-primary">
-                                                Diselesaikan <?= esc($p['selesai_nama']) ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <span class="badge bg-danger">
-                                        Ditolak <?= esc($p['reject_nama']) ?>
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
+                <?php foreach ($data['eticket'] as $index => $p): ?>
                     <tr>
-                        <td colspan="7" class="text-center">Data tidak tersedia</td>
+                        <td><?= $index + 1 ?></td>
+                        <td>
+                            <?php if (((int)($data['detailTicket']['id'] ?? 0) === (int)$p['id'])): ?>
+                                <span class="badge bg-primary">
+                                    <?= esc($p['nama_kategori']) ?>
+                                </span>
+                            <?php else: ?>
+                                <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) ?>">
+                                    <?= esc($p['nama_kategori']) ?>
+                                </a>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= esc($p['petugas_id_nama']) ?></td>
+                        <td><?= esc($p['message']) ?></td>
+                        <!-- STATUS -->
+                        <td>
+                            <?php if ($p['valid_nama'] == null): ?>
+                                <span class="badge bg-secondary">
+                                    Menunggu Persetujuan
+                                </span>
+                            <?php elseif ($p['valid_nama'] != null): ?>
+                                <?php if ($p['selesai_nama'] == $p['reject_nama']): ?>
+                                <?php else: ?>
+                                    <span class="badge bg-success">
+                                        Disetujui <?= esc($p['valid_nama']) ?>
+                                    </span>
+                                <?php endif ?>
+                                <?php if ($p['selesai_nama'] == null): ?>
+
+                                    <span class="badge bg-warning text-dark">
+                                        Diproses di <?= esc($p['proses_unit_nama']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <?php if ($p['reject_nama'] != null): ?>
+                                        <span class="badge bg-danger">
+                                            Ditolak <?= esc($p['reject_nama']) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-primary">
+                                            Diselesaikan <?= esc($p['selesai_nama']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="badge bg-danger">
+                                    Ditolak <?= esc($p['reject_nama']) ?>
+                                </span>
+                            <?php endif; ?>
+                        </td>
                     </tr>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>
