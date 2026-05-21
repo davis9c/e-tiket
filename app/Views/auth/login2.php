@@ -113,7 +113,9 @@
                                                 id="password"
                                                 name="password"
                                                 placeholder="Password"
+                                                <?php if (ENVIRONMENT === 'development'): ?>
                                                 value="123"
+                                                <?php endif; ?>
                                                 required>
                                             <label for="password">Password</label>
                                         </div>

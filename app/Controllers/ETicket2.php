@@ -66,6 +66,63 @@ class ETicket2 extends BaseController
             }
         }
     }
+    public function allticket($hashid = null)
+    {
+        if ($redirect = $this->guard()) return $redirect;
+
+        $kdJbtn = session()->get('kd_jabatan');
+        if (!$kdJbtn) {
+            return redirect()->to('/login')->with('error', 'Session expired');
+        }
+
+        $id = $this->decodeHashId($hashid);
+        $status = $this->request->getGet('status');
+        if ($status === 'selesai') {
+            // tampilkan selesai
+            $tickets = $this->eticketModel->getAllTicket();
+        } else {
+            $tickets = $this->eticketModel->getAllTicket();
+        }
+
+        // attach nama jabatan
+        $tickets = $this->attachNamaJabatanToTickets($tickets);
+        $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
+
+        $detail = null;
+        $timeline = [];
+        if ($id) {
+            $detail = $this->eticketModel->findOneLengkap($id);
+
+            if ($detail) {
+                $timeline = $this->buildStatusTimeline($detail['id']);
+
+                $jabatanMap = $this->getJabatanMap();
+
+                $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
+                $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit']] ?? null;
+
+                $detail = $this->attachNamaJabatanToUnits($detail);
+                $detail = $this->attachNamaJabatanToProses($detail);
+                $detail = $this->mapUnitWithJabatan($detail);
+
+                $detail['hashid'] = $this->hashids->encode($detail['id']);
+            }
+        }
+
+        foreach ($tickets as &$row) {
+            $row['hashid'] = $this->hashids->encode($row['id']);
+        }
+
+        return view('allticket', [
+            'title' => 'All Ticket',
+            'data'  => [
+                'eticket'      => $tickets,
+                'detailTicket' => $detail,
+                'timeline_status' => $timeline,
+                'user'         => session()->get(),
+            ]
+        ]);
+    }
     public function baru()
     {
         $kdJbtn = session()->get('kd_jabatan');

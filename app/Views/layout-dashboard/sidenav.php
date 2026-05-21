@@ -19,7 +19,7 @@ $activeLink = function ($route, $status = null) use ($currentPath, $queryParams)
     return ($queryParams['status'] ?? null) === $status;
 };
 $openKanza = preg_match('#^admin(/|$)#', $currentPath);
-$openApp = preg_match('#^kategori(/|$)#', $currentPath);
+$openApp = preg_match('#^(kategori|allticket)(/|$)#', $currentPath);
 ?>
 
 <div id="layoutSidenav_nav">
@@ -125,11 +125,13 @@ $openApp = preg_match('#^kategori(/|$)#', $currentPath);
                             <i class="fas fa-angle-down"></i>
                         </div>
                     </a>
-
                     <div class="collapse<?= $openApp ? ' show' : '' ?>" id="collapseApp">
                         <nav class="sb-sidenav-menu-nested nav">
                             <a class="nav-link<?= $activeLink('kategori') ? ' active' : '' ?>" href="<?= base_url('kategori') ?>">
                                 <i class="fas fa-layer-group me-2"></i> Kategori E-Tiket
+                            </a>
+                            <a class="nav-link<?= $activeLink('allticket') ? ' active' : '' ?>" href="<?= base_url('allticket') ?>">
+                                <i class="fas fa-layer-group me-2"></i> All Ticket
                             </a>
                         </nav>
                     </div>

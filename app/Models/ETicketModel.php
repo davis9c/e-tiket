@@ -356,6 +356,23 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    public function getAllTicket(): array
+    {
+
+        $builder = $this->baseQuery()
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left'
+            );
+
+        $rows = $builder
+            ->groupBy('e.id') // penting untuk cegah duplikat
+            ->orderBy('e.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+        return $this->attachProsesToRows($rows);
+    }
     public function getSudahValid2pelaksana(
         string $kd_jbtn,
         bool $penanggungJawab,
