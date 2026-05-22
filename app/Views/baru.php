@@ -8,7 +8,7 @@
         <!--UPDATE 2 END-->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a href="<?= base_url('baru') ?>">E-Tiket (baru)</a></li>
+                <li class="breadcrumb-item active"><a class="btn btn-primary text-white" href="<?= base_url('etiket') ?>">Kembali</a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
                     <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php elseif (!empty($data['kategoriData'])): ?>

@@ -30,16 +30,9 @@ $openApp = preg_match('#^(kategori|allticket)(/|$)#', $currentPath);
                 <!-- ===================== -->
                 <!-- E-TIKET -->
                 <!-- ===================== -->
-                <div class="sb-sidenav-menu-heading">My E-Ticket</div>
-
                 <a class="nav-link<?= $activeLink('etiket') ? ' active' : '' ?>" href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
-                    Berjalan
-                </a>
-
-                <a class="nav-link<?= $activeLink('etiket', 'selesai') ? ' active' : '' ?>" href="<?= base_url('etiket?status=selesai') ?>">
-                    <div class="sb-nav-link-icon"><i class="fas fa-check-circle"></i></div>
-                    Selesai
+                    My E-Ticket
                 </a>
 
                 <!-- ===================== -->

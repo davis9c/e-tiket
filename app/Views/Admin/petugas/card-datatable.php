@@ -5,9 +5,6 @@
             <?= $title ?>
         </div>
         <div class="card-body">
-            <?php
-            //dd($jabatan);
-            ?>
             <table class="table table-hover datatable">
                 <thead>
                     <tr>

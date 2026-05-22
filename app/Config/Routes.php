@@ -57,9 +57,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     //$routes->post('pelaksana/pelaksana_proses', 'ETicket2::pelaksana_proses');
     $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses');
     $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
-
-
-
     /*
     |--------------------------------------------------------------------------
     | Kategori E-Tiket
@@ -83,7 +80,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         $routes->get('', 'ETicket2::allticket');
         $routes->get('(:any)', 'ETicket2::allticket/$1');
     });
-
     /*
     |--------------------------------------------------------------------------
     | Admin
