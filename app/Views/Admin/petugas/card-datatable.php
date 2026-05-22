@@ -5,6 +5,9 @@
             <?= $title ?>
         </div>
         <div class="card-body">
+            <?php
+            //dd($jabatan);
+            ?>
             <table class="table table-hover datatable">
                 <thead>
                     <tr>
@@ -14,12 +17,15 @@
                 <tbody>
                     <?php foreach ($jabatan as $j): ?>
                         <?php if ($j['kd_jbtn'] === '-') continue; ?>
+                        <?php $count = isset($j['petugas']) && is_array($j['petugas']) ? count($j['petugas']) : 0; ?>
+                        <?php if ($count < 1) continue; ?>
                         <?php $isActive = ($jbtn ?? null) === $j['kd_jbtn']; ?>
                         <tr class="<?= $isActive ? 'table-success' : '' ?>">
                             <td class="font-weight-bold">
                                 <a href="<?= base_url('admin/petugas/' . esc($j['kd_jbtn'])) ?>"
                                     class="text-decoration-none text-dark fw-bold">
                                     <?= esc($j['nm_jbtn']) ?>
+                                    <span class="badge bg-secondary ms-2"><?= $count ?></span>
                                 </a>
 
                                 <?php if ($isActive): ?>

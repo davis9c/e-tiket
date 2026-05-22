@@ -15,13 +15,13 @@
 
         <!-- Content Row -->
         <div class="row">
+            <!-- Jabatan Card Section -->
+            <?= $this->include('Admin/petugas/card-datatable') ?>
             <?php if (!empty($petugas)): ?>
                 <!-- Petugas List Section -->
                 <?= $this->include('Admin/petugas/list2') ?>
             <?php endif; ?>
 
-            <!-- Jabatan Card Section -->
-            <?= $this->include('Admin/petugas/card-datatable') ?>
         </div>
     </div>
 </main>

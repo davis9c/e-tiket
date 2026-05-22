@@ -70,13 +70,28 @@ class Admin extends BaseController
 
             $result = json_decode($response->getBody(), true);
 
-            if (($result['status'] ?? 500) !== 200) {
+            if (($result['status'] ?? 500) !== 200 || empty($result['data']) || !is_array($result['data'])) {
                 throw new \Exception('Response API pegawai tidak valid');
             }
 
+            $apiData = [];
+            foreach ($result['data'] as $item) {
+                if (isset($item['id'])) {
+                    $apiData[(int) $item['id']] = $item;
+                }
+            }
+
+            $users = array_map(function ($user) use ($apiData) {
+                $userId = (int) ($user['user_id'] ?? 0);
+                if (isset($apiData[$userId])) {
+                    return array_merge($user, $apiData[$userId]);
+                }
+
+                return $user;
+            }, $users);
             return view('Admin/users', [
                 'title' => 'Daftar User',
-                'users' => $result['data'] ?? [],
+                'users' => $users,
             ]);
         } catch (\Throwable $e) {
             log_message('error', '[ADMIN USERS] ' . $e->getMessage());
@@ -114,7 +129,6 @@ class Admin extends BaseController
                 $p['headsection'] = isset($mapHS[$p['nip']]);
             }
         }
-
         return view('Admin/petugas', [
             'title'   => 'Data Petugas',
             'jabatan' => $jabatan,
@@ -298,7 +312,7 @@ class Admin extends BaseController
 
     private function getJabatan(): array
     {
-        return $this->getAPI('jabatan');
+        return $this->getAPI('jabatan/with-petugas');
     }
 
     private function mapUnit($units, $mapJabatan): array

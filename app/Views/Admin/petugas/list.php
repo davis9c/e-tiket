@@ -8,10 +8,6 @@
             <div class="mb-3">
                 <label for="kd_jbtn" class="form-label">Jabatan</label>
                 <?php $selectedJbtn = $_GET['jbtn'] ?? ''; ?>
-                <?php
-                //print_r($jabatan);
-                //dd($jabatan);
-                ?>
                 <select name="kd_jbtn" id="kd_jbtn" class="form-select">
                     <option value="">-- Pilih Jabatan --</option>
 
@@ -46,31 +42,25 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (! empty($petugas)): ?>
-                        <?php foreach ($petugas as $index => $p): ?>
-                            <tr>
-                                <td><?= $index + 1 ?></td>
-                                <td><?= esc($p['nip']) ?></td>
-                                <td><?= esc($p['nama']) ?></td>
-                                <td>
-                                    <?= esc($p['nm_jbtn']) ?>
-                                    (<?= esc($p['kd_jbtn']) ?>)
-                                </td>
-                                <td>
-
-                                    <a href="<?= base_url('petugas/set/' . esc($p['nip'])) .
-                                                    ($jbtn ? '?jbtn=' . $jbtn : '') ?>">
-                                        set head
-                                    </a>
-
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                    <?php foreach ($petugas as $index => $p): ?>
                         <tr>
-                            <td colspan="3" align="center">Data tidak tersedia</td>
+                            <td><?= $index + 1 ?></td>
+                            <td><?= esc($p['nip']) ?></td>
+                            <td><?= esc($p['nama']) ?></td>
+                            <td>
+                                <?= esc($p['nm_jbtn']) ?>
+                                (<?= esc($p['kd_jbtn']) ?>)
+                            </td>
+                            <td>
+
+                                <a href="<?= base_url('petugas/set/' . esc($p['nip'])) .
+                                                ($jbtn ? '?jbtn=' . $jbtn : '') ?>">
+                                    set head
+                                </a>
+
+                            </td>
                         </tr>
-                    <?php endif; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

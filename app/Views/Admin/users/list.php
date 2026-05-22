@@ -20,19 +20,19 @@
                 </tr>
             </tfoot>
             <tbody>
-                <?php if (! empty($users)): ?>
-                    <?php foreach ($users as $index => $user): ?>
-                        <tr>
-                            <td><?= $index + 1 ?></td>
-                            <td><?= esc($user['id']) ?></td>
-                            <td><?= esc($user['nama']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
+                <?php foreach ($users as $index => $user): ?>
                     <tr>
-                        <td colspan="3" align="center">Data tidak tersedia</td>
+                        <td><?= $index + 1 ?></td>
+                        <td><?= esc($user['id']) ?></td>
+                        <td>
+                            <?php if ($user['headsection'] == 1): ?>
+                                <span class="badge bg-primary"><?= esc($user['nama']) ?></span>
+                            <?php else: ?>
+                                <?= esc($user['nama']) ?>
+                            <?php endif; ?>
+                        </td>
                     </tr>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </tbody>
         </table>
     </div>

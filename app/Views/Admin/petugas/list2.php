@@ -15,39 +15,33 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (! empty($petugas)): ?>
-                        <?php foreach ($petugas as $index => $p): ?>
-                            <tr>
-                                <td><?= $index + 1 ?></td>
-                                <td><?= esc($p['nama']) ?>
-                                <td>
-                                    <?= esc($p['nm_jbtn']) ?>
-                                </td>
-                                <td>
-                                    <?php if ($p['headsection']) : ?>
-                                        <!-- JIKA SUDAH HEADSECTION -->
-                                        <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . $jbtn : '') ?>"
-                                            class="btn btn-sm btn-danger"
-                                            onclick="return confirm('Nonaktifkan Head Section?')">
-                                            <i class="fas fa-user-times"></i> Unset
-                                        </a>
-                                    <?php else : ?>
-                                        <!-- JIKA BELUM HEADSECTION -->
-                                        <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . $jbtn : '') ?>"
-                                            class="btn btn-sm btn-success"
-                                            onclick="return confirm('Jadikan Head Section?')">
-                                            <i class="fas fa-user-check"></i> Set
-                                        </a>
-                                    <?php endif; ?>
-                                </td>
-
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
+                    <?php foreach ($petugas as $index => $p): ?>
                         <tr>
-                            <td colspan="3" align="center">Data tidak tersedia</td>
+                            <td><?= $index + 1 ?></td>
+                            <td><?= esc($p['nama']) ?>
+                            <td>
+                                <?= esc($p['nm_jbtn']) ?>
+                            </td>
+                            <td>
+                                <?php if ($p['headsection']) : ?>
+                                    <!-- JIKA SUDAH HEADSECTION -->
+                                    <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . $jbtn : '') ?>"
+                                        class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Nonaktifkan Head Section?')">
+                                        <i class="fas fa-user-times"></i> Unset
+                                    </a>
+                                <?php else : ?>
+                                    <!-- JIKA BELUM HEADSECTION -->
+                                    <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . $jbtn : '') ?>"
+                                        class="btn btn-sm btn-success"
+                                        onclick="return confirm('Jadikan Head Section?')">
+                                        <i class="fas fa-user-check"></i> Set
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+
                         </tr>
-                    <?php endif; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

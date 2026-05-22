@@ -391,8 +391,6 @@
                         </div>
                     </div>
 
-
-                    <!-- FORM KANAN : TERUSKAN -->
                     <!-- FORM KANAN : TERUSKAN -->
                     <div class="col-md-6">
                         <form action="<?= base_url('headsection/headsection_approve') ?>" method="post">
