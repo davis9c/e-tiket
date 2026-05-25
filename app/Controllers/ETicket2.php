@@ -1025,7 +1025,7 @@ class ETicket2 extends BaseController
                 );
             }
             return redirect()->to(base_url('etiket/' . $this->hashids->encode($ticketId)))
-                ->with('success', 'E-Ticket anda terkirim ke atasab untuk mendapat persetujuan.');
+                ->with('success', 'E-Ticket anda terkirim ke atasan untuk mendapat persetujuan.');
         } catch (\Exception $e) {
             $db->transRollback();
             log_message('error', 'Submit E-Ticket Error: ' . $e->getMessage());
