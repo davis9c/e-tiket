@@ -11,6 +11,7 @@
                     <th>Kategori</th>
                     <th>Petugas</th>
                     <th>Deskripsi</th>
+                    <th>Dibuat</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -31,6 +32,7 @@
                         </td>
                         <td><?= esc($p['petugas_id_nama']) ?></td>
                         <td><?= esc($p['message']) ?></td>
+                        <td><?= esc($p['created_at']) ?></td>
                         <!-- STATUS -->
                         <td>
                             <?php if ($p['valid_nama'] == null): ?>
@@ -45,7 +47,6 @@
                                     </span>
                                 <?php endif ?>
                                 <?php if ($p['selesai_nama'] == null): ?>
-
                                     <span class="badge bg-warning text-dark">
                                         Diproses di <?= esc($p['proses_unit_nama']) ?>
                                     </span>

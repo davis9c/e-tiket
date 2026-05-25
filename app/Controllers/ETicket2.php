@@ -129,40 +129,16 @@ class ETicket2 extends BaseController
         if (!$kdJbtn) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
-
-        $kategoriId = (int) $this->request->getGet('kategori');
-
-        $kategoriData = null;
-
-        if ($kategoriId) {
-            $kategori = $this->kategoriModel->findDetail($kategoriId);
-
-            if (!$kategori) {
-                return redirect()
-                    ->to(base_url('baru'))
-                    ->with('error', 'Kategori tidak ditemukan');
-            }
-
-            $kategori = $this->attachNamaJabatanToUnits($kategori);
-
-            if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
-                $kategori['headsection_users'] = $this->getHeadsectionUsers();
-            }
-
-            $kategoriData = $kategori;
-        }
-
         $data = [
             'title' => 'Pengajuan E-Ticket',
             'data'  => [
                 'kategori'      => $this->attachNamaJabatanToKategori(
-                    $this->kategoriModel->findByUnitPengajuan($kdJbtn)
+                    $this->kategoriModel->findByUnitPengajuan(session()->get('kd_jabatan'))
                 ),
-                'kategoriData'  => $kategoriData, // ✅ sekarang ikut dikirim
+                'kategoriData'  => $this->kategoriGet(), // ✅ sekarang ikut dikirim
                 'user'          => session()->get(),
             ]
         ];
-
         return view('baru', $data);
     }
     /* =========================================================
@@ -171,49 +147,36 @@ class ETicket2 extends BaseController
     public function eticket($hashid = null)
     {
         if ($redirect = $this->guard()) return $redirect;
-
         $nip = session()->get('nip');
         if (!$nip) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
 
-        $id = $this->decodeHashId($hashid);
-
         // cek status GET
-        $status = $this->request->getGet('status');
+        $selesai = $this->request->getGet('selesai');
+        $kategori = $this->request->getGet('kategori');
 
-        if ($status === 'selesai') {
-            $tickets = $this->eticketModel->getByPetugas($nip);
-        } else {
-            $tickets = $this->eticketModel->getByPetugasSelesai($nip);
-        }
+        $selesai = ($selesai !== null && $selesai !== '') ? (int)$selesai : null;
+        $kategori = ($kategori !== null && $kategori !== '') ? (int)$kategori : null;
 
-        // attach nama jabatan
+        $tickets = $this->eticketModel->getEticket($nip, $selesai, $kategori);
+
         $tickets = $this->attachNamaJabatanToTickets($tickets);
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
-
-        // ambil detail
         // ambil detail
         $detail = null;
         $timeline = [];
-
+        $id = $this->decodeHashId($hashid);
         if ($id) {
-
             $detail = $this->eticketModel->findOneLengkap($id);
-
             if ($detail) {
-
                 $timeline = $this->buildStatusTimeline($detail['id']);
-
                 $jabatanMap = $this->getJabatanMap();
-
                 $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
                 $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit']] ?? null;
-
                 $detail = $this->attachNamaJabatanToUnits($detail);
                 $detail = $this->attachNamaJabatanToProses($detail);
                 $detail = $this->mapUnitWithJabatan($detail);
-
                 $detail['hashid'] = $this->hashids->encode($detail['id']);
             }
         }
@@ -226,6 +189,8 @@ class ETicket2 extends BaseController
         return view('e-tiket', [
             'title' => 'Pengajuan E-Ticket',
             'data'  => [
+                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(session()->get('kd_jabatan'))),
+                'kategoriData'  => $this->kategoriGet(), // ✅ sekarang ikut dikirim
                 'eticket'         => $tickets,
                 'detailTicket'    => $detail,
                 'timeline_status' => $timeline,
@@ -234,9 +199,32 @@ class ETicket2 extends BaseController
         ]);
     }
     /* =========================================================
-     * HEADSECTION
+     * Kategori GET
      * ========================================================= */
-    public function headsection($hashid = null)
+    private function kategoriGet()
+    {
+        // ambil kategori
+        $kategoriId = (int) $this->request->getGet('kategori');
+        $kategoriData = null;
+        if ($kategoriId) {
+            $kategori = $this->kategoriModel->findDetail($kategoriId);
+            if (!$kategori) {
+                return redirect()
+                    ->to(base_url('baru'))
+                    ->with('error', 'Kategori tidak ditemukan');
+            }
+            $kategori = $this->attachNamaJabatanToUnits($kategori);
+            if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
+                $kategori['headsection_users'] = $this->getHeadsectionUsers();
+            }
+            $kategoriData = $kategori;
+        }
+        return $kategoriData;
+    }
+    /* =========================================================
+         * HEADSECTION
+         * ========================================================= */
+    public function headsection_old($hashid = null)
     {
         if ($redirect = $this->guard()) return $redirect;
 
@@ -244,9 +232,14 @@ class ETicket2 extends BaseController
         if (!$kdJbtn) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
-
         $id = $this->decodeHashId($hashid);
-        // cek status GET
+        $selesai = $this->request->getGet('selesai');
+        $kategori = $this->request->getGet('kategori');
+        $valid = $this->request->getGet('valid');
+        $selesai = ($selesai !== null && $selesai !== '') ? (int)$selesai : null;
+        $kategori = ($kategori !== null && $kategori !== '') ? (int)$kategori : null;
+        $valid = ($valid !== null && $valid !== '') ? (int)$valid : null;
+
         $status = $this->request->getGet('status');
         if ($status === 'selesai') {
             // tampilkan selesai
@@ -258,11 +251,9 @@ class ETicket2 extends BaseController
             //tampilkan belum valid
             $tickets = $this->eticketModel->getBelumValid($kdJbtn, false);
         }
-
         // attach nama jabatan
         $tickets = $this->attachNamaJabatanToTickets($tickets);
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
-
         $detail = null;
         $timeline = [];
         if ($id) {
@@ -297,6 +288,93 @@ class ETicket2 extends BaseController
             ]
         ]);
     }
+    public function headsection($hashid = null)
+    {
+        if ($redirect = $this->guard()) return $redirect;
+
+        $kdJbtn = session()->get('kd_jabatan');
+
+        if (!$kdJbtn) {
+            return redirect()->to('/login')
+                ->with('error', 'Session expired');
+        }
+
+        $id = $this->decodeHashId($hashid);
+
+        // filter GET
+        $selesai = $this->request->getGet('selesai');
+        $kategori = $this->request->getGet('kategori');
+        $valid    = $this->request->getGet('valid');
+
+        $selesai = ($selesai !== null && $selesai !== '')
+            ? (int)$selesai
+            : null;
+
+        $kategori = ($kategori !== null && $kategori !== '')
+            ? (int)$kategori
+            : null;
+
+        $valid = ($valid !== null && $valid !== '')
+            ? (int)$valid
+            : null;
+
+        $tickets = $this->eticketModel->getHeadSectionTickets(
+            $kdJbtn,
+            false,
+            $valid,
+            $selesai,
+            $kategori
+        );
+
+        // attach nama jabatan
+        $tickets = $this->attachNamaJabatanToTickets($tickets);
+        $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
+
+        $detail = null;
+        $timeline = [];
+
+        if ($id) {
+
+            $detail = $this->eticketModel->findOneLengkap($id);
+
+            if ($detail) {
+
+                $timeline = $this->buildStatusTimeline($detail['id']);
+
+                $jabatanMap = $this->getJabatanMap();
+
+                $detail['nm_jbtn']
+                    = $jabatanMap[$detail['kd_jbtn']] ?? null;
+
+                $detail['proses_unit_nama']
+                    = $jabatanMap[$detail['proses_unit']] ?? null;
+
+                $detail = $this->attachNamaJabatanToUnits($detail);
+                $detail = $this->attachNamaJabatanToProses($detail);
+                $detail = $this->mapUnitWithJabatan($detail);
+
+                $detail['hashid']
+                    = $this->hashids->encode($detail['id']);
+            }
+        }
+
+        foreach ($tickets as &$row) {
+            $row['hashid']
+                = $this->hashids->encode($row['id']);
+        }
+
+        return view('headsection', [
+            'title' => 'Persetujuan E-Ticket',
+            'data'  => [
+                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
+                'eticket'          => $tickets,
+                'detailTicket'     => $detail,
+                'timeline_status'  => $timeline,
+                'user'             => session()->get(),
+            ]
+        ]);
+    }
+
     /* =========================================================
      * PELAKSANA
      * ========================================================= */
@@ -309,21 +387,22 @@ class ETicket2 extends BaseController
             return redirect()->to('/login')->with('error', 'Session expired');
         }
 
-        $id = $this->decodeHashId($hashid);
-        $status = $this->request->getGet('status');
-        if ($status === 'selesai') {
-            // tampilkan selesai
-            $tickets = $this->eticketModel->getSudahValid2pelaksanaselesai($kdJbtn, true);
-        } else {
-            $tickets = $this->eticketModel->getSudahValid2pelaksana($kdJbtn, true);
-        }
-
+        $selesai = $this->request->getGet('selesai');
+        $kategori = $this->request->getGet('kategori');
+        $selesai = ($selesai !== null && $selesai !== '')
+            ? (int)$selesai
+            : null;
+        $kategori = ($kategori !== null && $kategori !== '')
+            ? (int)$kategori
+            : null;
+        $tickets = $this->eticketModel->getEticketPelaksana($kdJbtn, true, $selesai, $kategori);
         // attach nama jabatan
         $tickets = $this->attachNamaJabatanToTickets($tickets);
         $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
 
         $detail = null;
         $timeline = [];
+        $id = $this->decodeHashId($hashid);
         if ($id) {
             $detail = $this->eticketModel->findOneLengkap($id);
 
@@ -350,6 +429,7 @@ class ETicket2 extends BaseController
         return view('pelaksana', [
             'title' => 'Pelaksana',
             'data'  => [
+                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
                 'eticket'      => $tickets,
                 'detailTicket' => $detail,
                 'timeline_status' => $timeline,
@@ -1248,10 +1328,12 @@ class ETicket2 extends BaseController
     /* =========================================================
     * NOTIFIKASI E-TICKET
     * ========================================================= */
-    private function insertNotifikasi($idPegawai = null, $idTiket, $valid = 0, $kdJbtn = null, $pesan = null, $tipe = null)
+    private function insertNotifikasi($idPegawai = null, $idTiket = null, $valid = 0, $kdJbtn = null, $pesan = null, $tipe = null)
     {
+        if ($idTiket == null) {
+            return 0;
+        }
         $db = \Config\Database::connect();
-
         $data = [
             'id_pegawai' => $idPegawai,
             'id_eticket' => $idTiket,

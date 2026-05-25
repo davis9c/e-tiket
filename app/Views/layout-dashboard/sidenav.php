@@ -26,57 +26,20 @@ $openApp = preg_match('#^(kategori|allticket)(/|$)#', $currentPath);
     <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
         <div class="sb-sidenav-menu">
             <div class="nav">
-
-                <!-- ===================== -->
-                <!-- E-TIKET -->
-                <!-- ===================== -->
-                <div class="sb-sidenav-menu-heading">My E-Ticket</div>
-
                 <a class="nav-link<?= $activeLink('etiket') ? ' active' : '' ?>" href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
-                    Berjalan
+                    My E-Tiket
                 </a>
-
-                <a class="nav-link<?= $activeLink('etiket', 'selesai') ? ' active' : '' ?>" href="<?= base_url('etiket?status=selesai') ?>">
-                    <div class="sb-nav-link-icon"><i class="fas fa-check-circle"></i></div>
-                    Selesai
-                </a>
-
-                <!-- ===================== -->
-                <!-- PERSETUJUAN -->
-                <!-- ===================== -->
                 <?php if ((int) session('headsection') === 1): ?>
-                    <div class="sb-sidenav-menu-heading">Persetujuan</div>
 
                     <a class="nav-link<?= $activeLink('headsection') ? ' active' : '' ?>" href="<?= base_url('headsection') ?>">
                         <div class="sb-nav-link-icon"><i class="fas fa-clock"></i></div>
                         Persetujuan
                     </a>
-
-                    <a class="nav-link<?= $activeLink('headsection', 'approved') ? ' active' : '' ?>" href="<?= base_url('headsection?status=approved') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-check"></i></div>
-                        Disetujui
-                    </a>
-
-                    <a class="nav-link<?= $activeLink('headsection', 'selesai') ? ' active' : '' ?>" href="<?= base_url('headsection?status=selesai') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-flag-checkered"></i></div>
-                        Selesai
-                    </a>
                 <?php endif; ?>
-
-                <!-- ===================== -->
-                <!-- PELAKSANA -->
-                <!-- ===================== -->
-                <div class="sb-sidenav-menu-heading">Pelaksana</div>
-
                 <a class="nav-link<?= $activeLink('pelaksana') ? ' active' : '' ?>" href="<?= base_url('pelaksana') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-user-cog"></i></div>
-                    Berjalan
-                </a>
-
-                <a class="nav-link<?= $activeLink('pelaksana', 'selesai') ? ' active' : '' ?>" href="<?= base_url('pelaksana?status=selesai') ?>">
-                    <div class="sb-nav-link-icon"><i class="fas fa-check-circle"></i></div>
-                    Selesai
+                    Pelaksana
                 </a>
 
                 <!-- ===================== -->

@@ -96,27 +96,40 @@ class KategoriETiketModel extends Model
         return $this->findByUnit($kdJbtn, 1, $onlyActive);
     }
 
-    public function findByUnitPengajuan(string $kdJbtn, bool $onlyActive = true): array
+    public function findByUnitPengajuan(?string $kdJbtn = null, bool $onlyActive = true): array
     {
         return $this->findByUnit($kdJbtn, 0, $onlyActive);
     }
 
-    private function findByUnit(string $kdJbtn, int $isPenanggungJawab, bool $onlyActive): array
-    {
+    private function findByUnit(
+        ?string $kdJbtn,
+        int $isPenanggungJawab,
+        bool $onlyActive
+    ): array {
+
         $builder = $this->db->table($this->table . ' k')
             ->select('k.*')
             ->join(
                 'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = k.id AND kuj.is_penanggung_jawab = ' . $isPenanggungJawab,
+            'kuj.kategori_id = k.id 
+            AND kuj.is_penanggung_jawab = ' . $isPenanggungJawab,
                 'inner'
-            )
-            ->where('kuj.kd_jbtn', $kdJbtn);
+            );
 
+        // filter unit jika ada
+        if ($kdJbtn !== null) {
+            $builder->where('kuj.kd_jbtn', $kdJbtn);
+        }
+
+        // filter aktif
         if ($onlyActive) {
             $builder->where('k.aktif', 1);
         }
 
-        $rows = $builder->get()->getResultArray();
+        $rows = $builder
+            ->groupBy('k.id') // cegah duplikat
+            ->get()
+            ->getResultArray();
 
         foreach ($rows as &$row) {
             $this->attachUnit($row);

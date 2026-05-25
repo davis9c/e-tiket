@@ -3,8 +3,6 @@
 <main>
     <div class="container-fluid px-4">
         <h1 class="mt-4">Buat E-Tiket Baru</h1>
-        <!--UPDATE 2 START-->
-        <p>Pilih kategori ticket yang akan anda ajukan</p>
         <!--UPDATE 2 END-->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">

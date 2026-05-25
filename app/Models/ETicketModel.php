@@ -75,7 +75,6 @@ class ETicketModel extends Model
 
         return $rows;
     }
-
     public function __construct()
     {
         parent::__construct();
@@ -91,8 +90,6 @@ class ETicketModel extends Model
 
         return $rows[0];
     }
-
-
     protected $allowedFields = [
         'kode_ticket',
         'judul',
@@ -112,13 +109,11 @@ class ETicketModel extends Model
         'reject',
         'reject_nama',
     ];
-
     /*
     |--------------------------------------------------------------------------
     | BASE QUERY
     |--------------------------------------------------------------------------
     */
-
     private function baseQuery()
     {
         return $this->db->table($this->table . ' e')
@@ -130,13 +125,11 @@ class ETicketModel extends Model
             ')
             ->join('kategori_eticket k', 'k.id = e.kategori_id', 'left');
     }
-
     /*
     |--------------------------------------------------------------------------
     | LIST DATA
     |--------------------------------------------------------------------------
     */
-
     public function getAllWithKategori(): array
     {
         $rows = $this->baseQuery()
@@ -221,8 +214,117 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    public function getEticket(
+        ?string $nip = null, // filter berdasarkan user ang mengajukan
+        ?int $selesai = null, // filter selesai atau belum selesai
+        ?int $kategoriId = null // filter berdasarkan kategori
+    ): array {
 
+        $builder = $this->baseQuery()
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left'
+            );
 
+        // filter petugas
+        if (!empty($nip)) {
+            $builder->where('e.petugas_id', $nip);
+        }
+
+        // filter kategori
+        if (!empty($kategoriId)) {
+            $builder->where('e.kategori_id', $kategoriId);
+        }
+
+        // filter status selesai
+        if ($selesai === 1) {
+            $builder->where('e.selesai_nama IS NOT NULL', null, false);
+        } elseif ($selesai === 0) {
+            $builder->where('e.selesai_nama IS NULL', null, false);
+        }
+
+        $rows = $builder
+            ->groupBy('e.id')
+            ->orderBy('e.created_at', 'DESC')
+            ->where('e.created_at >=', $this->enamBulanLalu())
+            ->get()
+            ->getResultArray();
+
+        return $this->attachProsesToRows($rows);
+    }
+    public function getEticketPelaksana(
+        string $kd_jbtn,
+        bool $penanggungJawab,
+        ?int $selesai = null,
+        ?int $kategori = null
+    ): array {
+
+        $builder = $this->baseQuery()
+            ->join(
+                'kategori_unit_jabatan kuj',
+                'kuj.kategori_id = e.kategori_id',
+                'inner'
+            )
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left'
+            )
+            ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.valid_nama IS NOT NULL', null, false)
+            ->groupStart()
+            ->where('e.proses_unit', $kd_jbtn)
+            ->orWhere('ep.kd_jbtn', $kd_jbtn)
+            ->groupEnd();
+        // filter status selesai
+        if ($selesai === 1) {
+            $builder->where(
+                'e.selesai_nama IS NOT NULL',
+                null,
+                false
+            );
+        } elseif ($selesai === 0) {
+            $builder->where(
+                'e.selesai_nama IS NULL',
+                null,
+                false
+            );
+        }
+        // filter kategori
+        if ($kategori !== null) {
+            $builder->where('e.kategori_id', $kategori);
+        }
+        $rows = $builder
+            ->groupBy('e.id')
+            ->orderBy('e.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+        return $this->attachProsesToRows($rows);
+    }
+    public function getAllTicket(): array
+    {
+
+        $builder = $this->baseQuery()
+            ->join(
+                'eticket_proses ep',
+                'ep.id_eticket = e.id',
+                'left'
+            );
+
+        $rows = $builder
+            ->groupBy('e.id') // penting untuk cegah duplikat
+            ->orderBy('e.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
+        return $this->attachProsesToRows($rows);
+    }
+    /*
+    |--------------------------------------------------------------------------
+    | Fungsi tidak dipakai
+    |--------------------------------------------------------------------------
+    */
     public function getByPetugas(string $nip): array
     {
         $rows = $this->baseQuery()
@@ -233,7 +335,6 @@ class ETicketModel extends Model
             )
             ->where('e.petugas_id', $nip)
             ->where('e.selesai_nama IS NOT NULL', null, false)
-
             ->groupBy('e.id')
             ->orderBy('e.created_at', 'DESC')
             ->where('e.created_at >=', $this->enamBulanLalu())
@@ -266,7 +367,7 @@ class ETicketModel extends Model
     | FILTER STATUS
     |--------------------------------------------------------------------------
     */
-
+    //belum valid
     public function getBelumValid(string $kd_jbtn, bool $penanggungJawab): array
     {
         $rows = $this->baseQuery()
@@ -287,6 +388,7 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    //valid belum selesai
     public function getSudahValid2belum(
         string $kd_jbtn,
         bool $penanggungJawab,
@@ -321,6 +423,7 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    //valid selesai
     public function getSudahValid2(
         string $kd_jbtn,
         bool $penanggungJawab,
@@ -356,29 +459,101 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-    public function getAllTicket(): array
-    {
+    //BARU
+    public function getHeadSectionTickets(
+        string $kd_jbtn,
+        bool $penanggungJawab,
+        ?int $valid = null,
+        ?int $selesai = null,
+        ?int $kategori = null
+    ): array {
 
         $builder = $this->baseQuery()
+            ->join(
+                'kategori_unit_jabatan kuj',
+                'kuj.kategori_id = e.kategori_id',
+                'inner'
+            )
             ->join(
                 'eticket_proses ep',
                 'ep.id_eticket = e.id',
                 'left'
+            )
+
+            ->where('kuj.kd_jbtn', $kd_jbtn)
+            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+
+            ->where('e.created_at >=', $this->enamBulanLalu())
+
+            ->groupStart()
+            ->where('e.proses_unit', $kd_jbtn)
+            ->orWhere('ep.kd_jbtn', $kd_jbtn)
+            ->orWhere('e.kd_jbtn', $kd_jbtn)
+            ->groupEnd();
+
+        // =========================
+        // FILTER VALIDASI
+        // =========================
+
+        if ($valid === 1) {
+
+            $builder->where(
+                'e.valid_nama IS NOT NULL',
+                null,
+                false
             );
+        } elseif ($valid === 0) {
+
+            $builder->where(
+                'e.valid_nama IS NULL',
+                null,
+                false
+            );
+        }
+
+        // =========================
+        // FILTER SELESAI
+        // =========================
+
+        if ($selesai === 1) {
+
+            $builder->where(
+                'e.selesai_nama IS NOT NULL',
+                null,
+                false
+            );
+        } elseif ($selesai === 0) {
+
+            $builder->where(
+                'e.selesai_nama IS NULL',
+                null,
+                false
+            );
+        }
+
+        // =========================
+        // FILTER KATEGORI
+        // =========================
+
+        if ($kategori !== null) {
+            $builder->where('e.kategori_id', $kategori);
+        }
 
         $rows = $builder
-            ->groupBy('e.id') // penting untuk cegah duplikat
+            ->groupBy('e.id')
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
+
         return $this->attachProsesToRows($rows);
     }
+
+
     public function getSudahValid2pelaksana(
         string $kd_jbtn,
         bool $penanggungJawab,
         ?bool $selesai = null
     ): array {
-
         $builder = $this->baseQuery()
             ->join(
                 'kategori_unit_jabatan kuj',
@@ -394,14 +569,11 @@ class ETicketModel extends Model
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
             ->where('e.valid_nama IS NOT NULL', null, false)
             ->where('e.selesai_nama', null) //kuncinya disini, menampilkan hanya yang tidak valid
-
             //->where('e.selesai_nama IS NOT NULL', null, false) //kuncinya disini, menampilkan hanya yang tidak valid
-
             ->groupStart()
             ->where('e.proses_unit', $kd_jbtn)
             ->orWhere('ep.kd_jbtn', $kd_jbtn)
             ->groupEnd();
-
         $rows = $builder
             ->groupBy('e.id') // penting untuk cegah duplikat
             ->orderBy('e.created_at', 'DESC')
@@ -527,8 +699,6 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-
-
     public function getSudahValidByProses2(string $kd_jbtn, bool $penanggungJawab): array
     {
         $rows = $this->baseQuery()
@@ -582,14 +752,11 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-
-
     /*
     |--------------------------------------------------------------------------
     | DETAIL
     |--------------------------------------------------------------------------
     */
-
     public function findDetail(int $id): ?array
     {
         $row = $this->baseQuery()
@@ -613,14 +780,11 @@ class ETicketModel extends Model
 
         return $row;
     }
-
-
     /*
     |--------------------------------------------------------------------------
     | KATEGORI + UNIT
     |--------------------------------------------------------------------------
     */
-
     public function findKategoriWithUnit(int $kategoriId): ?array
     {
         $row = $this->db->table('kategori_eticket')
@@ -637,13 +801,11 @@ class ETicketModel extends Model
 
         return $row;
     }
-
     /*
     |--------------------------------------------------------------------------
     | HELPER
     |--------------------------------------------------------------------------
     */
-
     private function getUnitByKategori(int $kategoriId, int $isPenanggungJawab): array
     {
         return $this->db->table('kategori_unit_jabatan')
