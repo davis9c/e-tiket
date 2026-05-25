@@ -31,7 +31,9 @@
                             <?php endif; ?>
                         </td>
                         <td><?= esc($p['petugas_id_nama']) ?></td>
-                        <td><?= esc($p['message']) ?></td>
+                        <td>
+                            <p><?= esc($p['message']) ?></p>
+                        </td>
                         <td><?= esc($p['created_at']) ?></td>
                         <!-- STATUS -->
                         <td>
