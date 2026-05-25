@@ -74,7 +74,9 @@
                     </b>
                 </div>
                 <div class="card-body">
-                    <?= esc($data['detailTicket']['message']) ?>
+                    <p>
+                        <?= esc($data['detailTicket']['message']) ?>
+                    </p>
                 </div>
             </div>
         </div>
