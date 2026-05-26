@@ -189,6 +189,16 @@
     <script src="<?= base_url('dataTables/simple-datatables.min.js') ?>" crossorigin="anonymous"></script>
     <script src="<?= base_url('sb/js/datatables-simple-demo.js') ?>"></script>
     <script src="<?= base_url('js/dataTables.js') ?>"></script>
+    <!-- UPDATE BARU 25 05 2026 -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <script>
+        ClassicEditor
+            .create(document.querySelector('#editor'))
+            .catch(error => {
+                console.error(error);
+            });
+        console.log("cccccc");
+    </script>
 </body>
 
 </html>

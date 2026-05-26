@@ -99,6 +99,7 @@
                             <textarea name="message"
                                 class="form-control"
                                 rows="4"
+                                id="editor"
                                 placeholder="Jelaskan kendala atau kebutuhan..."
                                 required><?= esc($data['kategoriData']['template']) ?></textarea>
                         </div>

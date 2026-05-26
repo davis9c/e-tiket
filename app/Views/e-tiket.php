@@ -37,15 +37,39 @@
                 });
             </script>
         <?php endif; ?>
+
         <?php if (!empty($data['detailTicket'])): ?>
             <div class="row">
                 <!-- ATAS -->
                 <div class="col-md-9">
                     <?= $this->include('e-tiket/form-e') ?>
+                    <hr>
                 </div>
             </div>
         <?php endif; ?>
-        <div class="row">
+        <?php if (false): ?>
+            <?php if (!empty($data['detailTicket'])): ?>
+                <div class="row">
+                    <!-- ATAS -->
+                    <div class="col-md-9">
+                        <?= $this->include('e-tiket/form-e') ?>
+                        <hr>
+                    </div>
+                </div>
+                <!-- Tindakan -->
+
+                <div class="row">
+
+                    <div class="col-md-9">
+                        <h2>Tindakan</h2>
+                        <hr>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <div class="row"><!-- LIST (Bawah) -->
+
             <div class="d-flex gap-2 mb-4 flex-wrap">
                 <button type="button"
                     class="btn btn-primary"
@@ -162,7 +186,7 @@
                     </div>
                 </div>
             </div>
-            <!-- LIST (Bawah) -->
+            <!-- List -->
             <div class="col-md-9">
                 <?= $this->include('e-tiket/list') ?>
             </div>
