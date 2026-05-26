@@ -74,9 +74,7 @@
                     </b>
                 </div>
                 <div class="card-body">
-                    <p>
-                        <?= esc($data['detailTicket']['message']) ?>
-                    </p>
+                    <?= $data['detailTicket']['message'] ?>
                 </div>
             </div>
         </div>
@@ -88,16 +86,13 @@
             <!-- ===== STATUS Original ===== -->
             <div class="col-md-3">
                 <div class="card h-100 border-start border-primary border-4">
-
                     <!-- HEADER -->
                     <div class="card-header">
                         <strong>Status</strong>
                     </div>
-
                     <!-- BODY -->
                     <div class="card-body">
                         <div class="timeline">
-
                             <!-- ============================= -->
                             <!-- TIKET DIBUAT -->
                             <!-- ============================= -->
@@ -146,14 +141,12 @@
                                             <i class="fa-solid fa-circle-check me-1"></i>
                                             Diselesaikan <?= esc($validNama) ?>
                                         </div>
-
                                     <?php else: ?>
                                         <div class="timeline-dot bg-primary"></div>
                                         <div class="timeline-content text-primary fw-semibold">
                                             <i class="fa-solid fa-check-square me-1"></i>
                                             Disetujui <?= esc($validNama) ?>
                                         </div>
-
                                         <!-- ============================= -->
                                         <!-- PROSES UNIT -->
                                         <!-- ============================= -->
@@ -589,66 +582,139 @@
                                     <!-- FORM TOLAK / SELESAI -->
                                     <!-- ============================= -->
                                     <div class="col-md-6">
-                                        <form id="pelaksanaFinalForm" action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
-                                            <?= csrf_field() ?>
-
-                                            <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
-                                            <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
-
-                                            <?php if ($nextKd): ?>
-                                                <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
-                                            <?php endif ?>
-
-                                            <div class="mb-2">
-                                                <label class="form-label fw-semibold">
-                                                    <i class="fas fa-comment-dots me-1"></i>
-                                                    Catatan
-                                                </label>
-                                                <textarea
-                                                    name="catatan"
-                                                    class="form-control"
-                                                    rows="2"
-                                                    placeholder="Masukkan keterangan..."></textarea>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label fw-bold d-block">Pilih Aksi</label>
-
-                                                <div class="d-flex gap-2">
-
-                                                    <!-- Tolak -->
-                                                    <input type="radio" class="btn-check" name="status_validasi" id="tolakPelaksana" value="0" autocomplete="off">
-                                                    <label class="btn btn-outline-danger btn-sm" for="tolakPelaksana">
-                                                        ❌ Tolak
-                                                    </label>
-
-                                                    <!-- Selesai -->
-                                                    <input type="radio" class="btn-check" name="status_validasi" id="selesaiPelaksana" value="2" autocomplete="off" checked>
-                                                    <label class="btn btn-outline-primary btn-sm" for="selesaiPelaksana">
-                                                        ✅ Selesai
-                                                    </label>
-
-                                                </div>
+                                        <div class="card shadow-sm border-0 rounded-4">
+                                            <div class="card-header bg-primary text-white rounded-top-4 py-3">
+                                                <h5 class="mb-0">
+                                                    <i class="fas fa-paper-plane me-2"></i>
+                                                    Form Tindakan Pelaksana
+                                                </h5>
                                             </div>
 
-                                            <!-- SUBMIT -->
-                                            <button type="button" class="btn btn-primary btn-sm" onclick="openConfirmPelaksana()">
-                                                Kirim
-                                            </button>
-                                        </form>
+                                            <div class="card-body p-4">
 
-                                        <!-- ===== MODAL KONFIRMASI PELAKSANA ===== -->
+                                                <form id="pelaksanaFinalForm" action="<?= base_url('pelaksana/pelaksana_final') ?>" method="post">
+                                                    <?= csrf_field() ?>
+
+                                                    <input type="hidden" name="ticket_id" value="<?= esc($ticket['id']) ?>">
+                                                    <input type="hidden" name="kd_jbtn" value="<?= esc($kd) ?>">
+
+                                                    <?php if ($nextKd): ?>
+                                                        <input type="hidden" name="unit_selanjutnya" value="<?= esc($nextKd) ?>">
+                                                    <?php endif ?>
+
+                                                    <!-- CATATAN -->
+                                                    <div class="mb-4">
+                                                        <label class="form-label fw-semibold">
+                                                            <i class="fas fa-comment-dots text-primary me-1"></i>
+                                                            Catatan Pelaksana
+                                                        </label>
+
+                                                        <textarea
+                                                            name="catatan"
+                                                            class="form-control rounded-3 shadow-sm"
+                                                            rows="3"
+                                                            minlength="5"
+                                                            required
+                                                            placeholder="Masukkan keterangan"></textarea>
+
+                                                        <div class="invalid-feedback">
+                                                            Keterangan wajib diisi minimal 5 karakter.
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- PILIH TINDAKAN -->
+                                                    <div class="mb-4">
+                                                        <label class="form-label fw-bold mb-2 d-block">
+                                                            <i class="fas fa-tasks text-primary me-1"></i>
+                                                            Pilih Tindakan
+                                                        </label>
+
+                                                        <div class="btn-group w-100 shadow-sm" role="group">
+
+                                                            <!-- Tolak -->
+                                                            <input
+                                                                type="radio"
+                                                                class="btn-check"
+                                                                name="status_validasi"
+                                                                id="tolakPelaksana"
+                                                                value="0"
+                                                                autocomplete="off">
+
+                                                            <label class="btn btn-outline-danger py-2" for="tolakPelaksana">
+                                                                <i class="fas fa-times-circle me-1"></i>
+                                                                Tolak
+                                                            </label>
+
+                                                            <!-- Selesai -->
+                                                            <input
+                                                                type="radio"
+                                                                class="btn-check"
+                                                                name="status_validasi"
+                                                                id="selesaiPelaksana"
+                                                                value="2"
+                                                                autocomplete="off"
+                                                                checked>
+
+                                                            <label class="btn btn-outline-success py-2" for="selesaiPelaksana">
+                                                                <i class="fas fa-check-circle me-1"></i>
+                                                                Selesai
+                                                            </label>
+
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- SUBMIT -->
+                                                    <div class="d-grid">
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-primary rounded-3 py-2 shadow-sm"
+                                                            onclick="openConfirmPelaksana()">
+
+                                                            <i class="fas fa-paper-plane me-2"></i>
+                                                            Kirim Tindakan
+                                                        </button>
+                                                    </div>
+
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <!-- ===== MODAL KONFIRMASI ===== -->
                                         <div class="modal fade" id="modalConfirmPelaksana" tabindex="-1">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header" id="modalHeaderPelaksana">
-                                                        <h5 class="modal-title" id="modalTitlePelaksana"></h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+
+                                                    <div class="modal-header text-white" id="modalHeaderPelaksana">
+                                                        <h5 class="modal-title" id="modalTitlePelaksana">
+                                                            <i class="fas fa-question-circle me-2"></i>
+                                                            Konfirmasi
+                                                        </h5>
+
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                     </div>
-                                                    <div class="modal-body" id="modalBodyPelaksana"></div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
-                                                        <button type="button" id="btnConfirmPelaksana" class="btn btn-primary btn-sm">Ya, Lanjutkan</button>
+
+                                                    <div class="modal-body py-4" id="modalBodyPelaksana">
                                                     </div>
+
+                                                    <div class="modal-footer border-0">
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-light border rounded-3"
+                                                            data-bs-dismiss="modal">
+
+                                                            Batal
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            id="btnConfirmPelaksana"
+                                                            class="btn btn-primary rounded-3 px-4">
+
+                                                            <i class="fas fa-check me-1"></i>
+                                                            Ya, Lanjutkan
+                                                        </button>
+                                                    </div>
+
                                                 </div>
                                             </div>
                                         </div>

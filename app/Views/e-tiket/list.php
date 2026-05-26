@@ -32,7 +32,7 @@
                         </td>
                         <td><?= esc($p['petugas_id_nama']) ?></td>
                         <td>
-                            <p><?= esc($p['message']) ?></p>
+                            <p><?= $p['message'] ?></p>
                         </td>
                         <td><?= esc($p['created_at']) ?></td>
                         <!-- STATUS -->

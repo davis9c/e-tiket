@@ -216,3 +216,6 @@ user_guide_src/cilexer/pycilexer.egg-info/*
 *.gz
 *.zip
 !.gitkeep
+app/Views/e-tiket/form-e.php
+app/Views/e-tiket/list.php
+
