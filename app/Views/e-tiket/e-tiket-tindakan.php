@@ -37,7 +37,7 @@
             </button>
         </div>
         <!-- TERUSKAN -->
-        <div class="col-auto">
+        <!-- <div class="col-auto">
             <button
                 type="button"
                 class="btn btn-warning"
@@ -45,7 +45,7 @@
                 <i class="fas fa-paper-plane me-1"></i>
                 Teruskan
             </button>
-        </div>
+        </div> -->
         <!-- R Rrosess -->
         <div class="col-auto">
             <button

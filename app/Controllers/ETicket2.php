@@ -330,17 +330,14 @@ class ETicket2 extends BaseController
     private function decodeHashId($hashid): ?int
     {
         if (!$hashid) return null;
-
         $decoded = $this->hashids->decode($hashid);
-
         if (empty($decoded)) {
             return null;
         }
-
         return (int)$decoded[0];
     }
     /* =========================================================
-     * SUBMIT FUngsi
+     * SUBMIT Fungsi
      * ========================================================= */
     public function submit_final() //Pelaksana menyelesaikan
     {
@@ -350,7 +347,6 @@ class ETicket2 extends BaseController
         $ticketId       = $this->request->getPost('ticket_id');
         $catatan        = trim($this->request->getPost('catatan'));
         $selesai = $this->request->getPost('konfirmasiSelesai');
-        //dd($this->request->getPost('konfirmasiSelesai'));
         $pesanProses = $catatan;
         $pesan = '';
         $nip     = session()->get('nip');
@@ -388,11 +384,11 @@ class ETicket2 extends BaseController
         // JIKA DICENTANG = SELESAI
         // =====================================================
         if ($selesai === '1') {
-
             $updateData = [
-                'proses_unit'    => null,
-                'selesai_nama'   => $nama,
+                'proses_unit'   => null,
+                'selesai_nama'  => $nama,
                 'respon_message' => $catatan,
+                'handler'       => null,
             ];
             // otomatis valid jika belum valid
             if (empty($ticket['valid_nama'])) {
@@ -414,7 +410,14 @@ class ETicket2 extends BaseController
 
             $pesan = 'Ticket berhasil diselesaikan.';
         } else {
-
+            $updateData = [
+                'handler'       => session()->get('id_pegawai'),
+                'respon_message' => $catatan
+            ];
+            $this->eticketModel->update(
+                $ticketId,
+                $updateData
+            );
             $pesanProses = $catatan;
             $pesan = 'Progress pekerjaan berhasil disimpan.';
         }
@@ -1105,6 +1108,7 @@ class ETicket2 extends BaseController
         $validNama   = $ticket['valid_nama'] ?? null;
         $selesaiNama = $ticket['selesai_nama'] ?? null;
         $rejectNama  = $ticket['reject_nama'] ?? null;
+        $handler  = $ticket['handler'] ?? null;
 
         $isHead = (int)($ticket['headsection'] ?? 0) === 1;
 
@@ -1151,18 +1155,6 @@ class ETicket2 extends BaseController
             }
 
             // =============================================
-            // DITOLAK HEADSECTION
-            // =============================================
-            if ($validNama === $rejectNama) {
-                $timeline[] = [
-                    'type'  => 'rejected',
-                    'color' => 'danger',
-                    'icon'  => 'fa-solid fa-xmark-circle',
-                    'text'  => 'Ditolak ' . $rejectNama,
-                ];
-                return $timeline;
-            }
-            // =============================================
             // SELESAI LANGSUNG
             // =============================================
             if ($validNama === $selesaiNama) {
@@ -1185,7 +1177,14 @@ class ETicket2 extends BaseController
             ];
         }
 
-        if (true) {
+        if ($handler) {
+            $timeline[] = [
+                'type'  => 'queue',
+                'color' => 'warning',
+                'icon'  => 'fa-solid fa-hourglass-half',
+                'text'  => 'Sedang Dikerjakan ' . $ticket['handler'],
+            ];
+        } else {
             $timeline[] = [
                 'type'  => 'queue',
                 'color' => 'secondary',

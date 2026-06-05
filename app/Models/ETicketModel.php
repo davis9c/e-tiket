@@ -36,6 +36,7 @@ class ETicketModel extends Model
         'selesai_nama',
         'reject',
         'reject_nama',
+        'handler',
     ];
     private function enamBulanLalu(): string
     {

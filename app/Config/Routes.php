@@ -24,9 +24,7 @@ $routes->get('dashboard', 'Dashboard::index');
 $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     // Dashboard & Home
-    $routes->get('/', 'ETicket::index');
-
-
+    $routes->get('/', 'ETicket2::index');
     /*
     |--------------------------------------------------------------------------
     | E-Ticket
@@ -41,12 +39,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('report/(:any)', 'ETicket2::report/$1');
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
-
     $routes->get('headsection', 'ETicket2::headsection');
     $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
     $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
-    //$routes->post('headsection/headsection_final', 'ETicket2::submit_finaHSl');
-
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
     $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
