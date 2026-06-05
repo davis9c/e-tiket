@@ -18,6 +18,25 @@ class ETicketModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
     protected $prosesModel;
+    protected $allowedFields = [
+        'kode_ticket',
+        'judul',
+        'kd_pegawai',
+        'message',
+        'headsection',
+        'kategori_id',
+        'petugas_id',
+        'petugas_id_nama',
+        'kd_jbtn',
+        'proses_unit',
+        'valid',
+        'valid_nama',
+        'respon_message',
+        'selesai',
+        'selesai_nama',
+        'reject',
+        'reject_nama',
+    ];
     private function enamBulanLalu(): string
     {
         return Time::now()->subMonths(6)->toDateTimeString();
@@ -90,25 +109,7 @@ class ETicketModel extends Model
 
         return $rows[0];
     }
-    protected $allowedFields = [
-        'kode_ticket',
-        'judul',
-        'kd_pegawai',
-        'message',
-        'headsection',
-        'kategori_id',
-        'petugas_id',
-        'petugas_id_nama',
-        'kd_jbtn',
-        'proses_unit',
-        'valid',
-        'valid_nama',
-        'respon_message',
-        'selesai',
-        'selesai_nama',
-        'reject',
-        'reject_nama',
-    ];
+
     /*
     |--------------------------------------------------------------------------
     | BASE QUERY
@@ -121,7 +122,8 @@ class ETicketModel extends Model
                 e.*,
                 k.kode_kategori,
                 k.nama_kategori,
-                k.deskripsi
+                k.deskripsi,
+                k.teruskan
             ')
             ->join('kategori_eticket k', 'k.id = e.kategori_id', 'left');
     }
@@ -214,52 +216,14 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-    public function getEticket(
-        ?string $nip = null, // filter berdasarkan user ang mengajukan
-        ?int $selesai = null, // filter selesai atau belum selesai
-        ?int $kategoriId = null // filter berdasarkan kategori
-    ): array {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            );
-
-        // filter petugas
-        if (!empty($nip)) {
-            $builder->where('e.petugas_id', $nip);
-        }
-
-        // filter kategori
-        if (!empty($kategoriId)) {
-            $builder->where('e.kategori_id', $kategoriId);
-        }
-
-        // filter status selesai
-        if ($selesai === 1) {
-            $builder->where('e.selesai_nama IS NOT NULL', null, false);
-        } elseif ($selesai === 0) {
-            $builder->where('e.selesai_nama IS NULL', null, false);
-        }
-
-        $rows = $builder
-            ->groupBy('e.id')
-            ->orderBy('e.created_at', 'DESC')
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    public function getEticketPelaksana(
-        string $kd_jbtn,
-        bool $penanggungJawab,
+    public function getEticketAll(
+        ?string $kd_jbtn = null, //filter penanggung jawab
+        ?string $nip = null, // filter berdasarkan user ang mengajukan//filter penanggung jawab
+        //?bool $penanggungJawab = null,
+        ?int $valid = null,
         ?int $selesai = null,
         ?int $kategori = null
     ): array {
-
         $builder = $this->baseQuery()
             ->join(
                 'kategori_unit_jabatan kuj',
@@ -271,13 +235,37 @@ class ETicketModel extends Model
                 'ep.id_eticket = e.id',
                 'left'
             )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere('ep.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
+            ->where('e.created_at >=', $this->enamBulanLalu());
+        if (!empty($kd_jbtn)) {
+            $builder
+                ->where('kuj.kd_jbtn', $kd_jbtn);
+            //->where('kuj.is_penanggung_jawab', $penanggungJawab);
+        }
+        // bagian ini yang menjadikan berurutan
+        //->groupStart()
+        //->where('e.proses_unit', $kd_jbtn)
+        //->orWhere('ep.kd_jbtn', $kd_jbtn)
+        //->groupEnd();
+
+        // filter yang mengajukan
+        // filter petugas
+        if (!empty($nip)) {
+            $builder->where('e.petugas_id', $nip);
+        }
+        // FILTER VALIDASI 
+        if ($valid === 1) {
+            $builder->where(
+                'e.valid_nama IS NOT NULL',
+                null,
+                false
+            );
+        } elseif ($valid === 0) {
+            $builder->where(
+                'e.valid_nama IS NULL',
+                null,
+                false
+            );
+        }
         // filter status selesai
         if ($selesai === 1) {
             $builder->where(
@@ -303,162 +291,11 @@ class ETicketModel extends Model
             ->getResultArray();
         return $this->attachProsesToRows($rows);
     }
-    public function getAllTicket(): array
-    {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            );
-
-        $rows = $builder
-            ->groupBy('e.id') // penting untuk cegah duplikat
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-        return $this->attachProsesToRows($rows);
-    }
-    /*
-    |--------------------------------------------------------------------------
-    | Fungsi tidak dipakai
-    |--------------------------------------------------------------------------
-    */
-    public function getByPetugas(string $nip): array
-    {
-        $rows = $this->baseQuery()
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            )
-            ->where('e.petugas_id', $nip)
-            ->where('e.selesai_nama IS NOT NULL', null, false)
-            ->groupBy('e.id')
-            ->orderBy('e.created_at', 'DESC')
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    public function getByPetugasSelesai(string $nip): array
-    {
-        $rows = $this->baseQuery()
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            )
-            ->where('e.petugas_id', $nip)
-            ->where('e.selesai_nama', null)
-            ->groupBy('e.id')
-            ->orderBy('e.created_at', 'DESC')
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-
     /*
     |--------------------------------------------------------------------------
     | FILTER STATUS
     |--------------------------------------------------------------------------
     */
-    //belum valid
-    public function getBelumValid(string $kd_jbtn, bool $penanggungJawab): array
-    {
-        $rows = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('e.kd_jbtn', $kd_jbtn) // hanya di jbtn itu saja yang tampil d masing2 headsection
-            ->where('e.headsection', 1) // hanya di jbtn itu saja yang tampil d masing2 headsection
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->where('e.valid_nama', null) //kuncinya disini, menampilkan hanya yang tidak valid
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    //valid belum selesai
-    public function getSudahValid2belum(
-        string $kd_jbtn,
-        bool $penanggungJawab,
-        ?bool $selesai = null
-    ): array {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.selesai_nama', null) //kuncinya disini, menampilkan hanya yang tidak valid
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere('ep.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
-
-        $rows = $builder
-            ->groupBy('e.id') // penting untuk cegah duplikat
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    //valid selesai
-    public function getSudahValid2(
-        string $kd_jbtn,
-        bool $penanggungJawab,
-        ?bool $selesai = null
-    ): array {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.selesai_nama IS NOT NULL', null, false) //kuncinya disini, menampilkan hanya yang tidak valid
-
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere('ep.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
-
-        $rows = $builder
-            ->groupBy('e.id') // penting untuk cegah duplikat
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
     //BARU
     public function getHeadSectionTickets(
         string $kd_jbtn,
@@ -467,7 +304,6 @@ class ETicketModel extends Model
         ?int $selesai = null,
         ?int $kategori = null
     ): array {
-
         $builder = $this->baseQuery()
             ->join(
                 'kategori_unit_jabatan kuj',
@@ -478,67 +314,47 @@ class ETicketModel extends Model
                 'eticket_proses ep',
                 'ep.id_eticket = e.id',
                 'left'
-            )
-
+        )
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-
             ->where('e.created_at >=', $this->enamBulanLalu())
-
             ->groupStart()
             ->where('e.proses_unit', $kd_jbtn)
             ->orWhere('ep.kd_jbtn', $kd_jbtn)
             ->orWhere('e.kd_jbtn', $kd_jbtn)
             ->groupEnd();
-
-        // =========================
-        // FILTER VALIDASI
-        // =========================
-
+        // FILTER VALIDASI 
         if ($valid === 1) {
-
             $builder->where(
                 'e.valid_nama IS NOT NULL',
                 null,
                 false
             );
         } elseif ($valid === 0) {
-
             $builder->where(
                 'e.valid_nama IS NULL',
                 null,
                 false
             );
         }
-
-        // =========================
-        // FILTER SELESAI
-        // =========================
-
+        // filter status selesai
         if ($selesai === 1) {
-
             $builder->where(
                 'e.selesai_nama IS NOT NULL',
                 null,
                 false
             );
         } elseif ($selesai === 0) {
-
             $builder->where(
                 'e.selesai_nama IS NULL',
                 null,
                 false
             );
         }
-
-        // =========================
         // FILTER KATEGORI
-        // =========================
-
         if ($kategori !== null) {
             $builder->where('e.kategori_id', $kategori);
         }
-
         $rows = $builder
             ->groupBy('e.id')
             ->orderBy('e.created_at', 'DESC')
@@ -548,80 +364,11 @@ class ETicketModel extends Model
         return $this->attachProsesToRows($rows);
     }
 
-
-    public function getSudahValid2pelaksana(
-        string $kd_jbtn,
-        bool $penanggungJawab,
-        ?bool $selesai = null
-    ): array {
-        $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.selesai_nama', null) //kuncinya disini, menampilkan hanya yang tidak valid
-            //->where('e.selesai_nama IS NOT NULL', null, false) //kuncinya disini, menampilkan hanya yang tidak valid
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere('ep.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
-        $rows = $builder
-            ->groupBy('e.id') // penting untuk cegah duplikat
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-        return $this->attachProsesToRows($rows);
-    }
-    public function getSudahValid2pelaksanaselesai(
-        string $kd_jbtn,
-        bool $penanggungJawab,
-        ?bool $selesai = null
-    ): array {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            //->where('e.selesai_nama', null) //kuncinya disini, menampilkan hanya yang tidak valid
-            ->where('e.selesai_nama IS NOT NULL', null, false) //kuncinya disini, menampilkan hanya yang tidak valid
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere('ep.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
-
-        $rows = $builder
-            ->groupBy('e.id') // penting untuk cegah duplikat
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
     public function isSudahValid2(
         string $kd_jbtn,
         bool $penanggungJawab,
         ?bool $selesai = null
     ): bool {
-
         $builder = $this->baseQuery()
             ->select('1', false)
             ->join('kategori_unit_jabatan kuj', 'kuj.kategori_id = e.kategori_id', 'inner')
@@ -636,121 +383,6 @@ class ETicketModel extends Model
             ->limit(1);
 
         return $builder->get()->getRow() !== null;
-    }
-    public function getSudahValid2_old(
-        string $kd_jbtn,
-        bool $penanggungJawab,
-        ?bool $selesai = null
-    ): array {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left' // penting
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere('ep.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
-
-        $rows = $builder
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    public function getSudahValid(
-        string $kd_jbtn,
-        bool $penanggungJawab,
-        ?bool $selesai = null
-    ): array {
-
-        $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.created_at >=', $this->enamBulanLalu()); // 🔥 tambahkan ini
-
-        if ($selesai === true) {
-            $builder->where('e.selesai_nama IS NOT NULL', null, false);
-        } elseif ($selesai === false) {
-            $builder->where('e.selesai_nama IS NULL', null, false);
-        }
-
-        $rows = $builder
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    public function getSudahValidByProses2(string $kd_jbtn, bool $penanggungJawab): array
-    {
-        $rows = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'inner'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-
-            //->where('e.valid_nama IS NOT NULL', null, false)
-            //->where('e.proses_unit', $kd_jbtn) // OR
-            //->where('ep.kd_jbtn', $kd_jbtn) // OR
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->groupBy('e.id') // penting supaya tidak duplicate
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
-    }
-    public function getSudahValidByProses(string $kd_jbtn, bool $penanggungJawab): array
-    {
-        $rows = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-                'eticket_proses ep',
-                'ep.id_eticket = e.id',
-                'inner'
-            )
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.valid_nama IS NOT NULL', null, false)
-            ->where('e.proses_unit', $kd_jbtn) // 🔥 filter proses
-            ->where('ep.kd_jbtn', $kd_jbtn) // 🔥 filter proses
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->groupBy('e.id') // penting supaya tidak duplicate
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-
-        return $this->attachProsesToRows($rows);
     }
     /*
     |--------------------------------------------------------------------------

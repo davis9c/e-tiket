@@ -13,16 +13,22 @@
                 <?php endif; ?>
             </ol>
         </nav>
-        <div class="row">
-            <!-- LIST (KIRI) -->
-            <?php if (!empty($data['detailTicket'])): ?>
+        <?php if (!empty($data['detailTicket'])): ?>
+            <div class="row">
+                <!-- LIST (KIRI) -->
+                <!-- STATUS -->
                 <div class="col-md-9">
-                    <?= $this->include('e-tiket/form-e') ?>
+                    <?= $this->include('e-tiket/e-tiket-status') ?>
+                    <hr>
                 </div>
-            <?php endif; ?>
-            <!-- FORM DETAIL (KANAN) -->
-
-        </div>
+                <!-- TINDAKAN Baru -->
+                <div class="col-md-9">
+                    <?= $this->include('e-tiket/e-tiket-tindakan') ?>
+                    <hr>
+                </div>
+                <!-- FORM DETAIL (KANAN) -->
+            </div>
+        <?php endif; ?>
         <div class="row">
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-9' : 'col-md-9' ?>">
                 <?= $this->include('e-tiket/list') ?>

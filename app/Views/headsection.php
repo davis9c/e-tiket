@@ -14,71 +14,21 @@
                 <?php endif; ?>
             </ol>
         </nav>
-        <div class="row">
-            <!-- LIST (KIRI) -->
-            <?php if (!empty($data['detailTicket'])): ?>
+        <?php if (!empty($data['detailTicket'])): ?>
+            <div class="row">
+                <!-- STATUS -->
                 <div class="col-md-9">
-                    <?= $this->include('e-tiket/form-e') ?>
+                    <?= $this->include('e-tiket/e-tiket-status') ?>
+                    <hr>
                 </div>
-            <?php endif; ?>
-        </div>
-        <div class="row">
-            <div class="d-flex gap-2 mb-4 flex-wrap">
-                <form id="formCariKategori" class="d-flex gap-2">
-                    <?php
-                    $selesaiSelected = service('request')->getGet('selesai');
-                    ?>
-                    <select name="selesai" id="selectSelesai" class="form-select">
-                        <option value=""
-                            <?= ($selesaiSelected === null || $selesaiSelected === '') ? 'selected' : '' ?>>
-                            Semua
-                        </option>
-                        <option value="1"
-                            <?= ($selesaiSelected === '1') ? 'selected' : '' ?>>
-                            Selesai
-                        </option>
-                        <option value="0"
-                            <?= ($selesaiSelected === '0') ? 'selected' : '' ?>>
-                            Belum Selesai
-                        </option>
-                    </select>
-                    <?php
-                    $validSelected = service('request')->getGet('valid');
-                    ?>
-                    <select name="valid" id="selectValid" class="form-select">
-                        <option value=""
-                            <?= ($validSelected === null || $validSelected === '') ? 'selected' : '' ?>>
-                            Semua
-                        </option>
-                        <option value="1"
-                            <?= ($validSelected === '1') ? 'selected' : '' ?>>
-                            Disetujui
-                        </option>
-                        <option value="0"
-                            <?= ($validSelected === '0') ? 'selected' : '' ?>>
-                            Belum Disetujui
-                        </option>
-                    </select>
-                    <select class="form-select" id="selectKategori" name="kategori">
-                        <option value="">Pilih Kategori</option>
-                        <?php
-                        $kategoriSelected = service('request')->getGet('kategori');
-                        ?>
-                        <?php if (!empty($data['kategori'])): ?>
-                            <?php foreach ($data['kategori'] as $p): ?>
-                                <option value="<?= esc($p['id']) ?>"
-                                    <?= ($kategoriSelected == $p['id']) ? 'selected' : '' ?>>
-                                    <?= esc($p['kode_kategori']) ?> - <?= esc($p['nama_kategori']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </select>
-                    <button type="submit" class="btn btn-primary">
-                        Cari
-                    </button>
-                </form>
+                <!-- TINDAKAN Baru -->
+                <div class="col-md-9">
+                    <?= $this->include('e-tiket/e-tiket-tindakan') ?>
+                    <hr>
+                </div>
             </div>
-            <!-- FORM DETAIL (KANAN) -->
+        <?php endif; ?>
+        <div class="row">
             <div class="<?= !empty($data['detailTicket']) ? 'col-md-9' : 'col-md-9' ?>">
                 <?= $this->include('e-tiket/list') ?>
             </div>

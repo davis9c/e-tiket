@@ -14,6 +14,7 @@ class KategoriETiketModel extends Model
         'nama_kategori',
         'deskripsi',
         'template',
+        'teruskan',
         'aktif',
         'headsection',
         'created_at',
@@ -29,47 +30,35 @@ class KategoriETiketModel extends Model
     public function findAllWithUnit(): array
     {
         $rows = $this->findAll();
-
         foreach ($rows as &$row) {
             $this->attachUnit($row);
         }
-
         return $rows;
     }
-
     public function findDetail(int $id): ?array
     {
         $row = $this->find($id);
-
         if (!$row) {
             return null;
         }
-
         $this->attachUnit($row);
-
         return $row;
     }
-
     public function findActiveWithUnit(): array
     {
         $rows = $this->where('aktif', 1)->findAll();
-
         foreach ($rows as &$row) {
             $this->attachUnit($row);
         }
-
         return $rows;
     }
-
     public function findByKode(string $kode): ?array
     {
         return $this->where('kode_kategori', $kode)->first();
     }
-
     /* =====================================================
      * UNIT RELATION
      * ===================================================== */
-
     private function attachUnit(array &$row): void
     {
         $row['unit_penanggung_jawab'] = $this->getUnitByKategori($row['id'], 1);

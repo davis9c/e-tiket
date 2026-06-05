@@ -5,14 +5,12 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-
     <?php if (session()->getFlashdata('error')): ?>
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <?= session()->getFlashdata('error') ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-
     <form action="<?= base_url('etiket/submit') ?>" method="post">
         <?= csrf_field() ?>
         <!-- Kategori -->
@@ -22,29 +20,24 @@
             <div class="col col-5">
                 <div class="card mb-4 border-bottom-primary">
                     <div class="card-body">
-
                         <div class="row">
                             <!-- Kiri -->
                             <div class="col-md-8">
                                 <h5 class="fw-bold text-uppercase mb-1">
                                     <?= esc($data['kategoriData']['nama_kategori']) ?>
                                 </h5>
-
                                 <div class="text-muted small mb-2">
                                     Kode Kategori: <?= esc($data['kategoriData']['kode_kategori']) ?>
                                 </div>
-
                                 <p class="fst-italic mb-2">
                                     <?= esc($data['kategoriData']['deskripsi']) ?>
                                 </p>
                             </div>
-
                             <!-- Kanan -->
                             <div class="col-md-4 text-md-end">
                                 <div class="small text-muted mb-1">
                                     Unit Penanggung Jawab
                                 </div>
-
                                 <?php foreach ($data['kategoriData']['unit_penanggung_jawab'] as $unit): ?>
                                     <span class="badge bg-primary mb-1">
                                         <?= esc($unit['nm_jbtn']) ?>
@@ -52,17 +45,14 @@
                                 <?php endforeach; ?>
                             </div>
                         </div>
-
                         <hr class="my-2">
-
                         <div class="small text-muted mb-2">
                             Form Pengajuan E-Ticket
                         </div>
-
                         <?php if (! empty($data['kategoriData']['headsection'])): ?>
                             <div class="alert alert-warning py-2 small mb-2">
                                 <i class="fas fa-user-check me-1"></i>
-                                Pengajuan ini akan diteruskan kepada Kepalabagian yang berwenang untuk proses persetujuan.
+                                Pengajuan ini akan diteruskan kepada Kepala bagian yang berwenang untuk proses persetujuan.
                             </div>
 
                             <hr class="my-2">
@@ -77,29 +67,23 @@
                         <!-- Petugas -->
                         <div class="mb-3">
                             <div class="input-group">
-
                                 <span class="input-group-text">
                                     <i class="fas fa-user"></i>
                                 </span>
-
                                 <input type="text"
                                     class="form-control"
                                     value="<?= esc($data['user']['nama']) ?> (<?= esc($data['user']['jabatan']) ?>)"
                                     readonly>
-
                             </div>
-
                             <input type="hidden" name="petugas_id" value="<?= esc($data['user']['nip']) ?>">
                             <input type="hidden" name="petugas_id_nama" value="<?= esc($data['user']['nama']) ?>">
-
                         </div>
                         <!-- Message -->
                         <div class="mb-3">
                             <label class="form-label">Deskripsi / Message</label>
                             <textarea name="message"
-                                class="form-control"
+                                class="form-control editor"
                                 rows="4"
-                                id="editor"
                                 placeholder="Jelaskan kendala atau kebutuhan..."
                                 required><?= esc($data['kategoriData']['template']) ?></textarea>
                         </div>

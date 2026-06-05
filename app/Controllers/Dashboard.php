@@ -25,7 +25,6 @@ class Dashboard extends BaseController
         // RANGE DATE
         // =========================
         $startDate = null;
-
         switch ($range) {
             case '7hari':
                 $startDate = date('Y-m-d H:i:s', strtotime('-7 days'));
@@ -108,7 +107,6 @@ class Dashboard extends BaseController
         // =========================
         $total = count($allTiket);
         $belumValid = $proses = $selesai = $reject = 0;
-
         foreach ($allTiket as $t) {
             switch ($t['status']) {
                 case 'belum_valid':

@@ -195,7 +195,7 @@
         <div class="section">
             <div class="label">Deskripsi Pengajuan</div>
             <div class="box">
-                <?= nl2br(esc($detailTicket['message'])) ?>
+                <?= nl2br($detailTicket['message']) ?>
             </div>
         </div>
         <!-- ================== PROSES UNIT ================== -->
@@ -236,7 +236,7 @@
                                 </td>
                                 <?php if (!empty($prosesItem['catatan'])): ?>
 
-                                    <td><?= esc($prosesItem['catatan']) ?></td>
+                                    <td><?= $prosesItem['catatan'] ?></td>
                                     <td><?= date('d-M-Y', strtotime($prosesItem['updated_at'])) ?></td>
                                 <?php else: ?>
                                     <td>-</td>
@@ -255,7 +255,7 @@
         <div class="section">
             <div class="label">Keputusan Final</div>
             <div class="box">
-                <?= nl2br(esc($detailTicket['respon_message'])) ?>
+                <?= nl2br($detailTicket['respon_message']) ?>
             </div>
         </div>
         <!-- ================== TANDA TANGAN ================== -->

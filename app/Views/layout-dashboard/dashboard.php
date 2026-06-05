@@ -192,12 +192,27 @@
     <!-- UPDATE BARU 25 05 2026 -->
     <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
     <script>
-        ClassicEditor
-            .create(document.querySelector('#editor'))
-            .catch(error => {
-                console.error(error);
-            });
-        console.log("cccccc");
+        document.querySelectorAll('.editor').forEach((element) => {
+            ClassicEditor
+                .create(element, {
+                    toolbar: [
+                        'heading',
+                        '|',
+                        'bold',
+                        'italic',
+                        'underline',
+                        '|',
+                        'bulletedList',
+                        'numberedList',
+                        '|',
+                        'undo',
+                        'redo'
+                    ]
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        });
     </script>
 </body>
 
