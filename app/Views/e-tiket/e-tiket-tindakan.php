@@ -188,7 +188,7 @@
                             <!-- Upload Bukti -->
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">
-                                    Bukti Pengerjaan
+                                    Bukti Pengerjaan | Fitur belum tersedia
                                 </label>
                                 <input
                                     type="file"
@@ -211,11 +211,9 @@
                                     value="1"
                                     id="konfirmasiSelesai"
                                     <?= old('konfirmasiSelesai') ? 'checked' : '' ?>>
-
                                 <label class="form-check-label" for="konfirmasiSelesai">
                                     Saya menyatakan pekerjaan telah selesai dan data yang saya input sudah benar.
                                 </label>
-
                                 <div class="invalid-feedback">
                                     <?= session('errors.konfirmasi') ?>
                                 </div>
@@ -255,7 +253,7 @@
 
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
-                                Kerjakan Ticket
+                                Tindakan Ticket | Fitur Belum tersedia
                             </h5>
                             <button
                                 type="button"
