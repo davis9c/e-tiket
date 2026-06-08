@@ -134,7 +134,6 @@
                 </tr>
             </table>
         </div>
-
         <!-- ================== HEADER DATA ================== -->
         <div class="section">
             <table class="no-border">
@@ -195,67 +194,15 @@
         <div class="section">
             <div class="label">Deskripsi Pengajuan</div>
             <div class="box">
-                <?= nl2br($detailTicket['message']) ?>
+                <?= nl2br($detailTicket['message_catatan']) ?>
             </div>
         </div>
-        <!-- ================== PROSES UNIT ================== -->
-        <?php if (!empty($detailTicket['unit_penanggung_jawab'])): ?>
-            <div class="section">
-                <div class="label">Riwayat Proses Unit</div>
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Unit</th>
-                            <th>Catatan</th>
-                            <th>Tanggal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php
-                        $units  = $detailTicket['unit_penanggung_jawab'] ?? [];
-                        $proses = $detailTicket['proses'] ?? [];
-                        ?>
-                        <?php foreach ($units as $unit): ?>
-                            <?php
-                            $prosesItem = null;
-                            foreach ($proses as $p) {
-                                if ($p['kd_jbtn'] === $unit['kd_jbtn']) {
-                                    $prosesItem = $p;
-                                    break;
-                                }
-                            }
-                            ?>
-                            <tr>
-                                <td>
-                                    <?= esc($unit['nm_jbtn']) ?>
-                                    <?php if (!empty($prosesItem['catatan'])): ?>
-                                        <br>
-                                        (<?= esc($prosesItem['nm_petugas']) ?>)
-                                    <?php endif; ?>
-                                </td>
-                                <?php if (!empty($prosesItem['catatan'])): ?>
-
-                                    <td><?= $prosesItem['catatan'] ?></td>
-                                    <td><?= date('d-M-Y', strtotime($prosesItem['updated_at'])) ?></td>
-                                <?php else: ?>
-                                    <td>-</td>
-                                    <td>-</td>
-                                <?php endif; ?>
-
-                            </tr>
-
-                        <?php endforeach; ?>
-
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
         <!-- ================== KEPUTUSAN FINAL ================== -->
         <div class="section">
             <div class="label">Keputusan Final</div>
             <div class="box">
-                <?= nl2br($detailTicket['respon_message']) ?>
+                <?= nl2br($detailTicket['respon_message_catatan']) ?>
             </div>
         </div>
         <!-- ================== TANDA TANGAN ================== -->

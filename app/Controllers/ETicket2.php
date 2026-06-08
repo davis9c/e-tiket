@@ -456,9 +456,7 @@ class ETicket2 extends BaseController
                 $lampiran
             );
 
-            $this->eticketModel->update($ticketId, [
-                'handler' => session()->get('id_pegawai')
-            ]);
+
 
             $pesan = 'Progress pekerjaan berhasil disimpan.';
         }
@@ -586,6 +584,15 @@ class ETicket2 extends BaseController
         );
 
         return redirect()->back()->with('success', 'Proses ticket berhasil.');
+    }
+    public function submit_ambil_tiket()
+    {
+        $ticketId  = $this->request->getPost('id_etiket');
+        $idpegawai = session()->get('id_pegawai');
+        $this->eticketModel->update($ticketId, [
+            'handler'       => $idpegawai,
+        ]);
+        return redirect()->back();
     }
     private function simpanLogProses(
         $ticketId,

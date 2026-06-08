@@ -259,7 +259,29 @@
                         </div>
 
                         <div class="modal-body">
+                            <form action="<?= base_url('ambil-tiket') ?>" method="post">
+                                <?= csrf_field() ?>
 
+                                <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+
+                                <div class="form-check mb-3">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        value="1"
+                                        id="konfirmasi_ambil"
+                                        name="konfirmasi_ambil"
+                                        required>
+
+                                    <label class="form-check-label" for="konfirmasi_ambil">
+                                        Saya mengambil dan mengerjakan tiket ini.
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-hand-paper me-1"></i> Ambil Tiket
+                                </button>
+                            </form>
                         </div>
 
                     </div>
