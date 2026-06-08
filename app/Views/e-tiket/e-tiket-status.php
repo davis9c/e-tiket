@@ -42,7 +42,7 @@
                     <?= esc($data['detailTicket']['petugas_id_nama']) ?>
                 </div>
                 <div class="small text-muted">
-                    <?= esc($data['detailTicket']['nm_jbtn']) ?> <br>
+                    <?= esc($data['detailTicket']['message_nm_jbtn']) ?> <br>
                     NIP: <?= esc($data['detailTicket']['petugas_id']) ?>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                 </b>
             </div>
             <div class="card-body">
-                <?= $data['detailTicket']['message'] ?>
+                <?= $data['detailTicket']['message_catatan'] ?>
             </div>
         </div>
     </div>

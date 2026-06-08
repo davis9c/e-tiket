@@ -39,15 +39,23 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('report/(:any)', 'ETicket2::report/$1');
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
+    $routes->get('lampiran/view/(:segment)', 'ETicket2::viewLampiran/$1');
+    $routes->get('lampiran/download/(:segment)', 'ETicket2::downloadLampiran/$1');
+
     $routes->get('headsection', 'ETicket2::headsection');
     $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
     $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
-    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
+    //$routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
     $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
 
-
+    $routes->get('manual', 'ETicket2::manual'); //halaman untuk input manual, hanya bisa diakses oleh admin
+    $routes->get('manual/(:any)', 'ETicket2::manual/$1'); //halaman untuk input manual, hanya bisa diakses oleh admin
+    $routes->get('manual-baru', 'ETicket2::manual_baru'); //halaman untuk input manual, hanya bisa diakses oleh admin
+    $routes->post('manual-submit', 'ETicket2::manual_submit'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
+    $routes->post('manual-approve', 'ETicket2::manual_approve'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
+    $routes->post('manual-final', 'ETicket2::manual_final'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
 
     /*
     |--------------------------------------------------------------------------

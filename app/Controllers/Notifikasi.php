@@ -16,9 +16,11 @@ class Notifikasi extends Controller
     // 🔔 Ambil notifikasi
     public function index()
     {
-        //dd(session()->get('headsection'));
-        if (!empty(session()->get('headsection'))) {
-            $idPegawai = session()->get('id_pegawai');
+        try {
+
+            //dd(session()->get('headsection'));
+            if (!empty(session()->get('headsection'))) {
+                $idPegawai = session()->get('id_pegawai');
 
             $builder = $this->db->table('notifikasi');
             $data = $builder
@@ -35,27 +37,35 @@ class Notifikasi extends Controller
             }
 
             return $this->response->setJSON($data);
-        } else {
-            $idPegawai = session()->get('id_pegawai');
+            } else {
+                $idPegawai = session()->get('id_pegawai');
 
-            $builder = $this->db->table('notifikasi');
-            $data = $builder
-                ->where('valid', 1)
-                ->groupStart() // buka kurung
-                ->where('kd_jbtn', session()->get('kd_jabatan'))
-                ->orWhere('id_pegawai', session()->get('id_pegawai'))
-                ->groupEnd() // tutup kurung
-                ->orderBy('created_at', 'DESC')
-                ->get()
-                ->getResult();
+                $builder = $this->db->table('notifikasi');
+                $data = $builder
+                    ->where('valid', 1)
+                    ->groupStart() // buka kurung
+                    ->where('kd_jbtn', session()->get('kd_jabatan'))
+                    ->orWhere('id_pegawai', session()->get('id_pegawai'))
+                    ->groupEnd() // tutup kurung
+                    ->orderBy('created_at', 'DESC')
+                    ->get()
+                    ->getResult();
 
-            // Hapus data di database berdasarkan data yang sudah di dapat
-            if (!empty($data)) {
-                $ids = array_map(fn($item) => $item->id, $data);
-                $this->db->table('notifikasi')->whereIn('id', $ids)->delete();
+                // Hapus data di database berdasarkan data yang sudah di dapat
+                if (!empty($data)) {
+                    $ids = array_map(fn($item) => $item->id, $data);
+                    $this->db->table('notifikasi')->whereIn('id', $ids)->delete();
+                }
+
+                return $this->response->setJSON($data);
             }
+        } catch (\Throwable $e) {
 
-            return $this->response->setJSON($data);
+            return $this->response->setJSON([
+                'message' => $e->getMessage(),
+                'line'    => $e->getLine(),
+                'file'    => $e->getFile(),
+            ])->setStatusCode(500);
         }
     }
 

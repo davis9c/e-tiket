@@ -29,8 +29,15 @@ class ETicketProsesModel extends Model
     protected $allowedFields = [
         'id_eticket',
         'kd_jbtn',
+        'nm_jbtn',
         'id_petugas',
+        'id_petugas_nama',
         'catatan',
+        'lampiran',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'user_id',
     ];
 
     // Validation

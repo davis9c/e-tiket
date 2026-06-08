@@ -17,6 +17,8 @@ class UsersModel extends Model
         'id',
         'user_id',
         'nip',
+        'nik',
+        'nama',
         'headsection',
         'created_at',
         'updated_at',

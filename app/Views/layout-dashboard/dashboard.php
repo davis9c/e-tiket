@@ -11,6 +11,8 @@
     <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/logo.ico') ?>">
     <link href="<?= base_url('dataTables/style.min.css') ?>" rel="stylesheet" />
     <link href="<?= base_url('sb/css/styles.css') ?>" rel="stylesheet" />
+    <!-- pencarian -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="<?= base_url('FontAwesome/all.js') ?>" crossorigin="anonymous"></script>
 </head>
 
@@ -159,21 +161,29 @@
         // =======================
         // 📡 FETCH NOTIF
         // =======================
+
         function fetchNotifikasi() {
             fetch(BASE_URL + "notif")
-                .then(res => res.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (!Array.isArray(data)) return;
+                    if (!Array.isArray(data)) {
+                        return;
+                    }
 
                     updateBadge(data.length);
 
-                    if (data.length > prevNotifCount) {
+                    if (data.length > 0) {
                         playSound();
                     }
-
-                    prevNotifCount = data.length;
                 })
-                .catch(err => console.log("❌ Error:", err));
+                .catch(error => {
+                    console.error("❌ Error:", error);
+                });
         }
 
         // =======================

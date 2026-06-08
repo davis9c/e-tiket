@@ -35,10 +35,6 @@ class Update260605 extends Migration
                 'constraint' => 11,
                 'null'       => true,
             ],
-            'attach' => [
-                'type' => 'TEXT',
-                'null' => true,
-            ],
         ]);
     }
 
@@ -52,6 +48,5 @@ class Update260605 extends Migration
 
         // eticket_proses
         $this->forge->dropColumn('eticket_proses', 'user_id');
-        $this->forge->dropColumn('eticket_proses', 'attach');
     }
 }

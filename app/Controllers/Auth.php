@@ -129,13 +129,23 @@ class Auth extends BaseController
             ->where('user_id', $pegawaiId)
             ->first();
 
+        $dataUser = [
+            'nip'  => $userIdInput,
+            'nik'  => $result['data']['nik'],
+            'nama' => $result['data']['nama'],
+        ];
+
         if (!$user) {
-            $this->userModel->insert([
+            $this->userModel->insert(array_merge($dataUser, [
                 'user_id'    => $pegawaiId,
-                'nip'        => $userIdInput,
                 'password'   => password_hash(uniqid(), PASSWORD_DEFAULT),
                 'created_at' => date('Y-m-d H:i:s'),
-            ]);
+            ]));
+        } else {
+            $this->userModel
+                ->where('user_id', $pegawaiId)
+                ->set($dataUser)
+                ->update();
         }
     }
 

@@ -160,22 +160,28 @@ class Admin extends BaseController
         $user = $this->usersModel
             ->where('nip', $nip)
             ->first();
-
+        $pegawai = $this->getPegawai($nip);
         if ($user) {
             // 🔁 TOGGLE: true → false, false → true
             $newStatus = ! (bool) $user['headsection'];
 
             $this->usersModel->update($user['id'], [
+                'nip'         => $nip,
+                'nik'         => $nip,
+                'nama'        => $pegawai['nama'],
                 'headsection' => $newStatus,
                 'updated_at'  => date('Y-m-d H:i:s'),
             ]);
         } else {
             // jika belum ada → insert sebagai headsection
-            $pegawai = $this->getPegawai($nip);
+
+            //dd($pegawai);
 
             if (! empty($pegawai)) {
                 $this->usersModel->insert([
                     'nip'         => $nip,
+                    'nik'         => $nip,
+                    'nama'        => $pegawai['nama'],
                     'user_id'     => $pegawai['id'],
                     'headsection' => true,
                     'created_at'  => date('Y-m-d H:i:s'),

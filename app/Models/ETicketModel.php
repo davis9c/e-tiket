@@ -22,7 +22,8 @@ class ETicketModel extends Model
         'kode_ticket',
         'judul',
         'kd_pegawai',
-        'message',
+        'message_awal',
+        'message_akhir',
         'headsection',
         'kategori_id',
         'petugas_id',
@@ -31,7 +32,6 @@ class ETicketModel extends Model
         'proses_unit',
         'valid',
         'valid_nama',
-        'respon_message',
         'selesai',
         'selesai_nama',
         'reject',
@@ -120,13 +120,15 @@ class ETicketModel extends Model
     {
         return $this->db->table($this->table . ' e')
             ->select('
-                e.*,
-                k.kode_kategori,
-                k.nama_kategori,
-                k.deskripsi,
-                k.teruskan
-            ')
-            ->join('kategori_eticket k', 'k.id = e.kategori_id', 'left');
+            e.*,
+            k.kode_kategori,
+            k.nama_kategori,
+            k.deskripsi,
+            k.teruskan,
+            u.nama AS handler_nama
+        ')
+            ->join('kategori_eticket k', 'k.id = e.kategori_id', 'left')
+            ->join('users u', 'u.user_id = e.handler', 'left');
     }
     /*
     |--------------------------------------------------------------------------
@@ -143,69 +145,6 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-    public function findOneLengkap(int $id): ?array
-    {
-        // ================================
-        // Ambil data utama tiket
-        // ================================
-        $row = $this->baseQuery()
-            ->where('e.id', $id)
-            ->get()
-            ->getRowArray();
-
-        if (!$row) {
-            return null;
-        }
-
-        // ================================
-        // Ambil proses (langsung, bukan array loop)
-        // ================================
-        $proses = $this->prosesModel
-            ->where('id_eticket', $id)
-            ->orderBy('created_at', 'ASC')
-            ->findAll();
-
-        $row['proses'] = $proses;
-
-        // ================================
-        // Ambil unit penanggung jawab
-        // ================================
-        $units = $this->getUnitByKategori(
-            (int)$row['kategori_id'],
-            1
-        );
-
-        $prosesKdjbtn = array_column($proses, 'kd_jbtn');
-
-        foreach ($units as &$unit) {
-            $unit['is_proses'] = in_array($unit['kd_jbtn'], $prosesKdjbtn);
-        }
-
-        $row['unit_penanggung_jawab'] = $units;
-
-        // ================================
-        // Unit pengajuan (opsional biar lengkap)
-        // ================================
-        $row['unit_pengajuan'] = $this->getUnitByKategori(
-            (int)$row['kategori_id'],
-            0
-        );
-
-        // ================================
-        // STATUS LOGIC (tanpa array loop)
-        // ================================
-        if (!empty($row['reject'])) {
-            $row['status'] = 'reject';
-        } elseif (empty($row['valid'])) {
-            $row['status'] = 'belum_valid';
-        } elseif (count($prosesKdjbtn) < count($units)) {
-            $row['status'] = 'proses';
-        } else {
-            $row['status'] = 'selesai';
-        }
-
-        return $row;
-    }
     public function getByUnit(string $kd_jbtn): array
     {
         $rows = $this->baseQuery()
@@ -217,6 +156,92 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+    public function findOneLengkap(int $id): ?array
+    {
+        // ================================
+        // Ambil data utama tiket
+        // ================================
+        $row = $this->baseQuery()
+            ->select([
+                'e.*',
+
+                'awal.id AS message_id',
+                'awal.id_eticket AS message_id_eticket',
+                'awal.kd_jbtn AS message_kd_jbtn',
+                'awal.nm_jbtn AS message_nm_jbtn',
+                'awal.id_petugas AS message_id_petugas',
+                'awal.id_petugas_nama AS message_id_petugas_nama',
+                'awal.catatan AS message_catatan',
+                'awal.created_at AS message_created_at',
+                'awal.updated_at AS message_updated_at',
+
+                'akhir.id AS respon_message_id',
+                'akhir.id_eticket AS respon_message_id_eticket',
+                'akhir.kd_jbtn AS respon_message_kd_jbtn',
+                'akhir.nm_jbtn AS respon_message_nm_jbtn',
+                'akhir.id_petugas AS respon_message_id_petugas',
+                'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
+                'akhir.catatan AS respon_message_catatan',
+                'akhir.created_at AS respon_message_created_at',
+                'akhir.updated_at AS respon_message_updated_at',
+            ])
+            ->join(
+                'eticket_proses awal',
+                'awal.id = e.message_awal',
+                'left'
+            )
+            ->join(
+                'eticket_proses akhir',
+                'akhir.id = e.message_akhir',
+                'left'
+            )
+            ->where('e.id', $id)
+            ->get()
+            ->getRowArray();
+        if (!$row) {
+            return null;
+        }
+        // ================================
+        // Ambil proses (langsung, bukan array loop)
+        // ================================
+        $proses = $this->prosesModel
+            ->where('id_eticket', $id)
+            ->orderBy('created_at', 'ASC')
+            ->findAll();
+        $row['proses'] = $proses;
+        // ================================
+        // Ambil unit penanggung jawab
+        // ================================
+        $units = $this->getUnitByKategori(
+            (int)$row['kategori_id'],
+            1
+        );
+        $prosesKdjbtn = array_column($proses, 'kd_jbtn');
+        foreach ($units as &$unit) {
+            $unit['is_proses'] = in_array($unit['kd_jbtn'], $prosesKdjbtn);
+        }
+        $row['unit_penanggung_jawab'] = $units;
+        // ================================
+        // Unit pengajuan (opsional biar lengkap)
+        // ================================
+        $row['unit_pengajuan'] = $this->getUnitByKategori(
+            (int)$row['kategori_id'],
+            0
+        );
+        // ================================
+        // STATUS LOGIC (tanpa array loop)
+        // ================================
+        if (empty($row['valid'])) {
+            $row['status'] = 'belum_valid';
+        } elseif (count($prosesKdjbtn) < count($units)) {
+            $row['status'] = 'proses';
+        } else {
+            $row['status'] = 'selesai';
+        }
+
+        return $row;
+    }
+
     public function getEticketAll(
         ?string $kd_jbtn = null, //filter penanggung jawab
         ?string $nip = null, // filter berdasarkan user ang mengajukan//filter penanggung jawab
@@ -236,6 +261,35 @@ class ETicketModel extends Model
                 'ep.id_eticket = e.id',
                 'left'
             )
+            ->join(
+                'eticket_proses awal',
+                'awal.id = e.message_awal',
+                'left'
+            )
+            ->join(
+                'eticket_proses akhir',
+                'akhir.id = e.message_akhir',
+                'left'
+            )
+            ->select([
+                'e.*',
+
+                'awal.id AS message_id',
+                'awal.kd_jbtn AS message_kd_jbtn',
+                'awal.nm_jbtn AS message_nm_jbtn',
+                'awal.id_petugas AS message_id_petugas',
+                'awal.id_petugas_nama AS message_id_petugas_nama',
+                'awal.catatan AS message_catatan',
+                'awal.created_at AS message_created_at',
+
+                'akhir.id AS respon_message_id',
+                'akhir.kd_jbtn AS respon_message_kd_jbtn',
+                'akhir.nm_jbtn AS respon_message_nm_jbtn',
+                'akhir.id_petugas AS respon_message_id_petugas',
+                'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
+                'akhir.catatan AS respon_message_catatan',
+                'akhir.created_at AS respon_message_created_at',
+            ])
             ->where('e.created_at >=', $this->enamBulanLalu());
         if (!empty($kd_jbtn)) {
             $builder
@@ -316,6 +370,39 @@ class ETicketModel extends Model
                 'ep.id_eticket = e.id',
                 'left'
         )
+            ->join(
+                'eticket_proses awal',
+                'awal.id = e.message_awal',
+                'left'
+            )
+            ->join(
+                'eticket_proses akhir',
+                'akhir.id = e.message_akhir',
+                'left'
+            )
+            ->select([
+                'e.*',
+
+                'awal.id AS message_id',
+                'awal.id_eticket AS message_id_eticket',
+                'awal.kd_jbtn AS message_kd_jbtn',
+                'awal.nm_jbtn AS message_nm_jbtn',
+                'awal.id_petugas AS message_id_petugas',
+                'awal.id_petugas_nama AS message_id_petugas_nama',
+                'awal.catatan AS message_catatan',
+                'awal.created_at AS message_created_at',
+                'awal.updated_at AS message_updated_at',
+
+                'akhir.id AS respon_message_id',
+                'akhir.id_eticket AS respon_message_id_eticket',
+                'akhir.kd_jbtn AS respon_message_kd_jbtn',
+                'akhir.nm_jbtn AS respon_message_nm_jbtn',
+                'akhir.id_petugas AS respon_message_id_petugas',
+                'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
+                'akhir.catatan AS respon_message_catatan',
+                'akhir.created_at AS respon_message_created_at',
+                'akhir.updated_at AS respon_message_updated_at',
+            ])
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
             ->where('e.created_at >=', $this->enamBulanLalu())

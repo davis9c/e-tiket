@@ -148,7 +148,7 @@
                         action="<?= $data['tindakan']['kerjakan']['form'] ?>"
                         method="post"
                         enctype="multipart/form-data"
-                        class="modal-content">
+                        class="modal-content" enctype="multipart/form-data">
                         <?= csrf_field() ?>
                         <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
                         <div class="modal-header bg-primary text-white">
@@ -187,17 +187,13 @@
                             <?php endif ?>
                             <!-- Upload Bukti -->
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">
-                                    Bukti Pengerjaan | Fitur belum tersedia
-                                </label>
+                                <label class="form-label">Lampiran</label>
                                 <input
                                     type="file"
                                     name="bukti"
-                                    accept="image/*"
+                                    accept=".jpg,.jpeg,.png,.pdf"
                                     class="form-control <?= session('errors.bukti') ? 'is-invalid' : '' ?>">
-                                <div class="form-text">
-                                    Upload foto hasil pekerjaan (jpg, jpeg, png).
-                                </div>
+
                                 <div class="invalid-feedback">
                                     <?= session('errors.bukti') ?>
                                 </div>
@@ -327,7 +323,7 @@
         <?php endif; ?>
         <?php if ($canRProsess): ?>
             <div class="modal fade" id="modalRProsess" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header bg-warning text-dark">
                             <h5 class="modal-title">
@@ -367,17 +363,52 @@
                                             </div>
                                             <!-- Lampiran -->
                                             <?php if (!empty($p['lampiran'])): ?>
+                                                <?php
+                                                $ext = strtolower(pathinfo($p['lampiran'], PATHINFO_EXTENSION));
+                                                $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                                                ?>
+
                                                 <div class="mt-3">
                                                     <div class="small text-muted mb-2">
                                                         Lampiran
                                                     </div>
-                                                    <a
-                                                        href="<?= $p['lampiran'] ?>"
-                                                        target="_blank"
-                                                        class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-paperclip me-1"></i>
-                                                        Download Lampiran
-                                                    </a>
+
+                                                    <?php if ($isImage): ?>
+                                                        <div class="mb-2">
+                                                            <a href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
+                                                                target="_blank">
+                                                                <img
+                                                                    src="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
+                                                                    alt="Lampiran"
+                                                                    class="img-thumbnail"
+                                                                    style="max-width: 180px; max-height: 120px;">
+                                                            </a>
+                                                        </div>
+                                                    <?php else: ?>
+                                                        <div class="mb-2">
+                                                            <span class="badge bg-danger">
+                                                                <i class="fas fa-file-pdf me-1"></i>
+                                                                PDF
+                                                            </span>
+                                                        </div>
+                                                    <?php endif ?>
+
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a
+                                                            href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
+                                                            target="_blank"
+                                                            class="btn btn-outline-primary">
+                                                            <i class="fas fa-external-link-alt me-1"></i>
+                                                            Buka
+                                                        </a>
+
+                                                        <a
+                                                            href="<?= base_url('lampiran/download/' . urlencode($p['lampiran'])) ?>"
+                                                            class="btn btn-outline-success">
+                                                            <i class="fas fa-download me-1"></i>
+                                                            Download
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             <?php endif ?>
                                         </div>

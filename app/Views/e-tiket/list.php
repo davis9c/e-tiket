@@ -87,7 +87,7 @@
                         </td>
                         <td><?= esc($p['petugas_id_nama']) ?></td>
                         <td>
-                            <p><?= $p['message'] ?></p>
+                            <p><?= $p['message_catatan'] ?></p>
                         </td>
                         <td><?= esc($p['created_at']) ?></td>
                         <!-- STATUS -->

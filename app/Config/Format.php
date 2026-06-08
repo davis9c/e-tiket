@@ -25,9 +25,12 @@ class Format extends BaseConfig
      */
     public array $supportedResponseFormats = [
         'application/json',
-        'application/xml', // machine-readable XML
-        'text/xml', // human-readable XML
+        'application/xml',
+        'text/xml',
     ];
+
+    public int $jsonEncodeOptions = JSON_UNESCAPED_UNICODE;
+    public int $jsonEncodeDepth = 512;
 
     /**
      * --------------------------------------------------------------------------

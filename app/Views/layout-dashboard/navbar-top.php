@@ -30,7 +30,6 @@
             <a href="#" class="nav-link" id="audioToggle">
                 <i id="audioIcon" class="fas fa-volume-up"></i>
             </a>
-
         </li>
 
         <!-- 👤 USER -->

@@ -45,6 +45,10 @@ class Proses extends Migration
                 'type' => 'TEXT',
                 'null'       => true,
             ],
+            'lampiran' => [
+                'type' => 'TEXT',
+                'null'       => true,
+            ],
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => true,

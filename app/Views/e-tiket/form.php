@@ -11,7 +11,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-    <form action="<?= base_url('etiket/submit') ?>" method="post">
+    <form action="<?= base_url('etiket/submit') ?>" method="post" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <!-- Kategori -->
         <!-- Header Surat Kategori -->
@@ -82,10 +82,37 @@
                         <div class="mb-3">
                             <label class="form-label">Deskripsi / Message</label>
                             <textarea name="message"
-                                class="form-control editor"
+                                class="form-control editor <?= session('errors.message') ? 'is-invalid' : '' ?>"
                                 rows="4"
                                 placeholder="Jelaskan kendala atau kebutuhan..."
                                 required><?= esc($data['kategoriData']['template']) ?></textarea>
+                            <div class="invalid-feedback">
+                                <?= session('errors.message') ?>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Lampiran Bukti
+                            </label>
+
+                            <?php $validation = session('validation'); ?>
+
+                            <input
+                                type="file"
+                                name="bukti"
+                                accept=".jpg,.jpeg,.png,.pdf"
+                                class="form-control <?= session('errors.bukti') ? 'is-invalid' : '' ?>">
+
+                            <div class="invalid-feedback">
+                                <?= session('errors.bukti') ?>
+                            </div>
+                            <div class="form-text">
+                                Upload file JPG, JPEG, PNG atau PDF.
+                            </div>
+
+                            <div class="invalid-feedback">
+                                <?= session('errors.bukti') ?>
+                            </div>
                         </div>
                         <button type="submit" class="btn btn-primary">
                             Ajukan E-Ticket

@@ -3,71 +3,21 @@
 <main>
     <div class="container-fluid px-4">
         <h1 class="mt-4">
-            E-Tiket<?= ($s = service('request')->getGet('selesai')) ? ' Selesai' : '' ?>
+            Manual<?= ($s = service('request')->getGet('status')) ? ' ' . ucfirst($s) : '' ?>
         </h1>
-        <!--breadcrumb-->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a class="breadcrumb-item" href="<?= base_url('etiket') ?>">My-Tiket</a></li>
+                <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">Daftar E-Ticket </a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
-                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
-                <?php elseif (!empty($data['kategoriData'])): ?>
-                    <li class="breadcrumb-item"><?= esc($data['kategoriData']['nama_kategori']) ?> (Baru)</li>
+                    <li class="breadcrumb-item">Tiket <?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php endif; ?>
             </ol>
         </nav>
-        <?php if ($msg = session()->getFlashdata('success')): ?>
-            <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-
-                        <!-- Header -->
-                        <div class="modal-header bg-success text-white">
-                            <h5 class="modal-title d-flex align-items-center gap-2">
-                                <i class="fas fa-check-circle"></i>
-                                Berhasil
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-
-                        <!-- Body -->
-                        <div class="modal-body text-center py-4">
-                            <div class="mb-3">
-                                <div class="display-5 text-success">
-                                    <i class="fas fa-thumbs-up"></i>
-                                </div>
-                            </div>
-
-                            <p class="mb-0 fs-6 text-muted">
-                                <?= esc($msg) ?>
-                            </p>
-                        </div>
-
-                        <!-- Footer -->
-                        <div class="modal-footer justify-content-center border-0 pb-4">
-                            <button type="button" class="btn btn-success px-4 rounded-pill"
-                                data-bs-dismiss="modal">
-                                Oke, lanjut
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <script>
-                document.addEventListener("DOMContentLoaded", function() {
-                    const modal = new bootstrap.Modal(document.getElementById('successModal'), {
-                        backdrop: 'static',
-                        keyboard: true
-                    });
-                    modal.show();
-                });
-            </script>
-        <?php endif; ?>
 
         <?php if (!empty($data['detailTicket'])): ?>
+
             <div class="row">
+                <!-- LIST (KIRI) -->
                 <!-- STATUS -->
                 <div class="col-md-9">
                     <?= $this->include('e-tiket/e-tiket-status') ?>
@@ -78,9 +28,10 @@
                     <?= $this->include('e-tiket/e-tiket-tindakan') ?>
                     <hr>
                 </div>
+                <!-- FORM DETAIL (KANAN) -->
             </div>
         <?php endif; ?>
-        <div class="row"><!-- LIST (Bawah) -->
+        <div class="row">
             <div class="d-flex gap-2 mb-4 flex-wrap">
                 <button type="button"
                     class="btn btn-primary"
@@ -89,7 +40,7 @@
                     Buat Tiket
                 </button>
                 <div class="modal fade" id="ModalPilihKategori" tabindex="-1" aria-labelledby="ModalPilihKategoriLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-xl">
+                    <div class="modal-dialog modal-dialog-centered modal-xl">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h1 class="modal-title fs-5" id="ModalPilihKategoriLabel">Pilih Kategori</h1>
@@ -121,7 +72,7 @@
                                                     <!-- Footer -->
                                                     <div class="card-footer d-flex align-items-center justify-content-between">
                                                         <a class="small text-white stretched-link"
-                                                            href="<?= base_url('baru?kategori=' . $p['id']) ?>">
+                                                            href="<?= base_url('manual-baru?kategori=' . $p['id']) ?>">
                                                             Buat Tiket
                                                         </a>
                                                         <div class="small text-white">
@@ -146,9 +97,11 @@
                         </div>
                     </div>
                 </div>
+
             </div>
-            <!-- List -->
-            <div class="col-md-9">
+        </div>
+        <div class="row">
+            <div class="<?= !empty($data['detailTicket']) ? 'col-md-9' : 'col-md-9' ?>">
                 <?= $this->include('e-tiket/list') ?>
             </div>
         </div>
