@@ -6,65 +6,46 @@
     $canRProsess = !empty($data['tindakan']['rproses']);
     ?>
     <?php
-
     $currentIndex = null;
-
     foreach ($data['eticket'] as $i => $ticket) {
         if ((int)$ticket['id'] === (int)$data['detailTicket']['id']) {
             $currentIndex = $i;
             break;
         }
     }
-
     $prevTicket = null;
     $nextTicket = null;
-
     if ($currentIndex !== null) {
-
         if (isset($data['eticket'][$currentIndex - 1])) {
             $prevTicket = $data['eticket'][$currentIndex - 1];
         }
-
         if (isset($data['eticket'][$currentIndex + 1])) {
             $nextTicket = $data['eticket'][$currentIndex + 1];
         }
     }
-
     $queryString = $_SERVER['QUERY_STRING'] ?? '';
-
     $baseSegment = service('uri')->getSegment(1);
-
     ?>
     <div class="row g-2 mb-3">
         <!-- before -->
         <!-- BEFORE -->
         <div class="col-auto">
-
             <?php if ($prevTicket): ?>
-
                 <a
                     href="<?= site_url($baseSegment . '/' . $prevTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
                     class="btn btn-outline-secondary">
-
                     <i class="fas fa-arrow-left me-1"></i>
                     Before
-
                 </a>
-
             <?php else: ?>
-
                 <button
                     type="button"
                     class="btn btn-outline-secondary"
                     disabled>
-
                     <i class="fas fa-arrow-left me-1"></i>
                     Before
-
                 </button>
-
             <?php endif; ?>
-
         </div>
         <!-- VALIDASI -->
         <div class="col-auto">
@@ -118,32 +99,22 @@
         </div>
         <!-- AFTER -->
         <div class="col-auto">
-
             <?php if ($nextTicket): ?>
-
                 <a
                     href="<?= site_url($baseSegment . '/' . $nextTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
                     class="btn btn-outline-secondary">
-
                     After
                     <i class="fas fa-arrow-right ms-1"></i>
-
                 </a>
-
             <?php else: ?>
-
                 <button
                     type="button"
                     class="btn btn-outline-secondary"
                     disabled>
-
                     After
                     <i class="fas fa-arrow-right ms-1"></i>
-
                 </button>
-
             <?php endif; ?>
-
         </div>
 
         <?php if ($canValidasi): ?>
