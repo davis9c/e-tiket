@@ -89,7 +89,9 @@
                         <td>
                             <p><?= $p['message_catatan'] ?></p>
                         </td>
-                        <td><?= esc($p['created_at']) ?></td>
+                        <td>
+                            <?= date('d M Y H:i', strtotime($p['created_at'])) ?>
+                        </td>
                         <!-- STATUS -->
                         <td>
                             <?php if ($p['valid_nama'] == null): ?>

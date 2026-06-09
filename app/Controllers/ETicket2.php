@@ -602,9 +602,10 @@ class ETicket2 extends BaseController
         $nama,
         $catatan,
         $iduser,
-        $lampiran = null
+        $lampiran = null,
+        $createdAt = null
     ): int {
-        $this->eticketProsesModel->insert([
+        $data = [
             'id_eticket'      => $ticketId,
             'kd_jbtn'         => $kdJbtn,
             'nm_jbtn'         => $nmJbtn,
@@ -612,9 +613,13 @@ class ETicket2 extends BaseController
             'id_petugas_nama' => $nama,
             'catatan'         => $catatan,
             'user_id'         => $iduser,
-            'lampiran'         => $lampiran,
+            'lampiran'        => $lampiran,
+        ];
 
-        ]);
+        if (!empty($createdAt)) {
+            $data['created_at'] = $createdAt;
+        }
+        $this->eticketProsesModel->insert($data);
 
         return (int) $this->eticketProsesModel->getInsertID();
     }
@@ -1503,11 +1508,7 @@ class ETicket2 extends BaseController
         $message   = $this->request->getPost('message');
         $kdJabatan   = session()->get('kd_jabatan');
         $prosesUnit   = !empty($flow['valid']) ? $flow['proses'] : null;
-        $HeadSection = session()->get('headsection');
-        $valiNama = null;
-        //dd($this->kategoriModel->findDetail($kategoriId));
-        //dd($this->request->getPost());
-        //dd(session()->get());
+        $createdAtManual = $this->request->getPost('created_at_manual');
         if ($redirect = $this->guard()) return $redirect;
         $rules = [
             'message' => [
@@ -1525,14 +1526,24 @@ class ETicket2 extends BaseController
                     'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
                 ],
             ],
+            'created_at_manual' => [
+                'label' => 'Tanggal Tiket',
+                'rules' => 'permit_empty|valid_date[Y-m-d\TH:i]',
+            ],
         ];
+        $createdAt = null;
+
+        if (!empty($createdAtManual)) {
+            $createdAt = date(
+                'Y-m-d H:i:s',
+                strtotime($createdAtManual)
+            );
+        }
         if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors());
         }
-        //debug
-        // Upload lampiran
         $lampiran = null;
         $file = $this->request->getFile('bukti');
         if ($file && $file->isValid() && !$file->hasMoved()) {
@@ -1571,16 +1582,22 @@ class ETicket2 extends BaseController
 
         try {
             // Insert Ticket
-            $ticketId = $this->eticketModel->insert([
+            $dataInsert = [
                 'kategori_id'       => $kategoriId,
-                'kd_pegawai'        => $kd_pegawai, //nip
+                'kd_pegawai'        => $kd_pegawai,
                 'petugas_id'        => $petugasId,
                 'petugas_id_nama'   => $petugasNama,
                 'kd_jbtn'           => $kdJabatan,
                 'proses_unit'       => $prosesUnit ?? null,
-                'headsection'       => $kategori['headsection'], // ok
+                'headsection'       => $kategori['headsection'],
                 'valid_nama'        => $petugasNama
-            ]);
+            ];
+
+            if (!empty($createdAt)) {
+                $dataInsert['created_at'] = $createdAt;
+            }
+
+            $ticketId = $this->eticketModel->insert($dataInsert);
 
             if (!$ticketId) {
                 throw new \Exception(
@@ -1588,19 +1605,18 @@ class ETicket2 extends BaseController
                         json_encode($this->eticketModel->errors())
                 );
             }
-
             // Simpan proses awal
             $prosesAwalId = $this->simpanLogProses(
                 $ticketId,
                 $kdJabatan,
                 $petugasJabatan,
-                $petugasId, //nip
+                $petugasId,
                 $petugasNama,
                 $message,
                 $kd_pegawai,
-                $lampiran
+                $lampiran,
+                $createdAt
             );
-
             // Update relasi proses awal
             $this->eticketModel->update($ticketId, [
                 'message_awal' => $prosesAwalId,
@@ -1635,11 +1651,9 @@ class ETicket2 extends BaseController
                     unlink($path);
                 }
             }
-
             $db->transRollback();
             $db->transRollback();
             log_message('error', 'Submit E-Ticket Error: ' . $e->getMessage());
-
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage());

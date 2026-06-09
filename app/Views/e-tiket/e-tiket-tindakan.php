@@ -374,9 +374,9 @@
                                                         </small>
                                                     <?php endif ?>
                                                 </div>
-                                                <?php if (!empty($p['updated_at'])): ?>
+                                                <?php if (!empty($p['created_at'])): ?>
                                                     <span class="badge bg-light text-dark border">
-                                                        <?= date('d M Y H:i', strtotime($p['updated_at'])) ?>
+                                                        <?= date('d M Y H:i', strtotime($p['created_at'])) ?>
                                                     </span>
                                                 <?php endif ?>
                                             </div>

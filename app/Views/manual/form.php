@@ -136,6 +136,20 @@
                                 });
                             </script>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Tanggal & Jam Tiket
+                            </label>
+                            <input
+                                type="datetime-local"
+                                name="created_at_manual"
+                                class="form-control"
+                                value="<?= old('created_at_manual') ?>">
+
+                            <div class="form-text">
+                                Kosongkan jika ingin menggunakan waktu sistem.
+                            </div>
+                        </div>
                         <!-- Message -->
                         <div class="mb-3">
                             <label class="form-label">Deskripsi / Message</label>
