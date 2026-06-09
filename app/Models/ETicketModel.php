@@ -165,8 +165,7 @@ class ETicketModel extends Model
         // ================================
         $row = $this->baseQuery()
             ->select([
-                'e.*',
-
+            'e.*',
                 'awal.id AS message_id',
                 'awal.id_eticket AS message_id_eticket',
                 'awal.kd_jbtn AS message_kd_jbtn',
@@ -174,9 +173,9 @@ class ETicketModel extends Model
                 'awal.id_petugas AS message_id_petugas',
                 'awal.id_petugas_nama AS message_id_petugas_nama',
                 'awal.catatan AS message_catatan',
+            'awal.lampiran AS message_lampiran',
                 'awal.created_at AS message_created_at',
-                'awal.updated_at AS message_updated_at',
-
+            'awal.updated_at AS message_updated_at',
                 'akhir.id AS respon_message_id',
                 'akhir.id_eticket AS respon_message_id_eticket',
                 'akhir.kd_jbtn AS respon_message_kd_jbtn',
@@ -184,6 +183,7 @@ class ETicketModel extends Model
                 'akhir.id_petugas AS respon_message_id_petugas',
                 'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
                 'akhir.catatan AS respon_message_catatan',
+            'akhir.lampiran AS respon_message_lampiran',
                 'akhir.created_at AS respon_message_created_at',
                 'akhir.updated_at AS respon_message_updated_at',
             ])

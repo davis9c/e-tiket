@@ -5,7 +5,67 @@
     $canTeruskan = !empty($data['tindakan']['teruskan']);
     $canRProsess = !empty($data['tindakan']['rproses']);
     ?>
+    <?php
+
+    $currentIndex = null;
+
+    foreach ($data['eticket'] as $i => $ticket) {
+        if ((int)$ticket['id'] === (int)$data['detailTicket']['id']) {
+            $currentIndex = $i;
+            break;
+        }
+    }
+
+    $prevTicket = null;
+    $nextTicket = null;
+
+    if ($currentIndex !== null) {
+
+        if (isset($data['eticket'][$currentIndex - 1])) {
+            $prevTicket = $data['eticket'][$currentIndex - 1];
+        }
+
+        if (isset($data['eticket'][$currentIndex + 1])) {
+            $nextTicket = $data['eticket'][$currentIndex + 1];
+        }
+    }
+
+    $queryString = $_SERVER['QUERY_STRING'] ?? '';
+
+    $baseSegment = service('uri')->getSegment(1);
+
+    ?>
     <div class="row g-2 mb-3">
+        <!-- before -->
+        <!-- BEFORE -->
+        <div class="col-auto">
+
+            <?php if ($prevTicket): ?>
+
+                <a
+                    href="<?= site_url($baseSegment . '/' . $prevTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
+                    class="btn btn-outline-secondary">
+
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Before
+
+                </a>
+
+            <?php else: ?>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    disabled>
+
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Before
+
+                </button>
+
+            <?php endif; ?>
+
+        </div>
         <!-- VALIDASI -->
         <div class="col-auto">
             <button
@@ -55,6 +115,35 @@
                 <i class="fas fa-history me-1"></i>
                 Riwayat Proses
             </button>
+        </div>
+        <!-- AFTER -->
+        <div class="col-auto">
+
+            <?php if ($nextTicket): ?>
+
+                <a
+                    href="<?= site_url($baseSegment . '/' . $nextTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
+                    class="btn btn-outline-secondary">
+
+                    After
+                    <i class="fas fa-arrow-right ms-1"></i>
+
+                </a>
+
+            <?php else: ?>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    disabled>
+
+                    After
+                    <i class="fas fa-arrow-right ms-1"></i>
+
+                </button>
+
+            <?php endif; ?>
+
         </div>
 
         <?php if ($canValidasi): ?>
@@ -357,91 +446,344 @@
                                 data-bs-dismiss="modal">
                             </button>
                         </div>
+                        <?php
+                        $rproses = $data['tindakan']['rproses'] ?? [];
+
+                        // data pertama = permintaan tiket
+                        $awal = $rproses[0] ?? null;
+
+                        // semua data setelahnya = proses
+                        $proses = array_slice($rproses, 1);
+                        ?>
                         <div class="modal-body">
-                            <?php if (!empty($data['tindakan']['rproses'])): ?>
-                                <div class="list-group list-group-flush">
-                                    <?php foreach ($data['tindakan']['rproses'] as $p): ?>
-                                        <div class="list-group-item border-start border-4 border-primary">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div>
+
+                            <?php
+                            $rproses = $data['tindakan']['rproses'] ?? [];
+                            $awal = $rproses[0] ?? null;
+                            $proses = array_slice($rproses, 1);
+                            //dd($data['detailTicket']);
+                            ?>
+
+                            <?php if (!empty($rproses)): ?>
+
+                                <div class="row">
+
+                                    <!-- KOLOM 1 -->
+                                    <div class="col-lg-5 border-end">
+
+                                        <h6 class="fw-bold text-primary mb-3">
+                                            Permintaan Tiket
+                                        </h6>
+
+                                        <?php if (!empty($data['detailTicket']['message_id'])): ?>
+
+                                            <div class="card border-primary">
+
+                                                <div class="card-header bg-primary text-white">
+
                                                     <div class="fw-bold">
-                                                        <i class="fas fa-user-check text-primary me-1"></i>
-                                                        <?= esc($p['nm_jbtn']) ?>
+                                                        <?= esc($data['detailTicket']['message_nm_jbtn']) ?>
                                                     </div>
-                                                    <?php if (!empty($p['nm_petugas'])): ?>
-                                                        <small class="text-muted">
-                                                            <?= esc($p['nm_petugas']) ?>
-                                                        </small>
-                                                    <?php endif ?>
+
+                                                    <small>
+                                                        <?= esc($data['detailTicket']['message_id_petugas_nama']) ?>
+                                                    </small>
+
                                                 </div>
-                                                <?php if (!empty($p['created_at'])): ?>
-                                                    <span class="badge bg-light text-dark border">
-                                                        <?= date('d M Y H:i', strtotime($p['created_at'])) ?>
-                                                    </span>
-                                                <?php endif ?>
+
+                                                <div class="card-body">
+
+                                                    <?= $data['detailTicket']['message_catatan'] ?>
+
+                                                    <?php if (!empty($data['detailTicket']['message_lampiran'])): ?>
+
+                                                        <?php
+                                                        $lampiran = $data['detailTicket']['message_lampiran'];
+
+                                                        $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
+                                                        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                                                        ?>
+
+                                                        <div class="mt-4">
+
+                                                            <div class="small text-muted mb-2">
+                                                                Lampiran
+                                                            </div>
+
+                                                            <?php if ($isImage): ?>
+
+                                                                <a
+                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                                    target="_blank">
+
+                                                                    <img
+                                                                        src="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                                        class="img-fluid rounded border">
+                                                                </a>
+
+                                                            <?php else: ?>
+
+                                                                <a
+                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                                    target="_blank"
+                                                                    class="btn btn-outline-danger">
+
+                                                                    <i class="fas fa-file me-1"></i>
+                                                                    Lihat Lampiran
+                                                                </a>
+
+                                                            <?php endif ?>
+
+                                                        </div>
+
+                                                    <?php endif ?>
+
+                                                </div>
+
+                                                <div class="card-footer text-muted small">
+
+                                                    <i class="fas fa-clock me-1"></i>
+
+                                                    <?= date(
+                                                        'd M Y H:i',
+                                                        strtotime($data['detailTicket']['message_created_at'])
+                                                    ) ?>
+
+                                                </div>
+
                                             </div>
-                                            <div class="mt-3">
-                                                <?= $p['catatan'] ?>
-                                            </div>
-                                            <!-- Lampiran -->
-                                            <?php if (!empty($p['lampiran'])): ?>
+
+                                        <?php endif; ?>
+
+                                    </div>
+
+                                    <!-- KOLOM 2 -->
+                                    <div class="col-lg-4 border-end">
+
+                                        <h6 class="fw-bold text-warning mb-3">
+                                            Riwayat Proses
+                                        </h6>
+
+                                        <?php
+                                        $messageId = $data['detailTicket']['message_id'] ?? null;
+                                        $responId  = $data['detailTicket']['respon_message_id'] ?? null;
+                                        ?>
+
+                                        <div style="max-height:700px;overflow-y:auto;" class="overflow-auto">
+
+                                            <?php foreach ($rproses as $p): ?>
+
                                                 <?php
-                                                $ext = strtolower(pathinfo($p['lampiran'], PATHINFO_EXTENSION));
+                                                // jangan tampilkan tiket awal & keputusan final
+                                                if (
+                                                    (!empty($messageId) && $p['id'] == $messageId) ||
+                                                    (!empty($responId) && $p['id'] == $responId)
+                                                ) {
+                                                    continue;
+                                                }
+
+                                                $ext = !empty($p['lampiran'])
+                                                    ? strtolower(pathinfo($p['lampiran'], PATHINFO_EXTENSION))
+                                                    : '';
+
                                                 $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
                                                 ?>
 
-                                                <div class="mt-3">
-                                                    <div class="small text-muted mb-2">
-                                                        Lampiran
+                                                <div class="card mb-3 shadow-sm">
+
+                                                    <!-- HEADER -->
+                                                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+
+                                                        <div class="fw-bold text-primary">
+                                                            <?= esc($p['nm_jbtn']) ?>
+                                                        </div>
+
+                                                        <?php if (!empty($p['nm_petugas'])): ?>
+                                                            <small class="text-muted">
+                                                                <?= esc($p['nm_petugas']) ?>
+                                                            </small>
+                                                        <?php endif ?>
+
                                                     </div>
 
-                                                    <?php if ($isImage): ?>
-                                                        <div class="mb-2">
-                                                            <a href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
-                                                                target="_blank">
-                                                                <img
-                                                                    src="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
-                                                                    alt="Lampiran"
-                                                                    class="img-thumbnail"
-                                                                    style="max-width: 180px; max-height: 120px;">
-                                                            </a>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="mb-2">
-                                                            <span class="badge bg-danger">
-                                                                <i class="fas fa-file-pdf me-1"></i>
-                                                                PDF
-                                                            </span>
-                                                        </div>
-                                                    <?php endif ?>
+                                                    <!-- BODY -->
+                                                    <div class="card-body">
 
-                                                    <div class="btn-group btn-group-sm">
-                                                        <a
-                                                            href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
-                                                            target="_blank"
-                                                            class="btn btn-outline-primary">
-                                                            <i class="fas fa-external-link-alt me-1"></i>
-                                                            Buka
-                                                        </a>
+                                                        <div class="row">
 
-                                                        <a
-                                                            href="<?= base_url('lampiran/download/' . urlencode($p['lampiran'])) ?>"
-                                                            class="btn btn-outline-success">
-                                                            <i class="fas fa-download me-1"></i>
-                                                            Download
-                                                        </a>
+                                                            <!-- CATATAN -->
+                                                            <div class="<?= !empty($p['lampiran']) ? 'col-md-8' : 'col-12' ?>">
+
+                                                                <?= $p['catatan'] ?>
+
+                                                            </div>
+
+                                                            <!-- PREVIEW LAMPIRAN -->
+                                                            <?php if (!empty($p['lampiran'])): ?>
+
+                                                                <div class="col-md-4 text-center">
+
+                                                                    <?php if ($isImage): ?>
+
+                                                                        <a
+                                                                            href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
+                                                                            target="_blank">
+
+                                                                            <img
+                                                                                src="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
+                                                                                class="img-thumbnail"
+                                                                                style="max-height:100px;max-width:100%;object-fit:cover;">
+                                                                        </a>
+
+                                                                    <?php else: ?>
+
+                                                                        <a
+                                                                            href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
+                                                                            target="_blank"
+                                                                            class="text-decoration-none">
+
+                                                                            <div class="border rounded p-2">
+
+                                                                                <i class="fas fa-file fa-2x text-secondary"></i>
+
+                                                                                <div class="small mt-1">
+                                                                                    <?= strtoupper($ext ?: 'FILE') ?>
+                                                                                </div>
+
+                                                                            </div>
+
+                                                                        </a>
+
+                                                                    <?php endif ?>
+
+                                                                </div>
+
+                                                            <?php endif ?>
+
+                                                        </div>
+
                                                     </div>
+
+                                                    <!-- FOOTER -->
+                                                    <div class="card-footer text-muted small">
+
+                                                        <i class="fas fa-clock me-1"></i>
+
+                                                        <?php if (!empty($p['created_at'])): ?>
+                                                            <?= date('d M Y H:i', strtotime($p['created_at'])) ?>
+                                                        <?php endif ?>
+
+                                                    </div>
+
                                                 </div>
-                                            <?php endif ?>
+
+                                            <?php endforeach; ?>
+
                                         </div>
-                                    <?php endforeach ?>
+
+                                    </div>
+                                    <!-- KOLOM 3 -->
+                                    <div class="col-lg-3">
+
+                                        <h6 class="fw-bold text-success mb-3">
+                                            Keputusan Final
+                                        </h6>
+                                        <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
+
+                                            <div class="card border-success">
+
+                                                <div class="card-header bg-success text-white">
+
+                                                    <div class="fw-bold">
+                                                        <?= esc($data['detailTicket']['respon_message_nm_jbtn']) ?>
+                                                    </div>
+
+                                                    <small>
+                                                        <?= esc($data['detailTicket']['respon_message_id_petugas_nama']) ?>
+                                                    </small>
+
+                                                </div>
+
+                                                <div class="card-body">
+
+                                                    <?= $data['detailTicket']['respon_message_catatan'] ?>
+
+                                                    <?php if (!empty($data['detailTicket']['respon_message_lampiran'])): ?>
+
+                                                        <?php
+                                                        $lampiran = $data['detailTicket']['respon_message_lampiran'];
+
+                                                        $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
+                                                        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                                                        ?>
+
+                                                        <div class="mt-3">
+
+                                                            <?php if ($isImage): ?>
+
+                                                                <a
+                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                                    target="_blank">
+
+                                                                    <img
+                                                                        src="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                                        class="img-fluid rounded border">
+                                                                </a>
+
+                                                            <?php else: ?>
+
+                                                                <a
+                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                                    target="_blank"
+                                                                    class="btn btn-outline-danger btn-sm">
+
+                                                                    <i class="fas fa-file-pdf me-1"></i>
+                                                                    Lihat Lampiran
+                                                                </a>
+
+                                                            <?php endif; ?>
+
+                                                        </div>
+
+                                                    <?php endif; ?>
+
+                                                </div>
+
+                                                <div class="card-footer text-muted small">
+
+                                                    <i class="fas fa-check-circle text-success me-1"></i>
+
+                                                    <?= date(
+                                                        'd M Y H:i',
+                                                        strtotime($data['detailTicket']['respon_message_created_at'])
+                                                    ) ?>
+
+                                                </div>
+
+                                            </div>
+
+                                        <?php else: ?>
+
+                                            <div class="alert alert-light border">
+                                                <i class="fas fa-hourglass-half me-1"></i>
+                                                Belum ada keputusan final.
+                                            </div>
+
+                                        <?php endif; ?>
+
+                                    </div>
+
                                 </div>
+
                             <?php else: ?>
+
                                 <div class="alert alert-light border mb-0">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Belum ada riwayat proses.
                                 </div>
-                            <?php endif ?>
+
+                            <?php endif; ?>
+
                         </div>
                     </div>
                 </div>
