@@ -52,14 +52,194 @@
     <div class="col-md-3">
         <div class="card h-100 border-start border-primary border-4">
             <div class="card-header">
-                <b>
-                    Deskripsi
-                </b>
+                <b>Deskripsi</b>
             </div>
+
             <div class="card-body">
-                <?= $data['detailTicket']['message_catatan'] ?>
+                <?php
+                $deskripsi = strip_tags($data['detailTicket']['message_catatan'] ?? '');
+                $ringkas = strlen($deskripsi) > 200
+                    ? substr($deskripsi, 0, 200) . '...'
+                    : $deskripsi;
+                ?>
+
+                <p class="mb-0">
+                    <?= esc($ringkas) ?>
+                </p>
+            </div>
+
+            <div class="card-footer d-flex gap-2">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalPermintaan">
+                    <i class="fas fa-file-alt me-1"></i>
+                    Permintaan
+                </button>
+
+                <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-success"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalKeputusan">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Keputusan
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
+        <div class="modal fade" id="modalPermintaan" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            Permintaan Tiket
+                        </h5>
+                        <button
+                            type="button"
+                            class="btn-close btn-close-white"
+                            data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="mb-2">
+                            <strong>
+                                <?= esc($data['detailTicket']['message_nm_jbtn']) ?>
+                            </strong>
+                            <br>
+                            <small class="text-muted">
+                                <?= esc($data['detailTicket']['message_id_petugas_nama']) ?>
+                            </small>
+                        </div>
+
+                        <hr>
+
+                        <?= $data['detailTicket']['message_catatan'] ?>
+
+                        <?php if (!empty($data['detailTicket']['message_lampiran'])): ?>
+
+                            <?php
+                            $lampiran = $data['detailTicket']['message_lampiran'];
+                            $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
+                            $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                            ?>
+
+                            <div class="mt-4">
+                                <h6>Lampiran</h6>
+
+                                <?php if ($isImage): ?>
+                                    <a href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>" target="_blank">
+                                        <img
+                                            src="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                            class="img-fluid rounded border">
+                                    </a>
+                                <?php else: ?>
+                                    <a
+                                        href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                        target="_blank"
+                                        class="btn btn-outline-danger">
+                                        <i class="fas fa-file me-1"></i>
+                                        Lihat Lampiran
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+
+                        <?php endif; ?>
+
+                    </div>
+
+                    <div class="modal-footer">
+                        <small class="text-muted">
+                            <?= date(
+                                'd M Y H:i',
+                                strtotime($data['detailTicket']['message_created_at'])
+                            ) ?>
+                        </small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
+            <div class="modal fade" id="modalKeputusan" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                Keputusan Final
+                            </h5>
+                            <button
+                                type="button"
+                                class="btn-close btn-close-white"
+                                data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+
+                            <div class="mb-2">
+                                <strong>
+                                    <?= esc($data['detailTicket']['respon_message_nm_jbtn']) ?>
+                                </strong>
+                                <br>
+                                <small class="text-muted">
+                                    <?= esc($data['detailTicket']['respon_message_id_petugas_nama']) ?>
+                                </small>
+                            </div>
+
+                            <hr>
+
+                            <?= $data['detailTicket']['respon_message_catatan'] ?>
+
+                            <?php if (!empty($data['detailTicket']['respon_message_lampiran'])): ?>
+
+                                <?php
+                                $lampiran = $data['detailTicket']['respon_message_lampiran'];
+                                $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
+                                $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                                ?>
+
+                                <div class="mt-4">
+                                    <h6>Lampiran</h6>
+
+                                    <?php if ($isImage): ?>
+                                        <a href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>" target="_blank">
+                                            <img
+                                                src="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                                class="img-fluid rounded border">
+                                        </a>
+                                    <?php else: ?>
+                                        <a
+                                            href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
+                                            target="_blank"
+                                            class="btn btn-outline-danger">
+                                            <i class="fas fa-file me-1"></i>
+                                            Lihat Lampiran
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+
+                            <?php endif; ?>
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <small class="text-muted">
+                                <?= date(
+                                    'd M Y H:i',
+                                    strtotime($data['detailTicket']['respon_message_created_at'])
+                                ) ?>
+                            </small>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
     <!-- ===== STATUS Baru ===== -->
     <div class="col-md-3">

@@ -4,8 +4,6 @@
     $canTindakan = !empty($data['tindakan']['kerjakan']);
     $canTeruskan = !empty($data['tindakan']['teruskan']);
     $canRProsess = !empty($data['tindakan']['rproses']);
-    ?>
-    <?php
     $currentIndex = null;
     foreach ($data['eticket'] as $i => $ticket) {
         if ((int)$ticket['id'] === (int)$data['detailTicket']['id']) {
@@ -27,7 +25,6 @@
     $baseSegment = service('uri')->getSegment(1);
     ?>
     <div class="row g-2 mb-3">
-        <!-- before -->
         <!-- BEFORE -->
         <div class="col-auto">
             <?php if ($prevTicket): ?>
@@ -417,133 +414,29 @@
                                 data-bs-dismiss="modal">
                             </button>
                         </div>
-                        <?php
-                        $rproses = $data['tindakan']['rproses'] ?? [];
-
-                        // data pertama = permintaan tiket
-                        $awal = $rproses[0] ?? null;
-
-                        // semua data setelahnya = proses
-                        $proses = array_slice($rproses, 1);
-                        ?>
                         <div class="modal-body">
-
                             <?php
+                            $rproses = $data['tindakan']['rproses'] ?? [];
+                            $awal = $rproses[0] ?? null;
+                            $proses = array_slice($rproses, 1);
                             $rproses = $data['tindakan']['rproses'] ?? [];
                             $awal = $rproses[0] ?? null;
                             $proses = array_slice($rproses, 1);
                             //dd($data['detailTicket']);
                             ?>
-
                             <?php if (!empty($rproses)): ?>
-
                                 <div class="row">
-
-                                    <!-- KOLOM 1 -->
-                                    <div class="col-lg-5 border-end">
-
-                                        <h6 class="fw-bold text-primary mb-3">
-                                            Permintaan Tiket
-                                        </h6>
-
-                                        <?php if (!empty($data['detailTicket']['message_id'])): ?>
-
-                                            <div class="card border-primary">
-
-                                                <div class="card-header bg-primary text-white">
-
-                                                    <div class="fw-bold">
-                                                        <?= esc($data['detailTicket']['message_nm_jbtn']) ?>
-                                                    </div>
-
-                                                    <small>
-                                                        <?= esc($data['detailTicket']['message_id_petugas_nama']) ?>
-                                                    </small>
-
-                                                </div>
-
-                                                <div class="card-body">
-
-                                                    <?= $data['detailTicket']['message_catatan'] ?>
-
-                                                    <?php if (!empty($data['detailTicket']['message_lampiran'])): ?>
-
-                                                        <?php
-                                                        $lampiran = $data['detailTicket']['message_lampiran'];
-
-                                                        $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
-                                                        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-                                                        ?>
-
-                                                        <div class="mt-4">
-
-                                                            <div class="small text-muted mb-2">
-                                                                Lampiran
-                                                            </div>
-
-                                                            <?php if ($isImage): ?>
-
-                                                                <a
-                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
-                                                                    target="_blank">
-
-                                                                    <img
-                                                                        src="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
-                                                                        class="img-fluid rounded border">
-                                                                </a>
-
-                                                            <?php else: ?>
-
-                                                                <a
-                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
-                                                                    target="_blank"
-                                                                    class="btn btn-outline-danger">
-
-                                                                    <i class="fas fa-file me-1"></i>
-                                                                    Lihat Lampiran
-                                                                </a>
-
-                                                            <?php endif ?>
-
-                                                        </div>
-
-                                                    <?php endif ?>
-
-                                                </div>
-
-                                                <div class="card-footer text-muted small">
-
-                                                    <i class="fas fa-clock me-1"></i>
-
-                                                    <?= date(
-                                                        'd M Y H:i',
-                                                        strtotime($data['detailTicket']['message_created_at'])
-                                                    ) ?>
-
-                                                </div>
-
-                                            </div>
-
-                                        <?php endif; ?>
-
-                                    </div>
-
                                     <!-- KOLOM 2 -->
-                                    <div class="col-lg-4 border-end">
-
+                                    <div class="col-lg-12 border-end">
                                         <h6 class="fw-bold text-warning mb-3">
                                             Riwayat Proses
                                         </h6>
-
                                         <?php
                                         $messageId = $data['detailTicket']['message_id'] ?? null;
                                         $responId  = $data['detailTicket']['respon_message_id'] ?? null;
                                         ?>
-
                                         <div style="max-height:700px;overflow-y:auto;" class="overflow-auto">
-
                                             <?php foreach ($rproses as $p): ?>
-
                                                 <?php
                                                 // jangan tampilkan tiket awal & keputusan final
                                                 if (
@@ -552,209 +445,77 @@
                                                 ) {
                                                     continue;
                                                 }
-
                                                 $ext = !empty($p['lampiran'])
                                                     ? strtolower(pathinfo($p['lampiran'], PATHINFO_EXTENSION))
                                                     : '';
-
                                                 $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
                                                 ?>
-
                                                 <div class="card mb-3 shadow-sm">
-
                                                     <!-- HEADER -->
                                                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
-
                                                         <div class="fw-bold text-primary">
                                                             <?= esc($p['nm_jbtn']) ?>
                                                         </div>
-
                                                         <?php if (!empty($p['nm_petugas'])): ?>
                                                             <small class="text-muted">
                                                                 <?= esc($p['nm_petugas']) ?>
                                                             </small>
                                                         <?php endif ?>
-
                                                     </div>
-
                                                     <!-- BODY -->
                                                     <div class="card-body">
-
                                                         <div class="row">
-
                                                             <!-- CATATAN -->
                                                             <div class="<?= !empty($p['lampiran']) ? 'col-md-8' : 'col-12' ?>">
-
                                                                 <?= $p['catatan'] ?>
-
                                                             </div>
-
                                                             <!-- PREVIEW LAMPIRAN -->
                                                             <?php if (!empty($p['lampiran'])): ?>
-
                                                                 <div class="col-md-4 text-center">
-
                                                                     <?php if ($isImage): ?>
-
                                                                         <a
                                                                             href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
                                                                             target="_blank">
-
                                                                             <img
                                                                                 src="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
                                                                                 class="img-thumbnail"
                                                                                 style="max-height:100px;max-width:100%;object-fit:cover;">
                                                                         </a>
-
                                                                     <?php else: ?>
-
                                                                         <a
                                                                             href="<?= base_url('lampiran/view/' . urlencode($p['lampiran'])) ?>"
                                                                             target="_blank"
                                                                             class="text-decoration-none">
-
                                                                             <div class="border rounded p-2">
-
                                                                                 <i class="fas fa-file fa-2x text-secondary"></i>
-
                                                                                 <div class="small mt-1">
                                                                                     <?= strtoupper($ext ?: 'FILE') ?>
                                                                                 </div>
-
                                                                             </div>
-
                                                                         </a>
-
                                                                     <?php endif ?>
-
                                                                 </div>
-
                                                             <?php endif ?>
-
                                                         </div>
-
                                                     </div>
-
                                                     <!-- FOOTER -->
                                                     <div class="card-footer text-muted small">
-
                                                         <i class="fas fa-clock me-1"></i>
-
                                                         <?php if (!empty($p['created_at'])): ?>
                                                             <?= date('d M Y H:i', strtotime($p['created_at'])) ?>
                                                         <?php endif ?>
-
                                                     </div>
-
                                                 </div>
-
                                             <?php endforeach; ?>
-
                                         </div>
-
                                     </div>
-                                    <!-- KOLOM 3 -->
-                                    <div class="col-lg-3">
-
-                                        <h6 class="fw-bold text-success mb-3">
-                                            Keputusan Final
-                                        </h6>
-                                        <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
-
-                                            <div class="card border-success">
-
-                                                <div class="card-header bg-success text-white">
-
-                                                    <div class="fw-bold">
-                                                        <?= esc($data['detailTicket']['respon_message_nm_jbtn']) ?>
-                                                    </div>
-
-                                                    <small>
-                                                        <?= esc($data['detailTicket']['respon_message_id_petugas_nama']) ?>
-                                                    </small>
-
-                                                </div>
-
-                                                <div class="card-body">
-
-                                                    <?= $data['detailTicket']['respon_message_catatan'] ?>
-
-                                                    <?php if (!empty($data['detailTicket']['respon_message_lampiran'])): ?>
-
-                                                        <?php
-                                                        $lampiran = $data['detailTicket']['respon_message_lampiran'];
-
-                                                        $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
-                                                        $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-                                                        ?>
-
-                                                        <div class="mt-3">
-
-                                                            <?php if ($isImage): ?>
-
-                                                                <a
-                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
-                                                                    target="_blank">
-
-                                                                    <img
-                                                                        src="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
-                                                                        class="img-fluid rounded border">
-                                                                </a>
-
-                                                            <?php else: ?>
-
-                                                                <a
-                                                                    href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>"
-                                                                    target="_blank"
-                                                                    class="btn btn-outline-danger btn-sm">
-
-                                                                    <i class="fas fa-file-pdf me-1"></i>
-                                                                    Lihat Lampiran
-                                                                </a>
-
-                                                            <?php endif; ?>
-
-                                                        </div>
-
-                                                    <?php endif; ?>
-
-                                                </div>
-
-                                                <div class="card-footer text-muted small">
-
-                                                    <i class="fas fa-check-circle text-success me-1"></i>
-
-                                                    <?= date(
-                                                        'd M Y H:i',
-                                                        strtotime($data['detailTicket']['respon_message_created_at'])
-                                                    ) ?>
-
-                                                </div>
-
-                                            </div>
-
-                                        <?php else: ?>
-
-                                            <div class="alert alert-light border">
-                                                <i class="fas fa-hourglass-half me-1"></i>
-                                                Belum ada keputusan final.
-                                            </div>
-
-                                        <?php endif; ?>
-
-                                    </div>
-
                                 </div>
-
                             <?php else: ?>
-
                                 <div class="alert alert-light border mb-0">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Belum ada riwayat proses.
                                 </div>
-
                             <?php endif; ?>
-
                         </div>
                     </div>
                 </div>
