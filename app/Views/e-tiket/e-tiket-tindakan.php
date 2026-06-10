@@ -402,7 +402,7 @@
         <?php endif; ?>
         <?php if ($canRProsess): ?>
             <div class="modal fade" id="modalRProsess" tabindex="-1">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header bg-warning text-dark">
                             <h5 class="modal-title">
