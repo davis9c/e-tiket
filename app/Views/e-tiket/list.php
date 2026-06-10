@@ -87,7 +87,7 @@
                         </td>
                         <td><?= esc($p['petugas_id_nama']) ?></td>
                         <td>
-                            <p><?= $p['message_catatan'] ?></p>
+                            <?= character_limiter(strip_tags($p['message_catatan']), 150) ?>
                         </td>
                         <td>
                             <?= date('d M Y H:i', strtotime($p['created_at'])) ?>

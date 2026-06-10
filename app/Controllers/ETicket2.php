@@ -31,6 +31,7 @@ class ETicket2 extends BaseController
             'Authorization' => session()->get('token'),
             'Accept'        => 'application/json',
         ];
+        helper('text');
     }
     /* =========================================================
      * AUTH GUARD
