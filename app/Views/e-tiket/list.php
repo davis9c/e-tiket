@@ -106,9 +106,15 @@
                                     </span>
                                 <?php endif ?>
                                 <?php if ($p['selesai_nama'] == null): ?>
-                                    <span class="badge bg-secondary">
-                                        Dalam antrian
-                                    </span>
+                                    <?php if ($p['handler_nama'] != null): ?>
+                                        <span class="badge bg-warning">
+                                            Dikerjakan <?= esc($p['handler_nama']) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">
+                                            Dalam antrian
+                                        </span>
+                                    <?php endif ?>
                                 <?php else: ?>
                                     <span class="badge bg-primary">
                                         Diselesaikan <?= esc($p['selesai_nama']) ?>
