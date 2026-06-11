@@ -54,7 +54,6 @@
             <div class="card-header">
                 <b>Deskripsi</b>
             </div>
-
             <div class="card-body">
                 <?php
                 $deskripsi = strip_tags($data['detailTicket']['message_catatan'] ?? '');
@@ -62,12 +61,10 @@
                     ? substr($deskripsi, 0, 200) . '...'
                     : $deskripsi;
                 ?>
-
                 <p class="mb-0">
                     <?= esc($ringkas) ?>
                 </p>
             </div>
-
             <div class="card-footer d-flex gap-2">
                 <button
                     type="button"
@@ -77,7 +74,6 @@
                     <i class="fas fa-file-alt me-1"></i>
                     Permintaan
                 </button>
-
                 <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
                     <button
                         type="button"
@@ -93,7 +89,6 @@
         <div class="modal fade" id="modalPermintaan" tabindex="-1">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
-
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title">
                             Permintaan Tiket
@@ -103,9 +98,7 @@
                             class="btn-close btn-close-white"
                             data-bs-dismiss="modal"></button>
                     </div>
-
                     <div class="modal-body">
-
                         <div class="mb-2">
                             <strong>
                                 <?= esc($data['detailTicket']['message_nm_jbtn']) ?>
@@ -115,19 +108,14 @@
                                 <?= esc($data['detailTicket']['message_id_petugas_nama']) ?>
                             </small>
                         </div>
-
                         <hr>
-
                         <?= $data['detailTicket']['message_catatan'] ?>
-
                         <?php if (!empty($data['detailTicket']['message_lampiran'])): ?>
-
                             <?php
                             $lampiran = $data['detailTicket']['message_lampiran'];
                             $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
                             $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
                             ?>
-
                             <div class="mt-4">
                                 <h6>Lampiran</h6>
 
@@ -149,9 +137,7 @@
                             </div>
 
                         <?php endif; ?>
-
                     </div>
-
                     <div class="modal-footer">
                         <small class="text-muted">
                             <?= date(
@@ -160,7 +146,6 @@
                             ) ?>
                         </small>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -168,7 +153,6 @@
             <div class="modal fade" id="modalKeputusan" tabindex="-1">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content">
-
                         <div class="modal-header bg-success text-white">
                             <h5 class="modal-title">
                                 Keputusan Final
@@ -178,9 +162,7 @@
                                 class="btn-close btn-close-white"
                                 data-bs-dismiss="modal"></button>
                         </div>
-
                         <div class="modal-body">
-
                             <div class="mb-2">
                                 <strong>
                                     <?= esc($data['detailTicket']['respon_message_nm_jbtn']) ?>
@@ -190,22 +172,16 @@
                                     <?= esc($data['detailTicket']['respon_message_id_petugas_nama']) ?>
                                 </small>
                             </div>
-
                             <hr>
-
                             <?= $data['detailTicket']['respon_message_catatan'] ?>
-
                             <?php if (!empty($data['detailTicket']['respon_message_lampiran'])): ?>
-
                                 <?php
                                 $lampiran = $data['detailTicket']['respon_message_lampiran'];
                                 $ext = strtolower(pathinfo($lampiran, PATHINFO_EXTENSION));
                                 $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
                                 ?>
-
                                 <div class="mt-4">
                                     <h6>Lampiran</h6>
-
                                     <?php if ($isImage): ?>
                                         <a href="<?= base_url('lampiran/view/' . urlencode($lampiran)) ?>" target="_blank">
                                             <img
@@ -222,11 +198,8 @@
                                         </a>
                                     <?php endif; ?>
                                 </div>
-
                             <?php endif; ?>
-
                         </div>
-
                         <div class="modal-footer">
                             <small class="text-muted">
                                 <?= date(

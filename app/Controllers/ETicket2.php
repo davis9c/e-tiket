@@ -1457,32 +1457,22 @@ class ETicket2 extends BaseController
         }
         $petugas = [];
         $jabatan = $this->getJabatan();
-
         if ($kdJbtn) {
-            $petugas = $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJbtn]);
-
+            $kategoriId = (int) $this->request->getGet('kategori');
+            $unitPengajuan = $this->kategoriGet($kategoriId)['unit_pengajuan'] ?? [];
+            $kdJabatan = array_column($unitPengajuan, 'kd_jbtn');
+            //---
+            $petugas = $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJabatan]);
             $dataHS = $this->usersModel
                 ->select('nip')
                 ->where('headsection', true)
                 ->findAll();
-
             $mapHS = array_flip(array_column($dataHS, 'nip'));
-
             foreach ($petugas as &$p) {
                 $p['headsection'] = isset($mapHS[$p['nip']]);
             }
         }
-        $kategoriId = (int) $this->request->getGet('kategori');
-        // dd($this->kategoriGet($kategoriId)['unit_pengajuan'] ?? []);
-        $unitPengajuan = $this->kategoriGet($kategoriId)['unit_pengajuan'] ?? [];
-
-        $kdJabatan = array_column($unitPengajuan, 'kd_jbtn');
-
-        $petugas = array_filter(
-            $petugas,
-            fn($p) => in_array($p['kd_jbtn'], $kdJabatan)
-        );
-
+        //dd($petugas);
         $petugas = array_values($petugas); // reset index
         //dd($petugas);
         $data = [
@@ -1690,26 +1680,27 @@ class ETicket2 extends BaseController
     private function postAPI($endpoint, $payload = []): array
     {
         try {
-
+            $headers = [
+                'Authorization' => session()->get('token'),
+                'Accept'        => 'application/json',
+                'Content-Type'  => 'application/json',
+            ];
             $response = $this->client->post(
                 env('API_KANZA_BRIDGE') . $endpoint,
                 [
-                    'headers'     => $this->headers,
+                    'headers'     => $headers,
                     'json'        => $payload,
                     'timeout'     => 10,
                     'http_errors' => false, // penting!
                 ]
             );
-
             if ($response->getStatusCode() === 401) {
                 //$this->forceLogout();
                 exit;
             }
-
             $result = json_decode($response->getBody(), true);
             return $result['data'] ?? [];
         } catch (\Throwable $e) {
-
             log_message('error', '[API ERROR] ' . $e->getMessage());
             return [];
         }

@@ -111,20 +111,15 @@ class Admin extends BaseController
     public function petugas($kdJbtn = null)
     {
         $this->auth();
-
         $petugas = [];
         $jabatan = $this->getJabatan();
-
         if ($kdJbtn) {
             $petugas = $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJbtn]);
-
             $dataHS = $this->usersModel
                 ->select('nip')
                 ->where('headsection', true)
                 ->findAll();
-
             $mapHS = array_flip(array_column($dataHS, 'nip'));
-
             foreach ($petugas as &$p) {
                 $p['headsection'] = isset($mapHS[$p['nip']]);
             }
