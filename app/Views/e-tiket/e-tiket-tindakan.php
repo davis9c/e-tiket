@@ -25,8 +25,8 @@
     $baseSegment = service('uri')->getSegment(1);
     ?>
     <div class="row g-2 mb-3">
-        <!-- BEFORE -->
-        <div class="col-auto">
+        <div class="btn-group w-100 mb-3" role="group">
+            <!-- BEFORE -->
             <?php if ($prevTicket): ?>
                 <a
                     href="<?= site_url($baseSegment . '/' . $prevTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
@@ -34,18 +34,9 @@
                     <i class="fas fa-arrow-left me-1"></i>
                     Before
                 </a>
-            <?php else: ?>
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary"
-                    disabled>
-                    <i class="fas fa-arrow-left me-1"></i>
-                    Before
-                </button>
             <?php endif; ?>
-        </div>
-        <!-- VALIDASI -->
-        <div class="col-auto">
+
+            <!-- VALIDASI -->
             <button
                 type="button"
                 class="btn btn-success"
@@ -53,9 +44,8 @@
                 <i class="fas fa-check-circle me-1"></i>
                 Validasi
             </button>
-        </div>
-        <!-- KERJAKAN -->
-        <div class="col-auto">
+
+            <!-- KERJAKAN -->
             <button
                 type="button"
                 class="btn btn-primary"
@@ -63,9 +53,8 @@
                 <i class="fas fa-tools me-1"></i>
                 Kerjakan
             </button>
-        </div>
-        <!-- TINDAKAN -->
-        <div class="col-auto">
+
+            <!-- TINDAKAN -->
             <button
                 type="button"
                 class="btn btn-secondary"
@@ -73,19 +62,8 @@
                 <i class="fas fa-file-alt me-1"></i>
                 Tindakan
             </button>
-        </div>
-        <!-- TERUSKAN -->
-        <!-- <div class="col-auto">
-            <button
-                type="button"
-                class="btn btn-warning"
-                <?= $canTeruskan ? 'data-bs-toggle="modal" data-bs-target="#modalRProses"' : 'disabled' ?>>
-                <i class="fas fa-paper-plane me-1"></i>
-                Teruskan
-            </button>
-        </div> -->
-        <!-- R Rrosess -->
-        <div class="col-auto">
+
+            <!-- RIWAYAT PROSES -->
             <button
                 type="button"
                 class="btn btn-outline-primary"
@@ -93,9 +71,8 @@
                 <i class="fas fa-history me-1"></i>
                 Riwayat Proses
             </button>
-        </div>
-        <!-- AFTER -->
-        <div class="col-auto">
+
+            <!-- AFTER -->
             <?php if ($nextTicket): ?>
                 <a
                     href="<?= site_url($baseSegment . '/' . $nextTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
@@ -103,14 +80,6 @@
                     After
                     <i class="fas fa-arrow-right ms-1"></i>
                 </a>
-            <?php else: ?>
-                <button
-                    type="button"
-                    class="btn btn-outline-secondary"
-                    disabled>
-                    After
-                    <i class="fas fa-arrow-right ms-1"></i>
-                </button>
             <?php endif; ?>
         </div>
 
