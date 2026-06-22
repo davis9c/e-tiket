@@ -70,7 +70,6 @@
                                                     ],
                                                 ];
                                                 ?>
-
                                                 <select class="form-select" id="user_id" name="user_id">
                                                     <?php foreach ($devUsers as $jabatan => $users): ?>
                                                         <optgroup label="<?= $jabatan ?>">
@@ -88,9 +87,7 @@
                                                     <?php endforeach; ?>
                                                 </select>
                                                 <label for="user_id">Pilih User (Development Mode)</label>
-
                                             <?php else: ?>
-
                                                 <input type="text"
                                                     class="form-control"
                                                     id="user_id"
@@ -99,10 +96,8 @@
                                                     placeholder="User ID"
                                                     required>
                                                 <label for="user_id">User ID</label>
-
                                             <?php endif; ?>
                                         </div>
-
                                         <!-- PASSWORD -->
                                         <div class="form-floating mb-3">
                                             <input type="password"
@@ -116,7 +111,6 @@
                                                 required>
                                             <label for="password">Password</label>
                                         </div>
-
                                         <!-- BUTTON -->
                                         <div class="d-grid mt-4">
                                             <button type="submit" class="btn btn-primary">
@@ -124,15 +118,14 @@
                                                 Login
                                             </button>
                                         </div>
-
                                     </form>
-                                    <div class="d-grid mt-3">
+                                    <!-- <div class="d-grid mt-3">
                                         <a href="<?= base_url('dashboard') ?>"
                                             class="btn btn-outline-secondary btn-sm">
                                             <i class="fas fa-chart-line me-1"></i>
                                             Dashboard
                                         </a>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         </div>

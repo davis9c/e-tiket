@@ -1,3 +1,6 @@
+<?php
+// dd($data['detailTicket']['upj']);
+?>
 <div class="row g-3 mb-3">
     <!-- ===== KATEGORI E-TIKET ===== -->
     <div class="col-md-3">
@@ -25,6 +28,7 @@
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <?= print_r($data['detailTicket']['upj'], true) ?>
                 <p class="fst-italic mb-3 text-secondary">
                     <?= esc($data['detailTicket']['deskripsi']) ?>
                 </p>

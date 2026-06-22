@@ -39,7 +39,6 @@ class Admin extends BaseController
             return redirect()->to('/login')->send();
         }
     }
-
     /* =====================================================
      * USERS
      * URL: /admin/users
@@ -47,7 +46,6 @@ class Admin extends BaseController
     public function users()
     {
         $this->auth();
-
         try {
             $users = $this->usersModel->findAll();
             $ids   = array_values(array_unique(array_map('intval', array_column($users, 'user_id'))));

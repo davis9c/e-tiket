@@ -62,6 +62,14 @@
                 <i class="fas fa-file-alt me-1"></i>
                 Tindakan
             </button>
+            <!-- TERUSKAN -->
+            <button
+                type="button"
+                class="btn btn-warning"
+                <?= $canTindakan ? 'data-bs-toggle="modal" data-bs-target="#modalTeruskan"' : 'disabled' ?>>
+                <i class="fas fa-file-alt me-1"></i>
+                Teruskan
+            </button>
 
             <!-- RIWAYAT PROSES -->
             <button
@@ -318,45 +326,62 @@
         <?php if ($canTeruskan): ?>
             <div class="modal fade" id="modalTeruskan" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
-                    <form action="<?= base_url('pelaksana/pelaksana_proses') ?>" method="post" class="modal-content">
+
+                    <form action="<?= $data['tindakan']['teruskan'][0] ?>"
+                        method="post"
+                        class="modal-content">
+
                         <?= csrf_field() ?>
-                        <input type="hidden" name="ticket_id" value="">
-                        <input type="hidden" name="kd_jbtn" value="">
-                        <input type="hidden" name="unit_selanjutnya" value="">
+
+                        <!-- hidden id tiket -->
+                        <input type="hidden" name="id_etiket" value="<?= $data['tindakan']['teruskan'][2] ?>">
+
                         <div class="modal-header bg-warning text-dark">
                             <h5 class="modal-title">
-                                Teruskan Ticket
+                                Teruskan Tiket
                             </h5>
-                            <button
-                                type="button"
+
+                            <button type="button"
                                 class="btn-close"
                                 data-bs-dismiss="modal">
                             </button>
                         </div>
+
                         <div class="modal-body">
-                            <textarea
-                                name="catatan"
-                                rows="3"
-                                class="form-control editor <?= session('errors.catatan') ? 'is-invalid' : '' ?>"
-                                placeholder="Masukkan Catatan"><?= old('catatan') ?></textarea>
-                            <div class="invalid-feedback">
-                                <?= session('errors.catatan') ?>
+
+                            <!-- dropdown kd_jbtn -->
+                            <div class="mb-3">
+                                <label class="form-label">Unit Tujuan</label>
+
+                                <select name="kd_jbtn" class="form-select" required>
+                                    <option value="">-- Pilih Unit --</option>
+
+                                    <?php foreach ($data['tindakan']['teruskan'][1] as $i => $unit): ?>
+                                        <option value="<?= esc($unit['kd_jbtn']) ?>"
+                                            <?= $i === 0 ? 'selected' : '' ?>>
+                                            <?= esc($unit['kd_jbtn']) ?> - <?= esc($unit['nm_jbtn']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+
+                                </select>
                             </div>
                         </div>
+
                         <div class="modal-footer">
-                            <button
-                                type="button"
+                            <button type="button"
                                 class="btn btn-secondary"
                                 data-bs-dismiss="modal">
                                 Batal
                             </button>
-                            <button
-                                type="submit"
+
+                            <button type="submit"
                                 class="btn btn-warning">
                                 Teruskan
                             </button>
                         </div>
+
                     </form>
+
                 </div>
             </div>
             <?php if (session('modal') === 'teruskan'): ?>

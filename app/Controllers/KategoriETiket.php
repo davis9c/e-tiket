@@ -115,6 +115,8 @@ class KategoriETiket extends BaseController
             'nama_kategori' => 'required|min_length[5]',
             'deskripsi'     => 'required|min_length[10]',
             'aktif'         => 'required|in_list[0,1]',
+            'headsection'   => 'required|in_list[0,1]',
+            'teruskan'      => 'required|in_list[0,1]',
         ];
 
         if (! $this->validate($rules)) {
@@ -124,6 +126,7 @@ class KategoriETiket extends BaseController
         }
 
         $kategori = $this->kategoriEticketModel->find($id);
+
         if (! $kategori) {
             return redirect()->to(base_url('kategori'))
                 ->with('error', 'Data kategori tidak ditemukan');
@@ -133,8 +136,9 @@ class KategoriETiket extends BaseController
             'nama_kategori' => trim($this->request->getPost('nama_kategori')),
             'deskripsi'     => trim($this->request->getPost('deskripsi')),
             'template'      => trim($this->request->getPost('template')),
-            'aktif'         => $this->request->getPost('aktif'),
-            'headsection'   => $this->request->getPost('headsection'),
+            'aktif'         => (int) $this->request->getPost('aktif'),
+            'headsection'   => (int) $this->request->getPost('headsection'),
+            'teruskan'      => (int) $this->request->getPost('teruskan'),
             'updated_at'    => date('Y-m-d H:i:s'),
         ];
 
@@ -144,9 +148,11 @@ class KategoriETiket extends BaseController
             return redirect()->to(base_url('kategori/edit/' . $id))
                 ->with('success', 'Kategori berhasil diperbarui');
         } catch (\Throwable $e) {
+            log_message('error', $e->getMessage());
+
             return redirect()->to(base_url('kategori/edit/' . $id))
                 ->withInput()
-                ->with('error', $e->getMessage());
+                ->with('error', 'Gagal memperbarui kategori');
         }
     }
 

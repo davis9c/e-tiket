@@ -102,7 +102,7 @@
                                 <?php if (!empty($p['selesai_nama'])): ?>
                                 <?php else: ?>
                                     <span class="badge bg-success">
-                                        Disetujui <?= esc($p['valid_nama']) ?>
+                                        Disetujui
                                     </span>
                                 <?php endif ?>
                                 <?php if ($p['selesai_nama'] == null): ?>

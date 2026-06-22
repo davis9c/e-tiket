@@ -241,6 +241,17 @@ class ETicketModel extends Model
             $row['status'] = 'selesai';
         }
 
+        // ================================
+        // Ambil UPJ dari tabel eticketupjs
+        // ================================
+        $upjRows = $this->db->table('eticketupjs')
+            ->select('kd_jbtn')
+            ->where('etiket_id', $id)
+            ->get()
+            ->getResultArray();
+
+        $row['upj'] = array_column($upjRows, 'kd_jbtn');
+
         return $row;
     }
 
@@ -253,11 +264,6 @@ class ETicketModel extends Model
         ?int $kategori = null
     ): array {
         $builder = $this->baseQuery()
-            ->join(
-                'kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
             ->join(
                 'eticket_proses ep',
                 'ep.id_eticket = e.id',
@@ -294,17 +300,15 @@ class ETicketModel extends Model
             ])
             ->where('e.created_at >=', $this->enamBulanLalu());
         if (!empty($kd_jbtn)) {
-            $builder
-                ->where('kuj.kd_jbtn', $kd_jbtn);
-            //->where('kuj.is_penanggung_jawab', $penanggungJawab);
+            $builder->where("
+                EXISTS (
+                    SELECT 1
+                    FROM eticketupjs upj
+                    WHERE upj.etiket_id = e.id
+                    AND upj.kd_jbtn = " . $this->db->escape($kd_jbtn) . "
+                )
+            ", null, false);
         }
-        // bagian ini yang menjadikan berurutan
-        //->groupStart()
-        //->where('e.proses_unit', $kd_jbtn)
-        //->orWhere('ep.kd_jbtn', $kd_jbtn)
-        //->groupEnd();
-
-        // filter yang mengajukan
         // filter petugas
         if (!empty($nip)) {
             $builder->where('e.petugas_id', $nip);
@@ -346,6 +350,25 @@ class ETicketModel extends Model
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
+        $upjRows = $this->db->table('eticketupjs')
+            ->select('etiket_id, kd_jbtn')
+            ->get()
+            ->getResultArray();
+
+        $upjMap = [];
+
+        foreach ($upjRows as $upj) {
+            $upjMap[$upj['etiket_id']][] = $upj['kd_jbtn'];
+        }
+
+        foreach ($rows as &$row) {
+            $row['upj'] = $upjMap[$row['id']] ?? [];
+        }
+        foreach ($rows as &$row) {
+            $row['upj_kd_jbtn'] = !empty($row['upj_kd_jbtn'])
+                ? explode(',', $row['upj_kd_jbtn'])
+                : [];
+        }
         return $this->attachProsesToRows($rows);
     }
     /*

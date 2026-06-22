@@ -48,7 +48,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
-    //$routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
+    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
     $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
 
     $routes->get('manual', 'ETicket2::manual'); //halaman untuk input manual, hanya bisa diakses oleh admin
