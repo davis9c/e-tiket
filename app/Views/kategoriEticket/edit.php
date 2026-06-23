@@ -76,9 +76,8 @@
                     <textarea
                         name="template"
                         rows="6"
-                        class="form-control"><?= old('template', $kategori['template']) ?></textarea>
+                        class="form-control editor"><?= old('template', $kategori['template']) ?></textarea>
                 </div>
-
             </div>
 
             <!-- Pengaturan -->

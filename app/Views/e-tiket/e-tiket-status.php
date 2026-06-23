@@ -28,7 +28,9 @@
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                <?= print_r($data['detailTicket']['upj'], true) ?>
+                <?php
+                //print_r($data['detailTicket']['upj'], true);
+                ?>
                 <p class="fst-italic mb-3 text-secondary">
                     <?= esc($data['detailTicket']['deskripsi']) ?>
                 </p>

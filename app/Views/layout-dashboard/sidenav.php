@@ -91,10 +91,15 @@ $openApp = preg_match('#^(kategori|allticket)(/|$)#', $currentPath);
                     <div class="collapse<?= $openApp ? ' show' : '' ?>" id="collapseApp">
                         <nav class="sb-sidenav-menu-nested nav">
                             <a class="nav-link<?= $activeLink('kategori') ? ' active' : '' ?>" href="<?= base_url('kategori') ?>">
-                                <i class="fas fa-layer-group me-2"></i> Kategori E-Tiket
+                                <i class="fas fa-folder-tree me-2"></i> Kategori E-Tiket
                             </a>
+
                             <a class="nav-link<?= $activeLink('allticket') ? ' active' : '' ?>" href="<?= base_url('allticket') ?>">
-                                <i class="fas fa-layer-group me-2"></i> All Ticket
+                                <i class="fas fa-list-check me-2"></i> Semua Tiket
+                            </a>
+
+                            <a class="nav-link<?= $activeLink('manual') ? ' active' : '' ?>" href="<?= base_url('manual') ?>">
+                                <i class="fas fa-plus-circle me-2"></i> Input Tiket Manual
                             </a>
                         </nav>
                     </div>

@@ -286,6 +286,7 @@ class ETicket2 extends BaseController
 
         $tickets = $this->eticketModel->getEticketAll($kdJbtn, null, $valid, $selesai, $kategori);
         //dd($tickets);
+        //dd(session()->get());
         // attach nama jabatan
         //$tickets = $this->attachNamaJabatanToTickets($tickets);
         //$tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
@@ -575,6 +576,15 @@ class ETicket2 extends BaseController
         $kd_jbtn  = $this->request->getPost('kd_jbtn');
         $this->simpanUnitPenanggungJawab($ticketId, $kd_jbtn);
 
+        $this->simpanLogProses(
+            $ticketId,
+            $kd_jbtn,
+            session()->get('jabatan'),
+            session()->get('nip'),
+            session()->get('nama '),
+            "Meneruskan Tiket ini",
+            session()->get('id_pegawai')
+        );
         return redirect()->back()->with(
             'success',
             'Proses ticket berhasil.'
@@ -1096,15 +1106,7 @@ class ETicket2 extends BaseController
 
         return $result['data'] ?? [];
     }
-    private function validationRules(): array
-    {
-        return [
-            'kategori_id' => 'required|is_natural_no_zero',
-            'petugas_id'  => 'required|is_natural_no_zero',
-            //'judul'       => 'required|min_length[1]',
-            'message'     => 'required|min_length[1]',
-        ];
-    }
+
     // =====================================================
     // HELPER METHODS
     // =====================================================
@@ -1235,12 +1237,9 @@ class ETicket2 extends BaseController
          * Bagian ini memberikan nm_petugas dan nm_jbtn
          * Berencana akan di buat statis
          */
-        $detail = $this->attachNamaJabatanToProses($detail);
-        //--------------------------------------------------
+        //$detail = $this->attachNamaJabatanToProses($detail);
         $detail = $this->attachNamaJabatanToDetail($detail);
-        //dd($detail);
         $detail = $this->mapUnitWithJabatan($detail);
-        //dd($detail);
         return view('e-tiket/report', [
             'title' => 'Report E-Ticket #' . $id,
             'detailTicket' => $detail,
@@ -1446,14 +1445,49 @@ class ETicket2 extends BaseController
         $kategori = ($kategori !== null && $kategori !== '') ? (int)$kategori : null;
         $valid = ($valid !== null && $valid !== '') ? (int)$valid : null;
         $tickets = $this->eticketModel->getEticketAll(null, null, $valid, $selesai, $kategori);
-        $tickets = $this->attachNamaJabatanToTickets($tickets);
-        $tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
+        //$tickets = $this->attachNamaJabatanToTickets($tickets);
+        //$tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
         $detail = null;
         $tindakan = null;
         $timeline = [];
         if ($id) {
             $detail = $this->eticketModel->findOneLengkap($id);
             if ($detail) {
+                if ($detail['valid_nama'] != null) {
+                    // jika sudah valid,
+                    // cek apakah sudah ada
+                    if (
+                        $this->eticketUPJModel
+                        ->where('etiket_id', $detail['id'])
+                        ->findAll() == null
+                    ) {
+                        if ($detail['headsection'] == 1) { // jika memerlukan validasi
+                            if ($detail['teruskan'] == 1) {
+                                $this->simpanUnitPenanggungJawab(
+                                    $detail['id'],
+                                    $detail['unit_penanggung_jawab'][0]['kd_jbtn']
+                                );
+                            } else {
+                                $this->simpanUnitPenanggungJawab(
+                                    $detail['id'],
+                                    $detail['unit_penanggung_jawab']
+                                );
+                            }
+                        } else {
+                            if ($detail['teruskan'] == 1) {
+                                $this->simpanUnitPenanggungJawab(
+                                    $detail['id'],
+                                    $detail['unit_penanggung_jawab'][0]['kd_jbtn']
+                                );
+                            } else {
+                                $this->simpanUnitPenanggungJawab(
+                                    $detail['id'],
+                                    $detail['unit_penanggung_jawab']
+                                );
+                            }
+                        }
+                    }
+                }
                 $timeline = $this->buildStatusTimeline($detail['id']);
                 $jabatanMap = $this->getJabatanMap();
                 $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
@@ -1472,11 +1506,11 @@ class ETicket2 extends BaseController
             'title' => 'Manual E-Ticket',
             'data'  => [
                 'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
-                'tindakan'          =>  $tindakan,
-                'eticket'      => $tickets,
-                'detailTicket' => $detail,
+                'tindakan'      =>  $tindakan,
+                'eticket'       => $tickets,
+                'detailTicket'  => $detail,
+                'user'          => session()->get(),
                 'timeline_status' => $timeline,
-                'user'         => session()->get(),
             ]
         ]);
     }
