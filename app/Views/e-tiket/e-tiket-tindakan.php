@@ -25,7 +25,7 @@
     $baseSegment = service('uri')->getSegment(1);
     ?>
     <div class="row g-2 mb-3">
-        <div class="btn-group w-100 mb-3" role="group">
+        <div class="btn-group w-100" role="group">
             <!-- BEFORE -->
             <?php if ($prevTicket): ?>
                 <a
@@ -90,7 +90,6 @@
                 </a>
             <?php endif; ?>
         </div>
-
         <?php if ($canValidasi): ?>
             <div class="modal fade" id="modalValidasi" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">

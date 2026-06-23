@@ -1,6 +1,3 @@
-<?php
-// dd($data['detailTicket']['upj']);
-?>
 <div class="row g-3 mb-3">
     <!-- ===== KATEGORI E-TIKET ===== -->
     <div class="col-md-3">
