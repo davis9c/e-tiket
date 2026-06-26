@@ -19,7 +19,7 @@ $activeLink = function ($route, $status = null) use ($currentPath, $queryParams)
     return ($queryParams['status'] ?? null) === $status;
 };
 $openKanza = preg_match('#^admin(/|$)#', $currentPath);
-$openApp = preg_match('#^(kategori|allticket)(/|$)#', $currentPath);
+$openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
 ?>
 
 <div id="layoutSidenav_nav">

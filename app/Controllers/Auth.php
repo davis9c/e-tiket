@@ -81,16 +81,13 @@ class Auth extends BaseController
                     'http_errors' => false,
                 ]
             );
-
             $result = json_decode($response->getBody(), true);
-
             if ($response->getStatusCode() !== 200) {
                 return [
                     'success' => false,
                     'message' => $result['message'] ?? 'Login gagal'
                 ];
             }
-
             return [
                 'success' => true,
                 'data'    => $result
@@ -102,11 +99,9 @@ class Auth extends BaseController
             ];
         }
     }
-
     private function setUserSession(array $result): void
     {
         $data = $result['data'];
-
         session()->set([
             'token'       => $result['token'],
             'expires'     => $result['expires'] ?? null,
