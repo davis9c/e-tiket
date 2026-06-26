@@ -59,14 +59,37 @@
             </div>
             <div class="card-body">
                 <?php
-                $deskripsi = strip_tags($data['detailTicket']['message_catatan'] ?? '');
-                $ringkas = strlen($deskripsi) > 200
-                    ? substr($deskripsi, 0, 200) . '...'
-                    : $deskripsi;
+                $deskripsi = $data['detailTicket']['message_catatan'] ?? '';
+
+                // Ubah </p> menjadi <br>
+                $deskripsi = preg_replace('/<\/p>/i', '<br>', $deskripsi);
+
+                // Hapus <p>
+                $deskripsi = preg_replace('/<p[^>]*>/i', '', $deskripsi);
+
+                // Decode entity HTML
+                $deskripsi = html_entity_decode($deskripsi, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                // Hapus semua tag kecuali <br>
+                $deskripsi = strip_tags($deskripsi, '<br>');
+
+                // Pecah berdasarkan <br>
+                $baris = preg_split('/<br\s*\/?>/i', $deskripsi);
+
+                // Ambil 3 baris pertama
+                $preview = implode('<br>', array_slice($baris, 0, 3));
+
+                // Tambahkan "..." jika masih ada baris berikutnya
+                if (count($baris) > 6) {
+                    $preview .= '<br>...';
+                }
                 ?>
-                <p class="mb-0">
-                    <?= esc($ringkas) ?>
-                </p>
+
+                <div class="card-body">
+                    <p class="mb-0">
+                        <?= $preview ?>
+                    </p>
+                </div>
             </div>
             <div class="card-footer d-flex gap-2">
                 <button
@@ -90,7 +113,7 @@
             </div>
         </div>
         <div class="modal fade" id="modalPermintaan" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title">
@@ -154,7 +177,7 @@
         </div>
         <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
             <div class="modal fade" id="modalKeputusan" tabindex="-1">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
                     <div class="modal-content">
                         <div class="modal-header bg-success text-white">
                             <h5 class="modal-title">

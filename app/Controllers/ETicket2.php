@@ -815,20 +815,28 @@ class ETicket2 extends BaseController
         // =====================================================
         // Pelaksana
         // =====================================================
+        // =====================================================
+        // Pelaksana
+        // =====================================================
         if (in_array(session()->get('kd_jabatan'), $tiket['upj'] ?? [])) {
             $upj = $tiket['upj'] ?? [];
+
+            $unit = array_values(array_filter(
+                $tiket['unit_penanggung_jawab'] ?? [],
+                function ($unit) use ($upj) {
+                    return !in_array($unit['kd_jbtn'], $upj);
+                }
+            ));
+
             return [
                 'validasi' => null,
-                'teruskan' => [
-                    base_url('pelaksana/pelaksana_proses'),
-                    array_values(array_filter(
-                        $tiket['unit_penanggung_jawab'],
-                        function ($unit) use ($upj) {
-                            return !in_array($unit['kd_jbtn'], $upj);
-                        }
-                    )),
-                    $tiket['id']
-                ],
+                'teruskan' => empty($unit)
+                    ? null
+                    : [
+                        base_url('pelaksana/pelaksana_proses'),
+                        $unit,
+                        $tiket['id']
+                    ],
                 'rproses'  => $tiket['proses'] ?? [],
                 'kerjakan' => [
                     'form' => base_url('pelaksana/pelaksana_final')

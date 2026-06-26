@@ -3,6 +3,7 @@
     $canKerjakan = !empty($data['tindakan']['kerjakan']);
     $canTindakan = !empty($data['tindakan']['kerjakan']);
     $canTeruskan = !empty($data['tindakan']['teruskan']);
+    //dd($data['tindakan']['teruskan']);
     $canRProsess = !empty($data['tindakan']['rproses']);
     $currentIndex = null;
     foreach ($data['eticket'] as $i => $ticket) {
@@ -66,7 +67,7 @@
             <button
                 type="button"
                 class="btn btn-warning"
-                <?= $canTindakan ? 'data-bs-toggle="modal" data-bs-target="#modalTeruskan"' : 'disabled' ?>>
+                <?= $canTeruskan ? 'data-bs-toggle="modal" data-bs-target="#modalTeruskan"' : 'disabled' ?>>
                 <i class="fas fa-file-alt me-1"></i>
                 Teruskan
             </button>
@@ -282,7 +283,7 @@
 
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
-                                Tindakan Ticket | Fitur Belum tersedia
+                                Tindakan Ticket
                             </h5>
                             <button
                                 type="button"
@@ -294,6 +295,9 @@
                         <div class="modal-body">
                             <form action="<?= base_url('ambil-tiket') ?>" method="post">
                                 <?= csrf_field() ?>
+                                <?php
+                                //dd($data['detailTicket']);
+                                ?>
 
                                 <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
 
@@ -353,8 +357,6 @@
                                 <label class="form-label">Unit Tujuan</label>
 
                                 <select name="kd_jbtn" class="form-select" required>
-                                    <option value="">-- Pilih Unit --</option>
-
                                     <?php foreach ($data['tindakan']['teruskan'][1] as $i => $unit): ?>
                                         <option value="<?= esc($unit['kd_jbtn']) ?>"
                                             <?= $i === 0 ? 'selected' : '' ?>>
