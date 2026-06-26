@@ -85,11 +85,9 @@
                 }
                 ?>
 
-                <div class="card-body">
-                    <p class="mb-0">
-                        <?= $preview ?>
-                    </p>
-                </div>
+                <p class="mb-0">
+                    <?= $preview ?>
+                </p>
             </div>
             <div class="card-footer d-flex gap-2">
                 <button
