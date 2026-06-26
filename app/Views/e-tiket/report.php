@@ -141,7 +141,7 @@
                     <td><span class="label">Kode Ticket</span></td>
                     <td>: <?= esc($detailTicket['kode_ticket'] ?? '-') ?></td>
                     <td class="text-right"><span class="label">Tanggal</span></td>
-                    <td>: <?= date('d-M-Y', strtotime($detailTicket['created_at'])) ?></td>
+                    <td>: <?= date('d M Y', strtotime($detailTicket['created_at'])) ?></td>
                 </tr>
                 <tr>
                     <td><span class="label">Kategori</span></td>
@@ -216,8 +216,6 @@
                     </td>
                 <?php else: ?>
                     <td>
-                        Mengetahui,<br>
-                        Atasan
                     </td>
                 <?php endif ?>
                 <td>
