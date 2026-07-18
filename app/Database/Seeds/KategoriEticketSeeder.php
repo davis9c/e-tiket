@@ -36,6 +36,6 @@ class KategoriEticketSeeder extends Seeder
 
         ];
 
-        $this->db->table('kategori_eticket')->insertBatch($data);
+        $this->db->table('tb_e_ticket_kategori_eticket')->insertBatch($data);
     }
 }

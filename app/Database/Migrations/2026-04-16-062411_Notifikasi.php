@@ -52,11 +52,11 @@ class Notifikasi extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->createTable('notifikasi');
+        $this->forge->createTable('tb_e_ticket_notifikasi');
     }
 
     public function down()
     {
-        $this->forge->dropTable('notifikasi');
+        $this->forge->dropTable('tb_e_ticket_notifikasi');
     }
 }

@@ -25,7 +25,7 @@ class Admin extends BaseController
         $this->unitModel     = new KategoriUnitJabatanModel();
         $this->checkToken();
         $this->headers = [
-            'Authorization' => session()->get('token'),
+            'Authorization' => $this->session('token'),
             'Accept'        => 'application/json',
         ];
     }
@@ -35,7 +35,7 @@ class Admin extends BaseController
      * ===================================================== */
     private function auth()
     {
-        if (!session()->get('token')) {
+        if (!$this->session('token')) {
             return redirect()->to('/login')->send();
         }
     }
@@ -197,7 +197,7 @@ class Admin extends BaseController
         $client = Services::curlrequest();
 
         $headers = [
-            'Authorization' => session()->get('token'),
+            'Authorization' => $this->session('token'),
             'Accept'        => 'application/json',
             'Content-Type'  => 'application/json',
         ];

@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class ETicketUPJModel extends Model
 {
-    protected $table            = 'eticketupjs';
+    protected $table            = 'tb_e_ticket_upj';
     protected $primaryKey       = 'id';
 
     protected $useAutoIncrement = true;

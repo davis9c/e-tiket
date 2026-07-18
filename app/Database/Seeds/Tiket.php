@@ -44,7 +44,7 @@ class Tiket extends Seeder
             ['id' => 43, 'kode_ticket' => null, 'judul' => '', 'message' => 'No RM: RM-2026-012, catatan penting: data sensitif', 'headsection' => 1, 'kategori_id' => 1, 'petugas_id' => 197005091995031002, 'kd_jbtn' => 'J036', 'valid' => 197005091995031002, 'selesai' => null, 'reject' => null, 'respon_message' => null, 'created_at' => '2026-02-16 17:28:39', 'updated_at' => '2026-02-16 17:28:39'],
         ];
 
-        $this->db->table('e_ticket')->insertBatch($tickets);
+        $this->db->table('tb_e_ticket')->insertBatch($tickets);
 
 
         /*
@@ -69,6 +69,6 @@ class Tiket extends Seeder
             ['id' => 27, 'id_eticket' => 43, 'kd_jbtn' => 'J013', 'id_petugas' => null, 'catatan' => null, 'created_at' => '2026-02-16 17:28:39', 'updated_at' => '2026-02-16 17:28:39'],
         ];
 
-        $this->db->table('eticket_proses')->insertBatch($proses);
+        $this->db->table('tb_e_ticket_proses')->insertBatch($proses);
     }
 }

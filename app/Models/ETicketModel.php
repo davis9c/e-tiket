@@ -8,7 +8,7 @@ use CodeIgniter\I18n\Time;
 
 class ETicketModel extends Model
 {
-    protected $table            = 'e_ticket';
+    protected $table            = 'tb_e_ticket';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
@@ -129,8 +129,8 @@ class ETicketModel extends Model
             k.teruskan,
             u.nama AS handler_nama
         ')
-            ->join('kategori_eticket k', 'k.id = e.kategori_id', 'left')
-            ->join('users u', 'u.user_id = e.handler', 'left');
+            ->join('tb_e_ticket_kategori_eticket k', 'k.id = e.kategori_id', 'left')
+            ->join('tb_e_ticket_users u', 'u.user_id = e.handler', 'left');
     }
     /*
     |--------------------------------------------------------------------------
@@ -188,12 +188,12 @@ class ETicketModel extends Model
                 'akhir.updated_at AS respon_message_updated_at',
             ])
             ->join(
-                'eticket_proses awal',
+            'tb_e_ticket_proses awal',
                 'awal.id = e.message_awal',
                 'left'
             )
             ->join(
-                'eticket_proses akhir',
+            'tb_e_ticket_proses akhir',
                 'akhir.id = e.message_akhir',
                 'left'
             )
@@ -244,7 +244,7 @@ class ETicketModel extends Model
         // ================================
         // Ambil UPJ dari tabel eticketupjs
         // ================================
-        $upjRows = $this->db->table('eticketupjs')
+        $upjRows = $this->db->table('tb_e_ticket_upj')
             ->select('kd_jbtn')
             ->where('etiket_id', $id)
             ->get()
@@ -265,17 +265,17 @@ class ETicketModel extends Model
     ): array {
         $builder = $this->baseQuery()
             ->join(
-                'eticket_proses ep',
+            'tb_e_ticket_proses ep',
                 'ep.id_eticket = e.id',
                 'left'
             )
             ->join(
-                'eticket_proses awal',
+            'tb_e_ticket_proses awal',
                 'awal.id = e.message_awal',
                 'left'
             )
             ->join(
-                'eticket_proses akhir',
+            'tb_e_ticket_proses akhir',
                 'akhir.id = e.message_akhir',
                 'left'
             )
@@ -303,7 +303,7 @@ class ETicketModel extends Model
             $builder->where("
                 EXISTS (
                     SELECT 1
-                    FROM eticketupjs upj
+                    FROM tb_e_ticket_upj upj
                     WHERE upj.etiket_id = e.id
                     AND upj.kd_jbtn = " . $this->db->escape($kd_jbtn) . "
                 )
@@ -350,7 +350,7 @@ class ETicketModel extends Model
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
-        $upjRows = $this->db->table('eticketupjs')
+        $upjRows = $this->db->table('tb_e_ticket_upj')
             ->select('etiket_id, kd_jbtn')
             ->get()
             ->getResultArray();
@@ -391,17 +391,17 @@ class ETicketModel extends Model
                 'inner'
             )
             ->join(
-                'eticket_proses ep',
+            'tb_e_ticket_proses ep',
                 'ep.id_eticket = e.id',
                 'left'
         )
             ->join(
-                'eticket_proses awal',
+            'tb_e_ticket_proses awal',
                 'awal.id = e.message_awal',
                 'left'
             )
             ->join(
-                'eticket_proses akhir',
+            'tb_e_ticket_proses akhir',
                 'akhir.id = e.message_akhir',
                 'left'
             )
@@ -484,8 +484,8 @@ class ETicketModel extends Model
     ): bool {
         $builder = $this->baseQuery()
             ->select('1', false)
-            ->join('kategori_unit_jabatan kuj', 'kuj.kategori_id = e.kategori_id', 'inner')
-            ->join('eticket_proses ep', 'ep.id_eticket = e.id', 'left')
+            ->join('tb_e_ticket_kategori_unit_jabatan kuj', 'kuj.kategori_id = e.kategori_id', 'inner')
+            ->join('tb_e_ticket_proses ep', 'ep.id_eticket = e.id', 'left')
             ->where('kuj.kd_jbtn', $kd_jbtn)
             ->where('kuj.is_penanggung_jawab', $penanggungJawab)
             ->where('e.valid_nama IS NOT NULL', null, false)
@@ -532,7 +532,7 @@ class ETicketModel extends Model
     */
     public function findKategoriWithUnit(int $kategoriId): ?array
     {
-        $row = $this->db->table('kategori_eticket')
+        $row = $this->db->table('tb_e_ticket_kategori_eticket')
             ->where('id', $kategoriId)
             ->get()
             ->getRowArray();
@@ -553,7 +553,7 @@ class ETicketModel extends Model
     */
     private function getUnitByKategori(int $kategoriId, int $isPenanggungJawab): array
     {
-        return $this->db->table('kategori_unit_jabatan')
+        return $this->db->table('tb_e_ticket_kategori_unit_jabatan')
             ->where('kategori_id', $kategoriId)
             ->where('is_penanggung_jawab', $isPenanggungJawab)
             ->orderBy('id', 'ASC')

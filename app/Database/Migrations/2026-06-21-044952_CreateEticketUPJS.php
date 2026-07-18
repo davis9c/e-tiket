@@ -31,12 +31,12 @@ class CreateEticketUPJS extends Migration
         $this->forge->addKey('etiket_id');
         $this->forge->addKey('kd_jbtn');
 
-        $this->forge->createTable('eticketupjs');
+        $this->forge->createTable('tb_e_ticket_upj');
 
     }
 
     public function down()
     {
-        $this->forge->dropTable('eticketupjs');
+        $this->forge->dropTable('tb_e_ticket_upj');
     }
 }

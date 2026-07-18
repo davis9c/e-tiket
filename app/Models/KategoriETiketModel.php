@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class KategoriETiketModel extends Model
 {
-    protected $table      = 'kategori_eticket';
+    protected $table      = 'tb_e_ticket_kategori_eticket';
     protected $primaryKey = 'id';
 
     protected $allowedFields = [
@@ -67,7 +67,7 @@ class KategoriETiketModel extends Model
 
     private function getUnitByKategori(int $kategoriId, int $isPenanggungJawab): array
     {
-        return $this->db->table('kategori_unit_jabatan')
+        return $this->db->table('tb_e_ticket_kategori_unit_jabatan')
             ->select('kd_jbtn')
             ->where('kategori_id', $kategoriId)
             ->where('is_penanggung_jawab', $isPenanggungJawab)
@@ -99,7 +99,7 @@ class KategoriETiketModel extends Model
         $builder = $this->db->table($this->table . ' k')
             ->select('k.*')
             ->join(
-                'kategori_unit_jabatan kuj',
+                'tb_e_ticket_kategori_unit_jabatan kuj',
             'kuj.kategori_id = k.id 
             AND kuj.is_penanggung_jawab = ' . $isPenanggungJawab,
                 'inner'
@@ -143,7 +143,7 @@ class KategoriETiketModel extends Model
 
     private function existsInUnit(int $kategoriId, string $kdJbtn, int $type): bool
     {
-        return $this->db->table('kategori_unit_jabatan')
+        return $this->db->table('tb_e_ticket_kategori_unit_jabatan')
             ->where('kategori_id', $kategoriId)
             ->where('kd_jbtn', $kdJbtn)
             ->where('is_penanggung_jawab', $type)

@@ -50,11 +50,11 @@ class KategoriEtiket extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addUniqueKey('kode_kategori');
-        $this->forge->createTable('kategori_eticket');
+        $this->forge->createTable('tb_e_ticket_kategori_eticket');
     }
 
     public function down()
     {
-        $this->forge->dropTable('kategori_eticket');
+        $this->forge->dropTable('tb_e_ticket_kategori_eticket');
     }
 }

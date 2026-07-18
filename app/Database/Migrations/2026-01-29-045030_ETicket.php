@@ -166,11 +166,11 @@ class ETicket extends Migration
         //$this->forge->addKey('reject');
         $this->forge->addKey('proses');
         $this->forge->addKey('proses_unit');
-        $this->forge->createTable('e_ticket', true);
+        $this->forge->createTable('tb_e_ticket', true);
     }
 
     public function down()
     {
-        $this->forge->dropTable('e_ticket', true);
+        $this->forge->dropTable('tb_e_ticket', true);
     }
 }

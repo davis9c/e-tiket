@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class KategoriUnitJabatanModel extends Model
 {
-    protected $table            = 'kategori_unit_jabatan';
+    protected $table            = 'tb_e_ticket_kategori_unit_jabatan';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';

@@ -2,9 +2,9 @@
 
 namespace App\Controllers;
 
-use CodeIgniter\Controller;
+use App\Controllers\BaseController;
 
-class Notifikasi extends Controller
+class Notifikasi extends BaseController
 {
     protected $db;
 
@@ -18,14 +18,14 @@ class Notifikasi extends Controller
     {
         try {
 
-            //dd(session()->get('headsection'));
-            if (!empty(session()->get('headsection'))) {
-                $idPegawai = session()->get('id_pegawai');
+            //dd($this->session('headsection'));
+            if (!empty($this->session('headsection'))) {
+                $idPegawai = $this->session('id_pegawai');
 
-            $builder = $this->db->table('notifikasi');
+            $builder = $this->db->table('tb_e_ticket_notifikasi');
             $data = $builder
                 ->where('valid', 0)
-                ->where('kd_jbtn', session()->get('kd_jabatan'))
+                ->where('kd_jbtn', $this->session('kd_jabatan'))
                 ->orderBy('created_at', 'DESC')
                 ->get()
                 ->getResult();
@@ -33,19 +33,19 @@ class Notifikasi extends Controller
             // Hapus data di database berdasarkan data yang sudah di dapat
             if (!empty($data)) {
                 $ids = array_map(fn($item) => $item->id, $data);
-                $this->db->table('notifikasi')->whereIn('id', $ids)->delete();
+                $this->db->table('tb_e_ticket_notifikasi')->whereIn('id', $ids)->delete();
             }
 
             return $this->response->setJSON($data);
             } else {
-                $idPegawai = session()->get('id_pegawai');
+                $idPegawai = $this->session('id_pegawai');
 
-                $builder = $this->db->table('notifikasi');
+                $builder = $this->db->table('tb_e_ticket_notifikasi');
                 $data = $builder
                     ->where('valid', 1)
                     ->groupStart() // buka kurung
-                    ->where('kd_jbtn', session()->get('kd_jabatan'))
-                    ->orWhere('id_pegawai', session()->get('id_pegawai'))
+                    ->where('kd_jbtn', $this->session('kd_jabatan'))
+                    ->orWhere('id_pegawai', $this->session('id_pegawai'))
                     ->groupEnd() // tutup kurung
                     ->orderBy('created_at', 'DESC')
                     ->get()
@@ -54,7 +54,7 @@ class Notifikasi extends Controller
                 // Hapus data di database berdasarkan data yang sudah di dapat
                 if (!empty($data)) {
                     $ids = array_map(fn($item) => $item->id, $data);
-                    $this->db->table('notifikasi')->whereIn('id', $ids)->delete();
+                    $this->db->table('tb_e_ticket_notifikasi')->whereIn('id', $ids)->delete();
                 }
 
                 return $this->response->setJSON($data);
@@ -81,7 +81,7 @@ class Notifikasi extends Controller
             'updated_at' => date('Y-m-d H:i:s'),
         ];
 
-        $this->db->table('notifikasi')->insert($data);
+        $this->db->table('tb_e_ticket_notifikasi')->insert($data);
 
         return $this->response->setJSON([
             'status' => 'success'
@@ -91,7 +91,7 @@ class Notifikasi extends Controller
     // 🗑️ (opsional) hapus notif
     public function delete($id)
     {
-        $this->db->table('notifikasi')->delete(['id' => $id]);
+        $this->db->table('tb_e_ticket_notifikasi')->delete(['id' => $id]);
 
         return $this->response->setJSON([
             'status' => 'deleted'

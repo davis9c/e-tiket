@@ -9,7 +9,7 @@ class Prosesbaru extends Migration
     public function up()
     {
         // Rename kolom
-        $this->forge->modifyColumn('e_ticket', [
+        $this->forge->modifyColumn('tb_e_ticket', [
             'message' => [
                 'name' => 'message_awal',
                 'type' => 'TEXT',
@@ -26,7 +26,7 @@ class Prosesbaru extends Migration
     public function down()
     {
 
-        $this->forge->modifyColumn('e_ticket', [
+        $this->forge->modifyColumn('tb_e_ticket', [
             'message_awal' => [
                 'name' => 'message',
                 'type' => 'TEXT',

@@ -34,11 +34,11 @@ class KategoriUnitJabatan extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey(['kategori_id', 'kd_jbtn']);
-        $this->forge->createTable('kategori_unit_jabatan');
+        $this->forge->createTable('tb_e_ticket_kategori_unit_jabatan');
     }
 
     public function down()
     {
-        $this->forge->dropTable('kategori_unit_jabatan');
+        $this->forge->dropTable('tb_e_ticket_kategori_unit_jabatan');
     }
 }

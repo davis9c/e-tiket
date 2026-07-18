@@ -61,11 +61,11 @@ class Proses extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey('id_eticket');
-        $this->forge->createTable('eticket_proses');
+        $this->forge->createTable('tb_e_ticket_proses');
     }
 
     public function down()
     {
-        $this->forge->dropTable('eticket_proses');
+        $this->forge->dropTable('tb_e_ticket_proses');
     }
 }

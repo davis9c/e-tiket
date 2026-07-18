@@ -9,7 +9,7 @@ class Update260605 extends Migration
     public function up()
     {
         // 1. kategori_etiket.teruskan
-        $this->forge->addColumn('kategori_eticket', [
+        $this->forge->addColumn('tb_e_ticket_kategori_eticket', [
             'teruskan' => [
                 'type'       => 'TINYINT',
                 'constraint' => 1,
@@ -20,7 +20,7 @@ class Update260605 extends Migration
         ]);
 
         // 2. e_ticket.handler
-        $this->forge->addColumn('e_ticket', [
+        $this->forge->addColumn('tb_e_ticket', [
             'handler' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 255,
@@ -29,7 +29,7 @@ class Update260605 extends Migration
         ]);
 
         // 3,4,5. eticket_proses
-        $this->forge->addColumn('eticket_proses', [
+        $this->forge->addColumn('tb_e_ticket_proses', [
             'user_id' => [
                 'type'       => 'INT',
                 'constraint' => 11,
@@ -41,12 +41,12 @@ class Update260605 extends Migration
     public function down()
     {
         // kategori_etiket
-        $this->forge->dropColumn('kategori_eticket', 'teruskan');
+        $this->forge->dropColumn('tb_e_ticket_kategori_eticket', 'teruskan');
 
         // e_ticket
-        $this->forge->dropColumn('e_ticket', 'handler');
+        $this->forge->dropColumn('tb_e_ticket', 'handler');
 
         // eticket_proses
-        $this->forge->dropColumn('eticket_proses', 'user_id');
+        $this->forge->dropColumn('tb_e_ticket_proses', 'user_id');
     }
 }

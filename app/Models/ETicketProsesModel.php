@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class ETicketProsesModel extends Model
 {
-    protected $table            = 'eticket_proses';
+    protected $table            = 'tb_e_ticket_proses';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';

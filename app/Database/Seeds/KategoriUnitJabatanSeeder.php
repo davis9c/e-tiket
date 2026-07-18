@@ -37,6 +37,6 @@ class KategoriUnitJabatanSeeder extends Seeder
             $d['created_at'] = date('Y-m-d H:i:s');
         }
 
-        $this->db->table('kategori_unit_jabatan')->insertBatch($data);
+        $this->db->table('tb_e_ticket_kategori_unit_jabatan')->insertBatch($data);
     }
 }

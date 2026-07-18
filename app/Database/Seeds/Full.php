@@ -50,13 +50,13 @@ class Full extends Seeder
         $kategoriIdMap = [];
 
         foreach ($kategoriData as $kode => $row) {
-            $existing = $this->db->table('kategori_eticket')
+            $existing = $this->db->table('tb_e_ticket_kategori_eticket')
                 ->where('kode_kategori', $kode)
                 ->get()
                 ->getRowArray();
 
             if (! $existing) {
-                $this->db->table('kategori_eticket')->insert([
+                $this->db->table('tb_e_ticket_kategori_eticket')->insert([
                     ...$row,
                     'aktif'      => 1,
                     'created_at' => $now,
@@ -115,7 +115,7 @@ class Full extends Seeder
             $kategoriId = $kategoriIdMap[$kodeKategori];
 
             foreach ($units as [$kdJbtn, $isPJ]) {
-                $exists = $this->db->table('kategori_unit_jabatan')
+                $exists = $this->db->table('tb_e_ticket_kategori_unit_jabatan')
                     ->where([
                         'kategori_id'         => $kategoriId,
                         'kd_jbtn'             => $kdJbtn,
@@ -125,7 +125,7 @@ class Full extends Seeder
                     ->getRow();
 
                 if (! $exists) {
-                    $this->db->table('kategori_unit_jabatan')->insert([
+                    $this->db->table('tb_e_ticket_kategori_unit_jabatan')->insert([
                         'kategori_id'         => $kategoriId,
                         'kd_jbtn'             => $kdJbtn,
                         'is_penanggung_jawab' => $isPJ,
@@ -155,13 +155,13 @@ class Full extends Seeder
          * =============================== */
         foreach ($usersData as $user) {
 
-            $existing = $this->db->table('users')
+            $existing = $this->db->table('tb_e_ticket_users')
                 ->where('user_id', $user['user_id'])
                 ->get()
                 ->getRowArray();
 
             if (! $existing) {
-                $this->db->table('users')->insert([
+                $this->db->table('tb_e_ticket_users')->insert([
                     'user_id'     => $user['user_id'],
                     'nip'         => $user['nip'],
                     'headsection' => $user['headsection'],

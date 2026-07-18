@@ -41,11 +41,11 @@ class Users extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addUniqueKey('user_id');
         $this->forge->addUniqueKey('nip');
-        $this->forge->createTable('users');
+        $this->forge->createTable('tb_e_ticket_users');
     }
 
     public function down()
     {
-        $this->forge->dropTable('users');
+        $this->forge->dropTable('tb_e_ticket_users');
     }
 }

@@ -8,7 +8,7 @@ class Modiftabeluser extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('users', [
+        $this->forge->addColumn('tb_e_ticket_users', [
             'nik' => [
                 'type'       => 'VARCHAR',
                 'constraint' => 20,
@@ -26,7 +26,7 @@ class Modiftabeluser extends Migration
 
     public function down()
     {
-        $this->forge->dropColumn('users', 'nik');
-        $this->forge->dropColumn('users', 'nama');
+        $this->forge->dropColumn('tb_e_ticket_users', 'nik');
+        $this->forge->dropColumn('tb_e_ticket_users', 'nama');
     }
 }
