@@ -386,7 +386,7 @@ class ETicketModel extends Model
     ): array {
         $builder = $this->baseQuery()
             ->join(
-                'kategori_unit_jabatan kuj',
+            'tb_e_ticket_kategori_unit_jabatan kuj',
                 'kuj.kategori_id = e.kategori_id',
                 'inner'
             )

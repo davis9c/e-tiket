@@ -76,7 +76,6 @@
                                 <label for="nip" class="form-label">
                                     Petugas Tujuan
                                 </label>
-
                                 <select
                                     name="nip"
                                     id="nip"

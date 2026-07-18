@@ -50,6 +50,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
     $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
     $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
+    $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change');
 
     $routes->get('manual', 'ETicket2::manual'); //halaman untuk input manual, hanya bisa diakses oleh admin
     $routes->get('manual/(:any)', 'ETicket2::manual/$1'); //halaman untuk input manual, hanya bisa diakses oleh admin

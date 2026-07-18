@@ -3,6 +3,7 @@
     $canKerjakan = !empty($data['tindakan']['kerjakan']);
     $canTindakan = !empty($data['tindakan']['kerjakan']);
     $canTeruskan = !empty($data['tindakan']['teruskan']);
+    $canKategorC = !empty($data['tindakan']['kategoric']);
     //dd($data['tindakan']['teruskan']);
     $canRProsess = !empty($data['tindakan']['rproses']);
     $currentIndex = null;
@@ -278,9 +279,7 @@
         <?php if ($canTindakan): ?>
             <div class="modal fade" id="modalTindakan" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
-
                     <div class="modal-content">
-
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
                                 Tindakan Ticket
@@ -293,32 +292,74 @@
                         </div>
 
                         <div class="modal-body">
-                            <form action="<?= base_url('ambil-tiket') ?>" method="post">
-                                <?= csrf_field() ?>
-                                <?php
-                                //dd($data['detailTicket']);
-                                ?>
+                            <div class="col">
+                                <div class="col-md">
+                                    <form action="<?= base_url('ambil-tiket') ?>" method="post">
+                                        <?= csrf_field() ?>
+                                        <?php
+                                        //dd($data['detailTicket']['kategori_id']);
+                                        ?>
+                                        <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+                                        <div class="form-check mb-3">
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                value="1"
+                                                id="konfirmasi_ambil"
+                                                name="konfirmasi_ambil"
+                                                required>
 
-                                <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+                                            <label class="form-check-label" for="konfirmasi_ambil">
+                                                Saya mengambil dan mengerjakan tiket ini.
+                                            </label>
+                                        </div>
 
-                                <div class="form-check mb-3">
-                                    <input
-                                        class="form-check-input"
-                                        type="checkbox"
-                                        value="1"
-                                        id="konfirmasi_ambil"
-                                        name="konfirmasi_ambil"
-                                        required>
-
-                                    <label class="form-check-label" for="konfirmasi_ambil">
-                                        Saya mengambil dan mengerjakan tiket ini.
-                                    </label>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-hand-paper me-1"></i> Ambil Tiket
+                                        </button>
+                                    </form>
                                 </div>
+                                <?php if ($canKategorC): ?>
+                                    <div class="col-md">
+                                        <form action="<?= base_url('pelaksana/kategori-change') ?>" method="post">
+                                            <?= csrf_field() ?>
 
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-hand-paper me-1"></i> Ambil Tiket
-                                </button>
-                            </form>
+                                            <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+
+                                            <div class="mb-3">
+                                                <label for="id_kategori" class="form-label">
+                                                    Pilih Kategori
+                                                </label>
+
+                                                <select
+                                                    name="id_kategori"
+                                                    id="id_kategori"
+                                                    class="form-select <?= session('errors.id_kategori') ? 'is-invalid' : '' ?>"
+                                                    required>
+                                                    <?php foreach ($data['tindakan']['kategoric'] as $kategori): ?>
+                                                        <option
+                                                            value="<?= esc($kategori['id']) ?>"
+                                                            <?= old('id_kategori', $data['detailTicket']['kategori_id']) == $kategori['id'] ? 'selected' : '' ?>>
+                                                            <?= esc($kategori['kode_kategori']) ?> | <?= esc($kategori['nama_kategori']) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+
+                                                </select>
+
+                                                <?php if (session('errors.id_kategori')): ?>
+                                                    <div class="invalid-feedback d-block">
+                                                        <?= session('errors.id_kategori') ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-1"></i> Ubah Kategori
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
 
                     </div>
