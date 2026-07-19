@@ -85,8 +85,11 @@
                                     <option value="">Cari dan pilih petugas...</option>
 
                                     <?php foreach ($data['petugas'] as $p): ?>
+                                        <?php
+                                        dd($p);
+                                        ?>
                                         <option
-                                            value="<?= esc($p['nip']) ?>"
+                                            value="<?= $p['nip'] . '|' . $p['kd_jbtn'] . '|' . $p['nm_jbtn'] ?>"
                                             data-nama="<?= esc($p['nama']) ?>"
                                             data-jabatan="<?= esc($p['nm_jbtn']) ?>"
                                             <?= old('nip') == $p['nip'] ? 'selected' : '' ?>>

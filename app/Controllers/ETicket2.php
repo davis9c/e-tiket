@@ -587,13 +587,15 @@ class ETicket2 extends BaseController
 
         $ticketId   = $this->request->getPost('id_etiket');
         $kategoriId = $this->request->getPost('id_kategori');
-
+        $nip     = $this->session('nip');
+        $nama    = $this->session('nama');
+        $kdJbtn  = $this->session('kd_jabatan');
+        $jabatan = $this->session('jabatan');
 
         $detailSebelum = $this->eticketModel->findOneLengkap($ticketId);
         if (!$detailSebelum) {
             return redirect()->back()->with('error', 'Tiket tidak ditemukan.');
         }
-
         if ($detailSebelum['kategori_id'] == $kategoriId) {
             return redirect()->back()->with('info', 'Kategori tidak berubah.');
         }
@@ -626,7 +628,23 @@ class ETicket2 extends BaseController
         }
 
         $detailSesudah = $this->eticketModel->findOneLengkap($ticketId);
+        $catatan = sprintf(
+            'Mengubah kategori e-Tiket dari %s (%s) menjadi %s (%s)',
+            $detailSebelum['kode_kategori'],
+            $detailSebelum['nama_kategori'],
+            $detailSesudah['kode_kategori'],
+            $detailSesudah['nama_kategori']
+        );
 
+        $this->simpanLogProses(
+            $ticketId,
+            $kdJbtn,
+            $jabatan,
+            $nip,
+            $nama,
+            $catatan,
+            $this->session('id_pegawai')
+        );
         // Simpan log perubahan di sini jika diperlukan.
 
         return redirect()->back()->with('success', 'Kategori berhasil diubah.');
@@ -855,7 +873,7 @@ class ETicket2 extends BaseController
         if (!$isPelaksana) {
             return $tindakan;
         }
-
+        //dd($tiket);
         // =====================================================
         // Pelaksana
         // =====================================================
@@ -1606,12 +1624,17 @@ class ETicket2 extends BaseController
     public function manual_submit()
     {
         $kategoriId = (int)$this->request->getPost('kategori_id');
-        $kd_pegawai = $this->getPegawai($this->request->getPost('nip'))['id'];
+        $dataPetugas = explode('|', $this->request->getPost('nip'));
+
+        $nip        = $dataPetugas[0];
+        $kdJabatan  = $dataPetugas[1];
+        $nmJabatan  = $dataPetugas[2];
+        $kd_pegawai = $this->getPegawai($nip)['id'];
+        //dd($kd_pegawai);
         $petugasId   = $this->request->getPost('nip');
         $petugasNama = $this->request->getPost('nama_petugas');
         $petugasJabatan = $this->request->getPost('nm_jbtn');
         $message   = $this->request->getPost('message');
-        $kdJabatan   = $this->session('kd_jabatan');
         $prosesUnit   = !empty($flow['valid']) ? $flow['proses'] : null;
         $createdAtManual = $this->request->getPost('created_at_manual');
         if ($redirect = $this->guard()) return $redirect;
@@ -1795,7 +1818,6 @@ class ETicket2 extends BaseController
     private function getPegawai($nip): array
     {
         $client = Services::curlrequest();
-
         $headers = [
             'Authorization' => $this->session('token'),
             'Accept'        => 'application/json',
