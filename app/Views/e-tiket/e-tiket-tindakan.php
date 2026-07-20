@@ -4,6 +4,7 @@
     $canTindakan = !empty($data['tindakan']['kerjakan']);
     $canTeruskan = !empty($data['tindakan']['teruskan']);
     $canKategorC = !empty($data['tindakan']['kategoric']);
+    $canEditTike = !empty($data['tindakan']['edittiket']);
     //dd($data['tindakan']['teruskan']);
     $canRProsess = !empty($data['tindakan']['rproses']);
     $currentIndex = null;
@@ -32,8 +33,8 @@
             <?php if ($prevTicket): ?>
                 <a
                     href="<?= site_url($baseSegment . '/' . $prevTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
-                    class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>
+                    class="btn btn-outline-primary">
+                    <i class="fas fa-chevron-left me-1"></i>
                     Before
                 </a>
             <?php endif; ?>
@@ -41,9 +42,9 @@
             <!-- VALIDASI -->
             <button
                 type="button"
-                class="btn btn-success"
+                class="btn btn-primary"
                 <?= $canValidasi ? 'data-bs-toggle="modal" data-bs-target="#modalValidasi"' : 'disabled' ?>>
-                <i class="fas fa-check-circle me-1"></i>
+                <i class="fas fa-circle-check me-1"></i>
                 Validasi
             </button>
 
@@ -52,25 +53,41 @@
                 type="button"
                 class="btn btn-primary"
                 <?= $canKerjakan ? 'data-bs-toggle="modal" data-bs-target="#modalKerjakan"' : 'disabled' ?>>
-                <i class="fas fa-tools me-1"></i>
+                <i class="fas fa-screwdriver-wrench me-1"></i>
                 Kerjakan
+            </button>
+            <!-- EDIT -->
+            <button
+                type="button"
+                class="btn btn-primary"
+                <?= $canEditTike ? 'data-bs-toggle="modal" data-bs-target="#modalEditTicket"' : 'disabled' ?>>
+                <i class="fas fa-edit me-1"></i>
+                Edit
             </button>
 
             <!-- TINDAKAN -->
             <button
                 type="button"
-                class="btn btn-secondary"
+                class="btn btn-primary"
                 <?= $canTindakan ? 'data-bs-toggle="modal" data-bs-target="#modalTindakan"' : 'disabled' ?>>
-                <i class="fas fa-file-alt me-1"></i>
+                <i class="fas fa-list-check me-1"></i>
                 Tindakan
             </button>
             <!-- TERUSKAN -->
             <button
                 type="button"
-                class="btn btn-warning"
+                class="btn btn-primary"
                 <?= $canTeruskan ? 'data-bs-toggle="modal" data-bs-target="#modalTeruskan"' : 'disabled' ?>>
-                <i class="fas fa-file-alt me-1"></i>
+                <i class="fas fa-share-nodes me-1"></i>
                 Teruskan
+            </button>
+            <!-- KATEGORI -->
+            <button
+                type="button"
+                class="btn btn-primary"
+                <?= $canKategorC ? 'data-bs-toggle="modal" data-bs-target="#modalKategori"' : 'disabled' ?>>
+                <i class="fas fa-tags me-1"></i>
+                Kategori
             </button>
 
             <!-- RIWAYAT PROSES -->
@@ -78,7 +95,7 @@
                 type="button"
                 class="btn btn-outline-primary"
                 <?= $canRProsess ? 'data-bs-toggle="modal" data-bs-target="#modalRProsess"' : 'disabled' ?>>
-                <i class="fas fa-history me-1"></i>
+                <i class="fas fa-clock-rotate-left me-1"></i>
                 Riwayat Proses
             </button>
 
@@ -86,9 +103,9 @@
             <?php if ($nextTicket): ?>
                 <a
                     href="<?= site_url($baseSegment . '/' . $nextTicket['hashid']) . ($queryString ? '?' . $queryString : '') ?>"
-                    class="btn btn-outline-secondary">
+                    class="btn btn-outline-primary">
                     After
-                    <i class="fas fa-arrow-right ms-1"></i>
+                    <i class="fas fa-chevron-right ms-1"></i>
                 </a>
             <?php endif; ?>
         </div>
@@ -276,6 +293,78 @@
                 </script>
             <?php endif; ?>
         <?php endif; ?>
+        <?php if ($canEditTike): ?>
+            <!-- isi modal kerjakan yang sekarang -->
+            <div class="modal fade" id="modalEditTicket" tabindex="-1">
+                <div class="modal-dialog  modal-dialog-centered">
+                    <form
+                        action="<?= $data['tindakan']['edittiket']['form'] ?>"
+                        method="post"
+                        enctype="multipart/form-data"
+                        class="modal-content" enctype="multipart/form-data">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                Edit Permintaan Etiket
+                            </h5>
+                            <button
+                                type="button"
+                                class="btn-close btn-close-white"
+                                data-bs-dismiss="modal">
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Catatan -->
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    <?= esc($data['tindakan']['edittiket']['pesan']) ?>
+                                </label>
+                                <textarea
+                                    name="catatan"
+                                    rows="3"
+                                    class="form-control editor <?= session('errors.catatan') ? 'is-invalid' : '' ?>"
+                                    placeholder="Masukkan tindakan penyelesaian..."><?= old('catatan') ?></textarea>
+                                <div class="invalid-feedback">
+                                    <?= session('errors.catatan') ?>
+                                </div>
+                            </div>
+                            <?php if (session()->has('errors')) : ?>
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        <?php foreach (session('errors') as $error) : ?>
+                                            <li><?= esc($error) ?></li>
+                                        <?php endforeach ?>
+                                    </ul>
+                                </div>
+                            <?php endif ?>
+                        </div>
+                        <div class="modal-footer">
+                            <button
+                                type="button"
+                                class="btn btn-secondary"
+                                data-bs-dismiss="modal">
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                class="btn btn-primary px-4">
+                                Simpan Pengerjaan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <?php if (session('modal') === 'kerjakan'): ?>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        new bootstrap.Modal(
+                            document.getElementById('modalKerjakan')
+                        ).show();
+                    });
+                </script>
+            <?php endif; ?>
+        <?php endif; ?>
         <?php if ($canTindakan): ?>
             <div class="modal fade" id="modalTindakan" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
@@ -293,72 +382,89 @@
 
                         <div class="modal-body">
                             <div class="col">
-                                <div class="col-md">
-                                    <form action="<?= base_url('ambil-tiket') ?>" method="post">
-                                        <?= csrf_field() ?>
-                                        <?php
-                                        //dd($data['detailTicket']['kategori_id']);
-                                        ?>
-                                        <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
-                                        <div class="form-check mb-3">
-                                            <input
-                                                class="form-check-input"
-                                                type="checkbox"
-                                                value="1"
-                                                id="konfirmasi_ambil"
-                                                name="konfirmasi_ambil"
-                                                required>
+                                <form action="<?= base_url('ambil-tiket') ?>" method="post">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+                                    <div class="form-check mb-3">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            value="1"
+                                            id="konfirmasi_ambil"
+                                            name="konfirmasi_ambil"
+                                            required>
 
-                                            <label class="form-check-label" for="konfirmasi_ambil">
-                                                Saya mengambil dan mengerjakan tiket ini.
-                                            </label>
-                                        </div>
-
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-hand-paper me-1"></i> Ambil Tiket
-                                        </button>
-                                    </form>
-                                </div>
-                                <?php if ($canKategorC): ?>
-                                    <div class="col-md">
-                                        <form action="<?= base_url('pelaksana/kategori-change') ?>" method="post">
-                                            <?= csrf_field() ?>
-
-                                            <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
-
-                                            <div class="mb-3">
-                                                <label for="id_kategori" class="form-label">
-                                                    Pilih Kategori
-                                                </label>
-
-                                                <select
-                                                    name="id_kategori"
-                                                    id="id_kategori"
-                                                    class="form-select <?= session('errors.id_kategori') ? 'is-invalid' : '' ?>"
-                                                    required>
-                                                    <?php foreach ($data['tindakan']['kategoric'] as $kategori): ?>
-                                                        <option
-                                                            value="<?= esc($kategori['id']) ?>"
-                                                            <?= old('id_kategori', $data['detailTicket']['kategori_id']) == $kategori['id'] ? 'selected' : '' ?>>
-                                                            <?= esc($kategori['kode_kategori']) ?> | <?= esc($kategori['nama_kategori']) ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-
-                                                </select>
-
-                                                <?php if (session('errors.id_kategori')): ?>
-                                                    <div class="invalid-feedback d-block">
-                                                        <?= session('errors.id_kategori') ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="fas fa-save me-1"></i> Ubah Kategori
-                                            </button>
-                                        </form>
+                                        <label class="form-check-label" for="konfirmasi_ambil">
+                                            Saya mengambil dan mengerjakan tiket ini.
+                                        </label>
                                     </div>
-                                <?php endif; ?>
+
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-hand-paper me-1"></i> Ambil Tiket
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        <?php endif; ?>
+        <?php if ($canKategorC): ?>
+            <div class="modal fade" id="modalKategori" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title">
+                                Ubah Kategori Ticket
+                            </h5>
+                            <button
+                                type="button"
+                                class="btn-close btn-close-white"
+                                data-bs-dismiss="modal">
+                            </button>
+                        </div>
+
+                        <div class="modal-body">
+                            <p><?= esc($data['tindakan']['kategoric']['pesan']) ?></p>
+                            <div class="col">
+                                <form action="<?= $data['tindakan']['kategoric']['form'] ?>" method="post">
+                                    <?= csrf_field() ?>
+
+                                    <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+
+                                    <div class="mb-3">
+                                        <label for="id_kategori" class="form-label">
+                                            Pilih Kategori
+                                        </label>
+
+                                        <select
+                                            name="id_kategori"
+                                            id="id_kategori"
+                                            class="form-select <?= session('errors.id_kategori') ? 'is-invalid' : '' ?>"
+                                            required>
+                                            <?php foreach ($data['tindakan']['kategoric']['kategori_list'] as $kategori): ?>
+                                                <option
+                                                    value="<?= esc($kategori['id']) ?>"
+                                                    <?= old('id_kategori', $data['detailTicket']['kategori_id']) == $kategori['id'] ? 'selected' : '' ?>>
+                                                    <?= esc($kategori['kode_kategori']) ?> | <?= esc($kategori['nama_kategori']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+
+                                        </select>
+
+                                        <?php if (session('errors.id_kategori')): ?>
+                                            <div class="invalid-feedback d-block">
+                                                <?= session('errors.id_kategori') ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i> Ubah Kategori
+                                    </button>
+                                </form>
                             </div>
                         </div>
 
@@ -464,9 +570,6 @@
                                 <div class="row">
                                     <!-- KOLOM 2 -->
                                     <div class="col-lg-12 border-end">
-                                        <h6 class="fw-bold text-warning mb-3">
-                                            Riwayat Proses
-                                        </h6>
                                         <?php
                                         $messageId = $data['detailTicket']['message_id'] ?? null;
                                         $responId  = $data['detailTicket']['respon_message_id'] ?? null;

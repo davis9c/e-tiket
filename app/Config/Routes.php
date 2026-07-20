@@ -37,7 +37,12 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('etiket/(:any)', 'ETicket2::eticket/$1');
     $routes->post('etiket/submit', 'ETicket2::submit');
     $routes->get('report/(:any)', 'ETicket2::report/$1');
+
+    //Untuk Tindakan
     $routes->post('ambil-tiket', 'ETicket2::submit_ambil_tiket');
+    $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change');
+
+    $routes->post('etiket/ticket-edit-permintaan', 'ETicket2::eticket_edit_permintaan');
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
     $routes->get('lampiran/view/(:segment)', 'ETicket2::viewLampiran/$1');
@@ -50,7 +55,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
     $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
     $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
-    $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change');
 
     $routes->get('manual', 'ETicket2::manual'); //halaman untuk input manual, hanya bisa diakses oleh admin
     $routes->get('manual/(:any)', 'ETicket2::manual/$1'); //halaman untuk input manual, hanya bisa diakses oleh admin

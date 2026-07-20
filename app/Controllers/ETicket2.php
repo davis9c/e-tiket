@@ -156,6 +156,7 @@ class ETicket2 extends BaseController
     {
         if ($redirect = $this->guard()) return $redirect;
         $nip = $this->session('nip');
+        //dd();
         if (!$nip) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
@@ -356,7 +357,7 @@ class ETicket2 extends BaseController
         $nama    = $this->session('nama');
         $kdJbtn  = $this->session('kd_jabatan');
         $jabatan = $this->session('jabatan');
-
+        $idpegawai = null;
         $rules = [
             'ticket_id' => [
                 'label' => 'ID Ticket',
@@ -400,10 +401,14 @@ class ETicket2 extends BaseController
             $file->move(WRITEPATH . 'uploads/proses', $lampiran);
         }
 
-        $ticket = $this->eticketModel->find($ticketId);
+        $ticket = $this->eticketModel->findDetail($ticketId);
 
-        $pesanProses = $catatan;
-
+        if (in_array(
+            $this->session('kd_jabatan'),
+            array_column($ticket['unit_penanggung_jawab'], 'kd_jbtn')
+        )) {
+            $idpegawai = $this->session('id_pegawai');
+        }
         if ($selesai === '1') {
 
             // LOG 1: catatan selesai
@@ -442,7 +447,9 @@ class ETicket2 extends BaseController
 
             $pesan = 'Ticket berhasil diselesaikan.';
         } else {
-
+            $this->eticketModel->update($ticketId, [
+                'handler'       => $idpegawai,
+            ]);
             // LOG 1: progress
             $this->simpanLogProses(
                 $ticketId,
@@ -454,9 +461,6 @@ class ETicket2 extends BaseController
                 $this->session('id_pegawai'),
                 $lampiran
             );
-
-
-
             $pesan = 'Progress pekerjaan berhasil disimpan.';
         }
 
@@ -791,20 +795,23 @@ class ETicket2 extends BaseController
     }
     private function tindakan($tiket)
     {
-        $adminapp = getenv('ROLE_ADMIN');
-        //dd();
-        $jabatan  = $this->session('kd_jabatan');
+        $adminapp  = getenv('ROLE_ADMIN');
+        $jabatan   = $this->session('kd_jabatan');
+        $idPegawai = $this->session('id_pegawai');
+
         $tindakan = [
             'validasi'  => null,
             'teruskan'  => null,
             'kerjakan'  => null,
-            'kategoric'  => null,
-            'rproses'   => $tiket['proses'],
-            'pesan'     => 'Tidak ada tindakan'
+            'kategoric' => null,
+            'edittiket' => null,
+
+            'rproses'   => $tiket['proses'] ?? [],
+            'pesan'     => 'Tidak ada tindakan',
         ];
-        $isPengaju = (
-            $this->session('id_pegawai') == $tiket['kd_pegawai']
-        );
+
+        $isPengaju = ($idPegawai == $tiket['kd_pegawai']);
+
         // =====================================================
         // Tiket selesai
         // =====================================================
@@ -812,6 +819,7 @@ class ETicket2 extends BaseController
             $tindakan['pesan'] = 'Tiket selesai';
             return $tindakan;
         }
+
         // =====================================================
         // Tiket belum valid
         // =====================================================
@@ -827,36 +835,28 @@ class ETicket2 extends BaseController
                 || $jabatan == $adminapp
             );
 
-            // Head Section
             if ($isHeadSection && $isValidator) {
-                return [
-                    'validasi' => 'null',
-                    'teruskan' => null,
-                    'kategoric'  => null,
-                    'kerjakan' => [
-                        'form' => base_url('pelaksana/pelaksana_final')
-                    ],
-                    'rproses' => $tiket['proses'] ?? [],
-                    'pesan' => 'HS dapat validasi dan mengerjakan'
+                $tindakan['validasi'] = 'null';
+                $tindakan['kerjakan'] = [
+                    'form' => base_url('pelaksana/pelaksana_final')
                 ];
+                $tindakan['pesan'] = 'HS dapat validasi dan mengerjakan';
+
+                return $tindakan;
             }
 
-            // Pengaju tiket
             if ($isPengaju) {
-                return [
-                    'validasi' => null,
-                    'teruskan' => null,
-                    'kategoric'  => null,
-                    'kerjakan' => [
-                        'form' => base_url('pelaksana/pelaksana_final')
-                    ],
-                    'rproses' => $tiket['proses'] ?? [],
-                    'pesan' => 'Pengaju dapat mengerjakan tiket sebelum validasi'
+                $tindakan['kerjakan'] = [
+                    'form' => base_url('pelaksana/pelaksana_final')
                 ];
+                $tindakan['pesan'] = 'Pengaju dapat mengerjakan tiket sebelum validasi';
+
+                return $tindakan;
             }
 
             return $tindakan;
         }
+
         // =====================================================
         // Tiket sudah valid
         // =====================================================
@@ -864,6 +864,7 @@ class ETicket2 extends BaseController
             $tiket['unit_penanggung_jawab'],
             'kd_jbtn'
         );
+
         $isPelaksana = (
             in_array($jabatan, $penanggungJawab)
             || $jabatan == $adminapp
@@ -873,50 +874,56 @@ class ETicket2 extends BaseController
         if (!$isPelaksana) {
             return $tindakan;
         }
-        //dd($tiket);
-        // =====================================================
-        // Pelaksana
-        // =====================================================
-        if (in_array($this->session('kd_jabatan'), $tiket['upj'] ?? [])) {
-            $upj = $tiket['upj'] ?? [];
 
-            $unit = array_values(array_filter(
-                $tiket['unit_penanggung_jawab'] ?? [],
-                function ($unit) use ($upj) {
-                    return !in_array($unit['kd_jbtn'], $upj);
-                }
-            ));
+        $tindakan['kerjakan'] = [
+            'form' => base_url('pelaksana/pelaksana_final')
+        ];
 
-            return [
-                'validasi' => null,
-                'teruskan' => empty($unit)
-                    ? null
-                    : [
-                        base_url('pelaksana/pelaksana_proses'),
-                        $unit,
-                        $tiket['id']
-                    ],
-                'rproses'  => $tiket['proses'] ?? [],
-                'kategoric'  => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan($tiket['kd_jbtn'])),
-                'kerjakan' => [
-                    'form' => base_url('pelaksana/pelaksana_final')
-                ],
-                'pesan' => $isPengaju
-                    ? 'Pengaju dapat mengerjakan tiket'
-                    : 'Pelaksana dapat mengerjakan dan meneruskan'
+        if ($isPengaju) {
+            $tindakan['kategoric'] = [
+                'form' => base_url('pelaksana/kategori-change'),
+                'kategori_list' => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan($tiket['kd_jbtn'])),
+                'pesan' => 'Pengaju dapat mengubah kategori tiket'
+            ];
+            $tindakan['edittiket'] = [
+                'form' => base_url('etiket/ticket-edit-permintaan'),
+                'pesan' => 'Melakukan perubahaan Etiket. menambahkan di bawahnya, otomatis menambahkan hr dan timestamp'
             ];
         }
 
-        return [
-            'validasi' => null,
-            'teruskan' => null,
-            'kategoric'  => null,
-            'rproses'   =>  $tiket['proses'] ?? [],
-            'kerjakan' => [
-                'form' => base_url('pelaksana/pelaksana_final')
-            ],
-            'pesan' => 'Pelaksana dapat mengerjakan'
-        ];
+        // =====================================================
+        // Pelaksana yang sedang mendapat tugas
+        // =====================================================
+        $upj = $tiket['upj'] ?? [];
+
+        if (in_array($jabatan, $upj)) {
+
+            $unit = array_values(array_filter(
+                $tiket['unit_penanggung_jawab'] ?? [],
+                fn($item) => !in_array($item['kd_jbtn'], $upj)
+            ));
+
+            if (!empty($unit)) {
+                $tindakan['teruskan'] = [
+                    base_url('pelaksana/pelaksana_proses'),
+                    $unit,
+                    $tiket['id']
+                ];
+            }
+
+            $tindakan['pesan'] = $isPengaju
+                ? 'Pengaju dapat mengerjakan tiket'
+                : 'Pelaksana dapat mengerjakan dan meneruskan';
+
+            return $tindakan;
+        }
+
+        // =====================================================
+        // Pelaksana, tetapi bukan UPJ aktif
+        // =====================================================
+        $tindakan['pesan'] = 'Pelaksana dapat mengerjakan';
+
+        return $tindakan;
     }
     /* =========================================================
      * SUBMIT E-TIKET BARU
