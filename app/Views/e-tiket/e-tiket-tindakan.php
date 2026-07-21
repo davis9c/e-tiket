@@ -56,14 +56,7 @@
                 <i class="fas fa-screwdriver-wrench me-1"></i>
                 Kerjakan
             </button>
-            <!-- EDIT -->
-            <button
-                type="button"
-                class="btn btn-primary"
-                <?= $canEditTike ? 'data-bs-toggle="modal" data-bs-target="#modalEditTicket"' : 'disabled' ?>>
-                <i class="fas fa-edit me-1"></i>
-                Edit
-            </button>
+
 
             <!-- TINDAKAN -->
             <button
@@ -89,7 +82,14 @@
                 <i class="fas fa-tags me-1"></i>
                 Kategori
             </button>
-
+            <!-- EDIT -->
+            <button
+                type="button"
+                class="btn btn-primary"
+                <?= $canEditTike ? 'data-bs-toggle="modal" data-bs-target="#modalEditTicket"' : 'disabled' ?>>
+                <i class="fas fa-edit me-1"></i>
+                Edit
+            </button>
             <!-- RIWAYAT PROSES -->
             <button
                 type="button"
@@ -355,11 +355,11 @@
                     </form>
                 </div>
             </div>
-            <?php if (session('modal') === 'kerjakan'): ?>
+            <?php if (session('modal') === 'editTiket'): ?>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         new bootstrap.Modal(
-                            document.getElementById('modalKerjakan')
+                            document.getElementById('modalEditTicket')
                         ).show();
                     });
                 </script>

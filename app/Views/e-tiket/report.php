@@ -53,6 +53,15 @@
             line-height: 1.6;
         }
 
+        .box p {
+            margin: 0 0 4px 0;
+            line-height: 1.3;
+        }
+
+        .box p:last-child {
+            margin-bottom: 0;
+        }
+
         /* ================== TABLE ================== */
         table {
             width: 100%;
@@ -99,6 +108,35 @@
 
         .two-column .column {
             width: 50%;
+        }
+
+        .box {
+            line-height: 1.5;
+        }
+
+        .revisi {
+            margin: 8px 0 0 25px;
+            /* geser ke kanan */
+            padding-left: 10px;
+            border-left: 2px solid #bbb;
+            font-size: 9pt;
+            /* lebih kecil */
+            color: #555;
+            line-height: 1.35;
+        }
+
+        .revisi hr {
+            border: none;
+            border-top: 1px dashed #bbb;
+            margin: 6px 0;
+        }
+
+        .revisi p {
+            margin: 3px 0;
+        }
+
+        .revisi strong {
+            color: #444;
         }
     </style>
 </head>
@@ -194,7 +232,7 @@
         <div class="section">
             <div class="label">Deskripsi Pengajuan</div>
             <div class="box">
-                <?= nl2br($detailTicket['message_catatan']) ?>
+                <?= $detailTicket['message_catatan'] ?>
             </div>
         </div>
 

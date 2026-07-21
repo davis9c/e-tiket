@@ -384,25 +384,20 @@ class ETicket2 extends BaseController
                 ],
             ],
         ];
-
         if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors())
                 ->with('modal', 'kerjakan');
         }
-
         // upload lampiran
         $lampiran = null;
         $file = $this->request->getFile('bukti');
-
         if ($file && $file->isValid() && !$file->hasMoved()) {
             $lampiran = $file->getRandomName();
             $file->move(WRITEPATH . 'uploads/proses', $lampiran);
         }
-
         $ticket = $this->eticketModel->findDetail($ticketId);
-
         if (in_array(
             $this->session('kd_jabatan'),
             array_column($ticket['unit_penanggung_jawab'], 'kd_jbtn')
@@ -465,6 +460,69 @@ class ETicket2 extends BaseController
         }
 
         return redirect()->back()->with('success', $pesan);
+    }
+    public function eticket_edit_permintaan()
+    {
+        if (!$this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        $ticketId = $this->request->getPost('ticket_id');
+        $catatan  = trim($this->request->getPost('catatan'));
+
+        $nip      = $this->session('nip');
+        $nama     = $this->session('nama');
+        $kdJbtn   = $this->session('kd_jabatan');
+        $jabatan  = $this->session('jabatan');
+        $idUser   = $this->session('id_pegawai');
+
+        $rules = [
+            'ticket_id' => [
+                'label' => 'ID Ticket',
+                'rules' => 'required|numeric',
+            ],
+            'catatan' => [
+                'label' => 'Catatan Perubahan',
+                'rules' => 'required|min_length[5]',
+            ],
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors())
+                ->with('modal', 'editTiket');
+        }
+
+        $ticket = $this->eticketModel->findDetail($ticketId);
+
+        if (!$ticket) {
+            return redirect()->back()->with('error', 'Ticket tidak ditemukan.');
+        }
+
+        // Hanya pemilik ticket yang boleh mengubah
+        if ($ticket['kd_pegawai'] != $idUser) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki hak untuk mengubah ticket ini.');
+        }
+
+        // Update isi permintaan awal
+        $this->updateLogProses(
+            (int) $ticket['message_awal'],
+            $catatan
+        );
+
+        // Simpan riwayat perubahan
+        $this->simpanLogProses(
+            $ticketId,
+            $kdJbtn,
+            $jabatan,
+            $nip,
+            $nama,
+            '<strong>Melakukan perubahan pada permintaan awal.</strong><br>' . $catatan,
+            $idUser
+        );
+
+        return redirect()->back()->with('success', 'Permintaan berhasil diperbarui.');
     }
     public function submit_approve() // HS menyetujui
     {
@@ -730,6 +788,29 @@ class ETicket2 extends BaseController
                 unlink($path);
             }
         }
+    }
+    private function updateLogProses(
+        int $prosesId,
+        string $catatan
+    ): bool {
+
+        $proses = $this->eticketProsesModel->find($prosesId);
+
+        if (!$proses) {
+            return false;
+        }
+
+        $catatanBaru = $proses['catatan'];
+
+        $catatanBaru .= '
+    <div class="revisi">
+        <strong>Tambahan ' . date('d M Y H:i') . '</strong>
+        <p>' . $catatan . '</p>
+    </div>';
+
+        return $this->eticketProsesModel->update($prosesId, [
+            'catatan' => $catatanBaru,
+        ]);
     }
 
     private function simpanLogProses(

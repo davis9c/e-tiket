@@ -169,46 +169,6 @@
                             </div>
                         </div>
                     </div>
-                <?php else: ?>
-                    <button
-                        type="button"
-                        class="btn btn-sm btn-outline-secondary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#modalEdit">
-                        <i class="fas fa-pencil me-1"></i>
-                    </button>
-                    <div class="modal fade" id="modalEdit" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-                            <div class="modal-content">
-                                <div class="modal-header bg-success text-white">
-                                    <h5 class="modal-title">
-                                        Keputusan Final
-                                    </h5>
-                                    <button
-                                        type="button"
-                                        class="btn-close btn-close-white"
-                                        data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form action="#" method="post" enctype="multipart/form-data">
-                                        <?= csrf_field() ?>
-                                        <!-- Message -->
-                                        <div class="mb-3">
-                                            <label class="form-label">Deskripsi / Message</label>
-                                            <textarea name="message"
-                                                class="form-control editor <?= session('errors.message') ? 'is-invalid' : '' ?>"
-                                                rows="4"
-                                                placeholder="Jelaskan kendala atau kebutuhan..."
-                                                required></textarea>
-                                            <div class="invalid-feedback">
-                                                <?= session('errors.message') ?>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
