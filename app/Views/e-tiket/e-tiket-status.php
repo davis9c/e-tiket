@@ -42,8 +42,8 @@
                     <?= esc($data['detailTicket']['petugas_id_nama']) ?>
                 </div>
                 <div class="small text-muted">
-                    <?= esc($data['detailTicket']['message_nm_jbtn']) ?> <br>
-                    NIP: <?= esc($data['detailTicket']['petugas_id']) ?>
+                    <?= esc($data['detailTicket']['message_nm_jbtn'] ?? $data['detailTicket']['nm_jbtn'] ?? $data['detailTicket']['petugas_id_nama'] ?? '-') ?> <br>
+                    NIP: <?= esc($data['detailTicket']['petugas_id'] ?? '-') ?>
                 </div>
             </div>
         </div>
@@ -119,11 +119,11 @@
                                 <div class="modal-body">
                                     <div class="mb-2">
                                         <strong>
-                                            <?= esc($data['detailTicket']['respon_message_nm_jbtn']) ?>
+                                            <?= esc($data['detailTicket']['respon_message_nm_jbtn'] ?? $data['detailTicket']['respon_message_id_petugas_nama'] ?? '-') ?>
                                         </strong>
                                         <br>
                                         <small class="text-muted">
-                                            <?= esc($data['detailTicket']['respon_message_id_petugas_nama']) ?>
+                                            <?= esc($data['detailTicket']['respon_message_id_petugas_nama'] ?? '-') ?>
                                         </small>
                                     </div>
                                     <hr>
@@ -156,10 +156,14 @@
                                 </div>
                                 <div class="modal-footer">
                                     <small class="text-muted">
-                                        <?= date(
-                                            'd M Y H:i',
-                                            strtotime($data['detailTicket']['respon_message_created_at'])
-                                        ) ?>
+                                        <?php
+                                        $resCreated = $data['detailTicket']['respon_message_created_at'] ?? $data['detailTicket']['respon_created_at'] ?? $data['detailTicket']['created_at'] ?? null;
+                                        if (!empty($resCreated)) :
+                                            echo date('d M Y H:i', strtotime($resCreated));
+                                        else :
+                                            echo '-';
+                                        endif;
+                                        ?>
                                     </small>
                                 </div>
 
@@ -184,11 +188,11 @@
                     <div class="modal-body">
                         <div class="mb-2">
                             <strong>
-                                <?= esc($data['detailTicket']['message_nm_jbtn']) ?>
+                                <?= esc($data['detailTicket']['message_nm_jbtn'] ?? $data['detailTicket']['nm_jbtn'] ?? $data['detailTicket']['petugas_id_nama'] ?? '-') ?>
                             </strong>
                             <br>
                             <small class="text-muted">
-                                <?= esc($data['detailTicket']['message_id_petugas_nama']) ?>
+                                <?= esc($data['detailTicket']['message_id_petugas_nama'] ?? '-') ?>
                             </small>
                         </div>
                         <hr>
@@ -223,10 +227,14 @@
                     </div>
                     <div class="modal-footer">
                         <small class="text-muted">
-                            <?= date(
-                                'd M Y H:i',
-                                strtotime($data['detailTicket']['message_created_at'])
-                            ) ?>
+                            <?php
+                            $msgCreated = $data['detailTicket']['message_created_at'] ?? $data['detailTicket']['created_at'] ?? null;
+                            if (!empty($msgCreated)) :
+                                echo date('d M Y H:i', strtotime($msgCreated));
+                            else :
+                                echo '-';
+                            endif;
+                            ?>
                         </small>
                     </div>
                 </div>

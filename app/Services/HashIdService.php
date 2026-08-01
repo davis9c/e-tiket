@@ -21,9 +21,13 @@ class HashIdService
         return $this->hashids->encode($id);
     }
 
-    public function decode(string $hash): ?int
+    public function decode(?string $hash): ?int
     {
+        if (empty($hash)) {
+            return null;
+        }
+
         $decoded = $this->hashids->decode($hash);
-        return $decoded[0] ?? null;
+        return isset($decoded[0]) ? (int) $decoded[0] : null;
     }
 }

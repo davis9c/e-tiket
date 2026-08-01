@@ -10,6 +10,7 @@ use Config\Services;
 use App\Models\ETicketProsesModel;
 use App\Models\ETicketUPJModel;
 use CodeIgniter\HTTP\CURLRequest;
+use App\Services\HashIdService;
 
 class ETicket2 extends BaseController
 {
@@ -21,6 +22,7 @@ class ETicket2 extends BaseController
     protected array $headers;
     protected ETicketProsesModel $eticketProsesModel;
     protected \Hashids\Hashids $hashids;
+    protected HashIdService $hashIdService;
     protected $db;
 
     private const ALLOWED_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'pdf'];
@@ -37,6 +39,7 @@ class ETicket2 extends BaseController
         $this->eticketUPJModel      = new ETicketUPJModel();
         $this->client               = Services::curlrequest();
         $this->hashids              = \Config\Services::hashids();
+        $this->hashIdService        = new HashIdService();
         $this->db                   = \Config\Database::connect();
         $this->checkToken();
         $this->headers = [
@@ -47,13 +50,11 @@ class ETicket2 extends BaseController
     }
     /* =========================================================
      * AUTH GUARD
+     * (Deprecated - use App\Filters\AuthFilter instead)
      * ========================================================= */
     private function guard()
     {
-        $userData = $this->userData;
-        if (!$userData['token']) {
-            return redirect()->to('/login');
-        }
+        // kept for backward-compatibility; filter handles auth now
         return null;
     }
     /* =========================================================
@@ -112,30 +113,16 @@ class ETicket2 extends BaseController
         if (!$kdJbtn) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
-        $id = $this->decodeHashId($hashid);
-        $filters = $this->parseTicketFilters();
-        $tickets = $this->eticketModel->getEticketAll(null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
-        $detail = null;
-        $tindakan = null;
-        $timeline = [];
-        if ($id) {
-            $detailData = $this->prepareTicketDetail($id);
-            $detail = $detailData['detail'];
-            $timeline = $detailData['timeline'];
-            $tindakan = $detailData['tindakan'];
-        }
-        $tickets = $this->addHashIds($tickets);
-        return view('allticket', [
-            'title' => 'All Ticket',
-            'data'  => [
-                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
-                'tindakan'          =>  $tindakan,
-                'eticket'      => $tickets,
-                'detailTicket' => $detail,
-                'timeline_status' => $timeline,
-                'user'         => $userData,
-            ]
-        ]);
+
+        return $this->renderTicketList(
+            'allticket',
+            function ($filters, $userData, $id) {
+                return $this->eticketModel->getEticketAll(null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
+            },
+            $hashid,
+            null,
+            'All Ticket'
+        );
     }
     public function eticket($hashid = null)
     {
@@ -143,35 +130,19 @@ class ETicket2 extends BaseController
         $userData = $this->userData;
         $nip = $userData['nip'];
         $kdJbtn = $userData['kd_jabatan'];
-        //dd();
         if (!$nip) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
-        $filters = $this->parseTicketFilters();
-        $tickets = $this->eticketModel->getEticketAll2($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
-        $detail = null;
-        $tindakan = null;
-        $timeline = [];
-        $id = $this->decodeHashId($hashid);
-        if ($id) {
-            $detailData = $this->prepareTicketDetail($id);
-            $detail = $detailData['detail'];
-            $timeline = $detailData['timeline'];
-            $tindakan = $detailData['tindakan'];
-        }
-        $tickets = $this->addHashIds($tickets);
-        return view('e-tiket', [
-            'title' => 'Pengajuan E-Ticket',
-            'data'  => [
-                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan($userData['kd_jabatan'])),
-                //'kategoriData'  => $this->kategoriGet(1), // ✅ sekarang ikut dikirim
-                'tindakan'          =>  $tindakan,
-                'eticket'         => $tickets,
-                'detailTicket'    => $detail,
-                'timeline_status' => $timeline,
-                'user'            => $userData,
-            ]
-        ]);
+
+        return $this->renderTicketList(
+            'e-tiket',
+            function ($filters, $userData, $id) use ($kdJbtn, $nip) {
+                return $this->eticketModel->getEticketAll2($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
+            },
+            $hashid,
+            $userData['kd_jabatan'],
+            'Pengajuan E-Ticket'
+        );
     }
     // UNUSED: method currently not linked from routes and reserved for future per-user ticket list
     public function myeticket($hashid = null)
@@ -180,35 +151,19 @@ class ETicket2 extends BaseController
         $userData = $this->userData;
         $nip = $userData['nip'];
         $kdJbtn = $userData['kd_jabatan'];
-        //dd();
         if (!$nip) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
-        $filters = $this->parseTicketFilters();
-        $tickets = $this->eticketModel->getEticketAll(null, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
-        $detail = null;
-        $tindakan = null;
-        $timeline = [];
-        $id = $this->decodeHashId($hashid);
-        if ($id) {
-            $detailData = $this->prepareTicketDetail($id);
-            $detail = $detailData['detail'];
-            $timeline = $detailData['timeline'];
-            $tindakan = $detailData['tindakan'];
-        }
-        $tickets = $this->addHashIds($tickets);
-        return view('e-tiket', [
-            'title' => 'Pengajuan E-Ticket',
-            'data'  => [
-                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan($userData['kd_jabatan'])),
-                //'kategoriData'  => $this->kategoriGet(1), // ✅ sekarang ikut dikirim
-                'tindakan'          =>  $tindakan,
-                'eticket'         => $tickets,
-                'detailTicket'    => $detail,
-                'timeline_status' => $timeline,
-                'user'            => $userData,
-            ]
-        ]);
+
+        return $this->renderTicketList(
+            'e-tiket',
+            function ($filters, $userData, $id) {
+                return $this->eticketModel->getEticketAll(null, $userData['nip'], $filters['valid'], $filters['selesai'], $filters['kategori']);
+            },
+            $hashid,
+            $userData['kd_jabatan'],
+            'Pengajuan E-Ticket'
+        );
     }
     public function headsection($hashid = null)
     {
@@ -241,11 +196,13 @@ class ETicket2 extends BaseController
                 $detail = $this->attachNamaJabatanToUnits($detail);
                 $detail = $this->attachNamaJabatanToProses($detail);
                 $detail = $this->mapUnitWithJabatan($detail);
-                $detail['hashid'] = $this->hashids->encode($detail['id']);
+                $detail['hashid'] = $this->hashIdService->encode($detail['id']);
                 $tindakan = $this->tindakan($detail);
             }
         }
         $tickets = $this->addHashIds($tickets);
+        $tickets = array_map([$this, 'sanitizeTicketSummary'], $tickets);
+        if ($detail) $detail = $this->sanitizeTicketDetail($detail);
         return view('headsection', [
             'title' => 'Persetujuan E-Ticket',
             'data'  => [
@@ -289,11 +246,13 @@ class ETicket2 extends BaseController
                 $detail = $this->attachNamaJabatanToUnits($detail);
                 $detail = $this->attachNamaJabatanToProses($detail);
                 $detail = $this->mapUnitWithJabatan($detail);
-                $detail['hashid'] = $this->hashids->encode($detail['id']);
+                $detail['hashid'] = $this->hashIdService->encode($detail['id']);
                 $tindakan = $this->tindakan($detail);
             }
         }
         $tickets = $this->addHashIds($tickets);
+        $tickets = array_map([$this, 'sanitizeTicketSummary'], $tickets);
+        if ($detail) $detail = $this->sanitizeTicketDetail($detail);
         return view('pelaksana', [
             'title' => 'Pelaksana',
             'data'  => [
@@ -349,9 +308,75 @@ class ETicket2 extends BaseController
     private function addHashIds(array $tickets): array
     {
         foreach ($tickets as &$row) {
-            $row['hashid'] = $this->hashids->encode($row['id']);
+            $row['hashid'] = $this->hashIdService->encode($row['id']);
         }
         return $tickets;
+    }
+
+    /**
+     * Central renderer for ticket list pages to reduce duplication.
+     * - $fetcher: callable(fn($filters, $userData, $id): array $tickets)
+     * - $kategoriUnit: unit id passed to findByUnitPengajuan (null for global)
+     */
+    private function renderTicketList(string $view, callable $fetcher, ?string $hashid = null, $kategoriUnit = null, ?string $title = null)
+    {
+        $id = $this->decodeHashId($hashid);
+        $filters = $this->parseTicketFilters();
+        $userData = $this->userData;
+
+        $tickets = $fetcher($filters, $userData, $id);
+
+        $detail = null;
+        $tindakan = null;
+        $timeline = [];
+        if ($id) {
+            $detailData = $this->prepareTicketDetail($id);
+            $detail = $detailData['detail'];
+            $timeline = $detailData['timeline'];
+            $tindakan = $detailData['tindakan'];
+        }
+
+        $tickets = $this->addHashIds($tickets);
+        $tickets = array_map([$this, 'sanitizeTicketSummary'], $tickets);
+        if ($detail) $detail = $this->sanitizeTicketDetail($detail);
+
+        $kategori = $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan($kategoriUnit));
+
+        if ($title === null) {
+            $title = ucwords(str_replace(['-', '_'], ' ', $view));
+        }
+
+        return view($view, [
+            'title' => $title,
+            'data'  => [
+                'kategori'      => $kategori,
+                'tindakan'      => $tindakan,
+                'eticket'       => $tickets,
+                'detailTicket'  => $detail,
+                'timeline_status' => $timeline,
+                'user'          => $userData,
+            ]
+        ]);
+    }
+
+    public function report($hashid = null)
+    {
+        $id = $this->decodeHashId($hashid);
+        if (!$id) {
+            return redirect()->to('/etiket')->with('error', 'Tiket tidak ditemukan.');
+        }
+
+        $detailData = $this->prepareTicketDetail($id);
+        $detail = $detailData['detail'];
+        if (!$detail) {
+            return redirect()->to('/etiket')->with('error', 'Tiket tidak ditemukan.');
+        }
+
+        return view('e-tiket/report', [
+            'title' => 'Report E-Ticket',
+            'detailTicket' => $detail,
+            'timeline_status' => $detailData['timeline'],
+        ]);
     }
 
     private function prepareTicketDetail(?int $id): array
@@ -377,12 +402,62 @@ class ETicket2 extends BaseController
         $detail = $this->attachNamaJabatanToProses($detail);
         $detail = $this->mapUnitWithJabatan($detail);
         $detail = $this->attachNamaJabatanToDetail($detail);
-        $detail['hashid'] = $this->hashids->encode($detail['id']);
+        $detail['hashid'] = $this->hashIdService->encode($detail['id']);
 
         return [
             'detail' => $detail,
             'timeline' => $this->buildStatusTimeline($detail['id']),
             'tindakan' => $this->tindakan($detail),
+        ];
+    }
+
+    /**
+     * Sanitize a ticket for list views (summary)
+     */
+    private function sanitizeTicketSummary(array $t): array
+    {
+        return [
+            'id' => $t['id'] ?? null,
+            'hashid' => $t['hashid'] ?? ($t['id'] ? $this->hashIdService->encode($t['id']) : null),
+            'kode_kategori' => $t['kode_kategori'] ?? null,
+            'nama_kategori' => $t['nama_kategori'] ?? null,
+            'petugas_id_nama' => $t['petugas_id_nama'] ?? ($t['petugas_nama'] ?? null),
+            'message_catatan' => isset($t['message_catatan']) ? trim(strip_tags($t['message_catatan'])) : (isset($t['message']) ? trim(strip_tags($t['message'])) : null),
+            'created_at' => $t['created_at'] ?? null,
+            'valid_nama' => $t['valid_nama'] ?? null,
+            'selesai_nama' => $t['selesai_nama'] ?? null,
+            'handler_nama' => $t['handler_nama'] ?? null,
+            'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
+            'kategori_id' => $t['kategori_id'] ?? null,
+        ];
+    }
+
+    /**
+     * Sanitize a ticket detail for detail/report views
+     */
+    private function sanitizeTicketDetail(array $t): array
+    {
+        return [
+            'id' => $t['id'] ?? null,
+            'hashid' => $t['hashid'] ?? ($t['id'] ? $this->hashIdService->encode($t['id']) : null),
+            'kode_ticket' => $t['kode_ticket'] ?? null,
+            'created_at' => $t['created_at'] ?? null,
+            'kode_kategori' => $t['kode_kategori'] ?? null,
+            'nama_kategori' => $t['nama_kategori'] ?? null,
+            'petugas_id_nama' => $t['petugas_id_nama'] ?? null,
+            'petugas_id' => $t['petugas_id'] ?? null,
+            'nm_jbtn' => $t['nm_jbtn'] ?? null,
+            'headsection' => $t['headsection'] ?? 0,
+            'valid_nama' => $t['valid_nama'] ?? null,
+            'selesai_nama' => $t['selesai_nama'] ?? null,
+            'deskripsi' => $t['deskripsi'] ?? null,
+            'message_catatan' => isset($t['message_catatan']) ? $t['message_catatan'] : (isset($t['message']) ? $t['message'] : null),
+            'message' => $t['message'] ?? null,
+            'message_awal' => $t['message_awal'] ?? null,
+            'respon_message_catatan' => $t['respon_message_catatan'] ?? null,
+            'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
+            'kategori_id' => $t['kategori_id'] ?? null,
+            'unit_penanggung_jawab' => $t['unit_penanggung_jawab'] ?? [],
         ];
     }
 
@@ -417,12 +492,7 @@ class ETicket2 extends BaseController
     }
     private function decodeHashId($hashid): ?int
     {
-        if (!$hashid) return null;
-        $decoded = $this->hashids->decode($hashid);
-        if (empty($decoded)) {
-            return null;
-        }
-        return (int)$decoded[0];
+        return $this->hashIdService->decode($hashid);
     }
 
     private function decodePostIdValue(string $key): ?int
@@ -437,6 +507,119 @@ class ETicket2 extends BaseController
         }
 
         return $this->decodeHashId($value);
+    }
+
+    /* =========================================================
+     * Centralized validation rule providers
+     * ========================================================= */
+    private function rulesForKerjakan(): array
+    {
+        return [
+            'ticket_id' => [
+                'label' => 'ID Ticket',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => '{field} wajib diisi.',
+                ],
+            ],
+            'catatan' => [
+                'label' => 'Catatan Pelaksana',
+                'rules' => 'required|min_length[5]',
+                'errors' => [
+                    'required'   => '{field} wajib diisi.',
+                    'min_length' => '{field} minimal {param} karakter.',
+                ],
+            ],
+            'bukti' => [
+                'label' => 'Lampiran',
+                'rules' => 'permit_empty|max_size[bukti,' . self::MAX_FILE_SIZE_KB . ']|ext_in[bukti,' . implode(',', self::ALLOWED_FILE_EXTENSIONS) . ']',
+                'errors' => [
+                    'max_size' => '{field} maksimal 5 MB.',
+                    'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
+                ],
+            ],
+        ];
+    }
+
+    private function rulesForEditPermintaan(): array
+    {
+        return [
+            'ticket_id' => [
+                'label' => 'ID Ticket',
+                'rules' => 'required',
+            ],
+            'catatan' => [
+                'label' => 'Catatan Perubahan',
+                'rules' => 'required|min_length[5]',
+            ],
+        ];
+    }
+
+    private function rulesForApprove(): array
+    {
+        return [
+            'ticket_id' => [
+                'label' => 'ID Ticket',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => '{field} wajib diisi.',
+                ],
+            ],
+            'catatan' => [
+                'label' => 'Catatan Validator',
+                'rules' => 'required',
+                'errors' => [
+                    'required'   => '{field} wajib diisi.',
+                ],
+            ],
+        ];
+    }
+
+    private function rulesForSubmit(): array
+    {
+        return [
+            'message' => [
+                'label' => 'Deskripsi',
+                'rules' => 'required|min_length[5]',
+                'errors' => [
+                    'required'   => '{field} wajib diisi.',
+                    'min_length' => '{field} minimal 5 karakter.',
+                ],
+            ],
+            'bukti' => [
+                'label' => 'Lampiran Bukti',
+                'rules' => 'permit_empty|max_size[bukti,' . self::MAX_FILE_SIZE_KB . ']|ext_in[bukti,' . implode(',', self::ALLOWED_FILE_EXTENSIONS) . ']',
+                'errors' => [
+                    'max_size' => '{field} maksimal 5 MB.',
+                    'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
+                ],
+            ],
+        ];
+    }
+
+    private function rulesForManualSubmit(): array
+    {
+        return [
+            'message' => [
+                'label' => 'Deskripsi',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => '{field} wajib diisi.',
+                ],
+            ],
+            'bukti' => [
+                'label' => 'Lampiran Bukti',
+                'rules' => 'permit_empty|max_size[bukti,' . self::MAX_FILE_SIZE_KB . ']|ext_in[bukti,' . implode(',', self::ALLOWED_FILE_EXTENSIONS) . ']',
+                'errors' => [
+                    'max_size' => '{field} maksimal 5 MB.',
+                    'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
+                ],
+            ],
+            'created_at_manual' => [
+                'label' => 'Tanggal Tiket',
+                'rules' => 'permit_empty|valid_date[Y-m-d\\TH:i]',
+            ],
+        ];
     }
     /* =========================================================
      * SUBMIT Fungsi
@@ -457,31 +640,7 @@ class ETicket2 extends BaseController
         $kdJbtn  = $userData['kd_jabatan'];
         $jabatan = $userData['jabatan'];
         $idpegawai = null;
-        $rules = [
-            'ticket_id' => [
-                'label' => 'ID Ticket',
-                'rules' => 'required',
-                'errors' => [
-                    'required' => '{field} wajib diisi.',
-                ],
-            ],
-            'catatan' => [
-                'label' => 'Catatan Pelaksana',
-                'rules' => 'required|min_length[5]',
-                'errors' => [
-                    'required'   => '{field} wajib diisi.',
-                    'min_length' => '{field} minimal {param} karakter.',
-                ],
-            ],
-            'bukti' => [
-                'label' => 'Lampiran',
-                'rules' => 'permit_empty|max_size[bukti,5120]|ext_in[bukti,jpg,jpeg,png,pdf]',
-                'errors' => [
-                    'max_size' => '{field} maksimal 5 MB.',
-                    'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
-                ],
-            ],
-        ];
+        $rules = $this->rulesForKerjakan();
         if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
@@ -574,16 +733,7 @@ class ETicket2 extends BaseController
         $jabatan  = $userData['jabatan'];
         $idUser   = $userData['id_pegawai'];
 
-        $rules = [
-            'ticket_id' => [
-                'label' => 'ID Ticket',
-                'rules' => 'required',
-            ],
-            'catatan' => [
-                'label' => 'Catatan Perubahan',
-                'rules' => 'required|min_length[5]',
-            ],
-        ];
+        $rules = $this->rulesForEditPermintaan();
 
         if (!$this->validate($rules)) {
             return redirect()->back()
@@ -634,22 +784,7 @@ class ETicket2 extends BaseController
         $nama = $userData['nama'];
         $kdJbtn = $userData['kd_jabatan'];
         $jabatan = $userData['jabatan'];
-        $rules = [
-            'ticket_id' => [
-                'label' => 'ID Ticket',
-                'rules' => 'required',
-                'errors' => [
-                    'required' => '{field} wajib diisi.',
-                ],
-            ],
-            'catatan' => [
-                'label' => 'Catatan Validator',
-                'rules' => 'required',
-                'errors' => [
-                    'required'   => '{field} wajib diisi.',
-                ],
-            ],
-        ];
+        $rules = $this->rulesForApprove();
 
         if (!$this->validate($rules)) {
             // dd("dd");
@@ -1109,25 +1244,7 @@ class ETicket2 extends BaseController
      * ========================================================= */
     public function submit()
     {
-        if ($redirect = $this->guard()) return $redirect;
-        $rules = [
-            'message' => [
-                'label' => 'Deskripsi',
-                'rules' => 'required|min_length[5]',
-                'errors' => [
-                    'required'   => '{field} wajib diisi.',
-                    'min_length' => '{field} minimal 5 karakter.',
-                ],
-            ],
-            'bukti' => [
-                'label' => 'Lampiran Bukti',
-                'rules' => 'permit_empty|max_size[bukti,' . self::MAX_FILE_SIZE_KB . ']|ext_in[bukti,' . implode(',', self::ALLOWED_FILE_EXTENSIONS) . ']',
-                'errors' => [
-                    'max_size' => '{field} maksimal 5 MB.',
-                    'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
-                ],
-            ],
-        ];
+        $rules = $this->rulesForSubmit();
         $userData = $this->userData;
         $post = $this->request->getPost();
 
@@ -1227,7 +1344,7 @@ class ETicket2 extends BaseController
 
             // Send notification (simplified logic)
             $this->sendTicketNotification($kategori, $ticketId, $flow, $userData);
-            return redirect()->to(base_url('etiket/' . $this->hashids->encode($ticketId)))
+            return redirect()->to(base_url('etiket/' . $this->hashIdService->encode($ticketId)))
                 ->with('success', 'E-Ticket anda terkirim ke atasan untuk mendapat persetujuan.');
         } catch (\Exception $e) {
             $this->cleanupUploadedFile($lampiran);
@@ -1380,97 +1497,44 @@ class ETicket2 extends BaseController
     }
     private function getJabatan(): array
     {
-        try {
-            $response = $this->client->get(
-                env('API_KANZA_BRIDGE') . 'jabatan',
-                [
-                    'headers'     => $this->headers,
-                    'timeout'     => 10,
-                    'http_errors' => false,
-                ]
-            );
+        $response = $this->client->get(
+            env('API_KANZA_BRIDGE') . 'jabatan',
+            ['headers' => $this->headers]
+        );
 
-            if ($response->getStatusCode() !== 200) {
-                return [];
-            }
-
-            $result = json_decode($response->getBody(), true);
-            return $result['data'] ?? [];
-        } catch (\Throwable $e) {
-            log_message('error', '[GET_JABATAN] ' . $e->getMessage());
-            return [];
-        }
+        $result = json_decode($response->getBody(), true);
+        return $result['data'] ?? [];
     }
+
+    /**
+     * Attach petugas/pegawai name data to proses entries (by nip)
+     */
     private function attachNamaJabatanToProses(array $detail): array
     {
-        if (empty($detail['proses'])) {
-            return $detail;
-        }
+        if (empty($detail['proses'])) return $detail;
 
-        // ============================================
-        // Kumpulkan semua NIP dari proses
-        // ============================================
         $nips = [];
-
         foreach ($detail['proses'] as $p) {
-            if (!empty($p['id_petugas'])) {
-                $nips[] = (string)$p['id_petugas'];
-            }
+            if (!empty($p['nip'])) $nips[] = (string) $p['nip'];
+            if (!empty($p['id_pegawai'])) $nips[] = (string) $p['id_pegawai'];
         }
 
-        $nips = array_unique($nips);
+        $nips = array_values(array_unique(array_filter($nips)));
+        if (empty($nips)) return $detail;
 
-        // ============================================
-        // Build petugas map
-        // ============================================
         $map = $this->buildPetugasMap($nips);
 
-        // ============================================
-        // Attach ke proses
-        // ============================================
         foreach ($detail['proses'] as &$p) {
-
-            $nip = (string)($p['id_petugas'] ?? '');
-            $petugas = $map[$nip] ?? null;
-
-            $p['nm_petugas'] = $petugas['nama'] ?? '-';
-            $p['nm_jbtn']    = $petugas['nm_jbtn'] ?? '-';
+            $nip = (string) ($p['nip'] ?? $p['id_pegawai'] ?? '');
+            if ($nip && isset($map[$nip])) {
+                $p['petugas'] = $map[$nip];
+                $p['petugas_nama'] = $map[$nip]['nama'] ?? $map[$nip]['nama_pegawai'] ?? ($map[$nip]['nip'] ?? null);
+            } else {
+                $p['petugas_nama'] = $p['petugas_nama'] ?? null;
+            }
         }
 
         return $detail;
-    }
-    /* =========================================================
-    * REPORT E-TICKET
-    * ========================================================= */
-    function report($hashid)
-    {
-        $decoded = $this->hashids->decode($hashid);
-        if (empty($decoded)) {
-            return redirect()->to('/eticket')
-                ->with('error', 'ID tidak valid');
-        }
-        $id = $decoded[0];
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-        $id = (int) $id;
-        if ($id <= 0) {
-            return redirect()->to('/etiket')
-                ->with('error', 'ID tidak valid');
-        }
-        $detail = $this->eticketModel->findOneLengkap($id);
-        if (!$detail) {
-            return redirect()
-                ->to(base_url('etiket'))
-                ->with('error', 'Data E-Ticket tidak ditemukan');
-        }
-        $detail = $this->attachNamaJabatanToUnits($detail);
-        $detail = $this->attachNamaJabatanToDetail($detail);
-        $detail = $this->mapUnitWithJabatan($detail);
-        return view('e-tiket/report', [
-            'title' => 'Report E-Ticket #' . $id,
-            'detailTicket' => $detail,
-        ]);
     }
     private function attachNamaJabatanToDetail(array $detail): array
     {
@@ -1703,7 +1767,7 @@ class ETicket2 extends BaseController
                 $detail = $this->attachNamaJabatanToUnits($detail);
                 $detail = $this->attachNamaJabatanToProses($detail);
                 $detail = $this->mapUnitWithJabatan($detail);
-                $detail['hashid'] = $this->hashids->encode($detail['id']);
+                $detail['hashid'] = $this->hashIdService->encode($detail['id']);
                 $tindakan = $this->tindakan($detail);
             }
         }
@@ -1762,7 +1826,7 @@ class ETicket2 extends BaseController
     }
     public function manual_submit()
     {
-        if ($redirect = $this->guard()) return $redirect;
+        // auth handled by filter
 
         $kategoriId = $this->decodePostIdValue('kategori_id');
         $dataPetugas = explode('|', $this->request->getPost('nip'));
@@ -1771,33 +1835,12 @@ class ETicket2 extends BaseController
         $kdJabatan  = $dataPetugas[1];
         $nmJabatan  = $dataPetugas[2];
         $kd_pegawai = $this->getPegawai($nip)['id'];
-        //dd($kd_pegawai);
         $petugasId   = $this->request->getPost('nip');
         $petugasNama = $this->request->getPost('nama_petugas');
         $petugasJabatan = $this->request->getPost('nm_jbtn');
         $message   = $this->request->getPost('message');
         $createdAtManual = $this->request->getPost('created_at_manual');
-        $rules = [
-            'message' => [
-                'label' => 'Deskripsi',
-                'rules' => 'required',
-                'errors' => [
-                    'required' => '{field} wajib diisi.',
-                ],
-            ],
-            'bukti' => [
-                'label' => 'Lampiran Bukti',
-                'rules' => 'permit_empty|max_size[bukti,5120]|ext_in[bukti,jpg,jpeg,png,pdf]',
-                'errors' => [
-                    'max_size' => '{field} maksimal 5 MB.',
-                    'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
-                ],
-            ],
-            'created_at_manual' => [
-                'label' => 'Tanggal Tiket',
-                'rules' => 'permit_empty|valid_date[Y-m-d\TH:i]',
-            ],
-        ];
+        $rules = $this->rulesForManualSubmit();
         $createdAt = null;
 
         if (!empty($createdAtManual)) {
@@ -1884,7 +1927,7 @@ class ETicket2 extends BaseController
                     'diproses'
                 );
             }
-            return redirect()->to(base_url('manual/' . $this->hashids->encode($ticketId)))
+            return redirect()->to(base_url('manual/' . $this->hashIdService->encode($ticketId)))
                 ->with('success', 'E-Ticket anda terkirim ke atasan untuk mendapat persetujuan.');
         } catch (\Exception $e) {
             if (!empty($lampiran)) {

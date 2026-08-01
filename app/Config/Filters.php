@@ -113,4 +113,26 @@ class Filters extends BaseFilters
      * @var array<string, array<string, list<string>>>
      */
     public array $filters = [];
+    public function __construct()
+    {
+        // Ensure auth filter runs before ETicket and manual routes
+        $this->filters = [
+            'auth' => [
+                'before' => [
+                    'etiket',
+                    'etiket/*',
+                    'manual',
+                    'manual/*',
+                    'pelaksana',
+                    'pelaksana/*',
+                    'allticket',
+                    'allticket/*',
+                    'headsection',
+                    'headsection/*',
+                    'myeticket',
+                    'myeticket/*',
+                ],
+            ],
+        ];
+    }
 }
