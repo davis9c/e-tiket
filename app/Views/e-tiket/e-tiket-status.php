@@ -25,9 +25,6 @@
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                <?php
-                //print_r($data['detailTicket']['upj'], true);
-                ?>
                 <p class="fst-italic mb-3 text-secondary">
                     <?= esc($data['detailTicket']['deskripsi']) ?>
                 </p>
@@ -280,7 +277,7 @@
                 </div>
             </div>
             <!-- FOOTER -->
-            <?php if (!empty($ticket['selesai_nama'])): ?>
+            <?php if (!empty($ticket['respon_message_id_petugas_nama'])): ?>
                 <div class="card-footer text-center">
                     <a href="<?= base_url('report/' . $ticket['hashid']) ?>"
                         target="_blank"

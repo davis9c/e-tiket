@@ -11,11 +11,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
-    <form action="<?= base_url('etiket/submit') ?>" method="post" enctype="multipart/form-data">
+    <form action="<?= $form['url'] ?>" method="post" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <!-- Kategori -->
         <!-- Header Surat Kategori -->
-        <input type="hidden" name="headsection" value="<?= $data['kategoriData']['headsection'] ?>">
+        <input type="hidden" name="<?= form_field_name($form, 'headsection') ?>" value="<?= form_field_value($form, 'headsection') ?>">
         <div class="row">
             <div class="col col-5">
                 <div class="card mb-4 border-bottom-primary">
@@ -57,7 +57,7 @@
 
                             <hr class="my-2">
                         <?php endif; ?>
-                        <input type="hidden" name="kategori_id" value="<?= esc($data['kategoriData']['id']) ?>">
+                        <input type="hidden" name="<?= form_field_name($form, 'kategori_id') ?>" value="<?= form_field_value($form, 'kategori_id') ?>">
                     </div>
                 </div>
             </div>
@@ -75,43 +75,37 @@
                                     value="<?= esc($data['user']['nama']) ?> (<?= esc($data['user']['jabatan']) ?>)"
                                     readonly>
                             </div>
-                            <input type="hidden" name="petugas_id" value="<?= esc($data['user']['nip']) ?>">
-                            <input type="hidden" name="petugas_id_nama" value="<?= esc($data['user']['nama']) ?>">
+                            <input type="hidden" name="<?= form_field_name($form, 'petugas_id') ?>" value="<?= form_field_value($form, 'petugas_id') ?>">
+                            <input type="hidden" name="<?= form_field_name($form, 'petugas_id_nama') ?>" value="<?= form_field_value($form, 'petugas_id_nama') ?>">
                         </div>
                         <!-- Message -->
                         <div class="mb-3">
                             <label class="form-label">Deskripsi / Message</label>
-                            <textarea name="message"
-                                class="form-control editor <?= session('errors.message') ? 'is-invalid' : '' ?>"
+                            <textarea
+                                name="<?= form_field_name($form, 'message') ?>"
+                                class="form-control editor <?= session('errors.' . form_field_name($form, 'message')) ? 'is-invalid' : '' ?>"
                                 rows="4"
                                 placeholder="Jelaskan kendala atau kebutuhan..."
-                                required><?= esc($data['kategoriData']['template']) ?></textarea>
+                                required><?= old(form_field_name($form, 'message'), form_field_value($form, 'message')) ?></textarea>
                             <div class="invalid-feedback">
-                                <?= session('errors.message') ?>
+                                <?= session('errors.' . form_field_name($form, 'message')) ?>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">
                                 Lampiran Bukti
                             </label>
-
                             <?php $validation = session('validation'); ?>
-
                             <input
                                 type="file"
-                                name="bukti"
+                                name="<?= form_field_name($form, 'bukti') ?>"
                                 accept=".jpg,.jpeg,.png,.pdf"
-                                class="form-control <?= session('errors.bukti') ? 'is-invalid' : '' ?>">
-
+                                class="form-control <?= session('errors.' . form_field_name($form, 'bukti')) ? 'is-invalid' : '' ?>">
                             <div class="invalid-feedback">
-                                <?= session('errors.bukti') ?>
+                                <?= session('errors.' . form_field_name($form, 'bukti')) ?>
                             </div>
                             <div class="form-text">
                                 Upload file JPG, JPEG, PNG atau PDF.
-                            </div>
-
-                            <div class="invalid-feedback">
-                                <?= session('errors.bukti') ?>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">

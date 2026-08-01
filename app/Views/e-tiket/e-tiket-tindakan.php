@@ -1,7 +1,7 @@
     <?php
     $canValidasi = !empty($data['tindakan']['validasi']);
     $canKerjakan = !empty($data['tindakan']['kerjakan']);
-    $canTindakan = !empty($data['tindakan']['kerjakan']);
+    $canTindakan = false;
     $canTeruskan = !empty($data['tindakan']['teruskan']);
     $canKategorC = !empty($data['tindakan']['kategoric']);
     $canEditTike = !empty($data['tindakan']['edittiket']);
@@ -114,7 +114,7 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <form action="<?= base_url('headsection/headsection_approve') ?>" method="post" class="modal-content">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                        <input type="hidden" name="<?= $data['tindakan']['validasi']['form']['ticket_id']['variable'] ?>" value="<?= esc($data['tindakan']['validasi']['form']['ticket_id']['value']) ?>">
                         <!-- HEADER -->
                         <div class="modal-header bg-success text-white">
                             <h5 class="modal-title">
@@ -197,12 +197,13 @@
             <div class="modal fade" id="modalKerjakan" tabindex="-1">
                 <div class="modal-dialog  modal-dialog-centered">
                     <form
-                        action="<?= $data['tindakan']['kerjakan']['form'] ?>"
+                        action="<?= $data['tindakan']['kerjakan']['form']['url'] ?>"
                         method="post"
                         enctype="multipart/form-data"
                         class="modal-content" enctype="multipart/form-data">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+
+                        <input type="hidden" name="<?= $data['tindakan']['kerjakan']['form']['ticket_id']['variable'] ?>" value="<?= esc($data['tindakan']['kerjakan']['form']['ticket_id']['value']) ?>">
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
                                 Kerjakan Ticket
@@ -245,7 +246,6 @@
                                     name="bukti"
                                     accept=".jpg,.jpeg,.png,.pdf"
                                     class="form-control <?= session('errors.bukti') ? 'is-invalid' : '' ?>">
-
                                 <div class="invalid-feedback">
                                     <?= session('errors.bukti') ?>
                                 </div>
@@ -298,12 +298,13 @@
             <div class="modal fade" id="modalEditTicket" tabindex="-1">
                 <div class="modal-dialog  modal-dialog-centered">
                     <form
-                        action="<?= $data['tindakan']['edittiket']['form'] ?>"
+                        action="<?= $data['tindakan']['edittiket']['form']['url'] ?>"
                         method="post"
                         enctype="multipart/form-data"
                         class="modal-content" enctype="multipart/form-data">
                         <?= csrf_field() ?>
-                        <input type="hidden" name="ticket_id" value="<?= esc($data['detailTicket']['id']) ?>">
+                        <input type="hidden" name="<?= $data['tindakan']['edittiket']['form']['ticket_id']['variable'] ?>" value="<?= $data['tindakan']['edittiket']['form']['ticket_id']['value'] ?>">
+
                         <div class="modal-header bg-primary text-white">
                             <h5 class="modal-title">
                                 Edit Permintaan Etiket
@@ -321,12 +322,12 @@
                                     <?= esc($data['tindakan']['edittiket']['pesan']) ?>
                                 </label>
                                 <textarea
-                                    name="catatan"
+                                    name="<?= $data['tindakan']['edittiket']['form']['catatan']['variable'] ?>"
                                     rows="3"
-                                    class="form-control editor <?= session('errors.catatan') ? 'is-invalid' : '' ?>"
-                                    placeholder="Masukkan tindakan penyelesaian..."><?= old('catatan') ?></textarea>
+                                    class="form-control editor <?= session('errors.' . $data['tindakan']['edittiket']['form']['catatan']['variable']) ? 'is-invalid' : '' ?>"
+                                    placeholder="Masukkan catatan untuk di tambahkan"><?= old($data['tindakan']['edittiket']['form']['catatan']['variable']) ?></textarea>
                                 <div class="invalid-feedback">
-                                    <?= session('errors.catatan') ?>
+                                    <?= session('errors.' . $data['tindakan']['edittiket']['form']['catatan']['variable']) ?>
                                 </div>
                             </div>
                             <?php if (session()->has('errors')) : ?>
@@ -384,7 +385,7 @@
                             <div class="col">
                                 <form action="<?= base_url('ambil-tiket') ?>" method="post">
                                     <?= csrf_field() ?>
-                                    <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
+                                    <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['hashid']) ?>">
                                     <div class="form-check mb-3">
                                         <input
                                             class="form-check-input"
@@ -425,49 +426,41 @@
                                 data-bs-dismiss="modal">
                             </button>
                         </div>
-
                         <div class="modal-body">
                             <p><?= esc($data['tindakan']['kategoric']['pesan']) ?></p>
                             <div class="col">
-                                <form action="<?= $data['tindakan']['kategoric']['form'] ?>" method="post">
+                                <form action="<?= $data['tindakan']['kategoric']['form']['url'] ?>" method="post">
                                     <?= csrf_field() ?>
-
-                                    <input type="hidden" name="id_etiket" value="<?= esc($data['detailTicket']['id']) ?>">
-
+                                    <input type="hidden" name="<?= $data['tindakan']['kategoric']['form']['ticket_id']['variable'] ?>" value="<?= $data['tindakan']['kategoric']['form']['ticket_id']['value'] ?>">
                                     <div class="mb-3">
-                                        <label for="id_kategori" class="form-label">
+                                        <label for="ticket_kategori_id" class="form-label">
                                             Pilih Kategori
                                         </label>
-
                                         <select
-                                            name="id_kategori"
-                                            id="id_kategori"
-                                            class="form-select <?= session('errors.id_kategori') ? 'is-invalid' : '' ?>"
+                                            name="<?= $data['tindakan']['kategoric']['form']['ticket_kategori_id']['variable'] ?>"
+                                            id="ticket_kategori_id"
+                                            class="form-select <?= session('errors.ticket_kategori_id') ? 'is-invalid' : '' ?>"
                                             required>
-                                            <?php foreach ($data['tindakan']['kategoric']['kategori_list'] as $kategori): ?>
+                                            <?php foreach ($data['tindakan']['kategoric']['form']['ticket_kategori_id']['option'] as $kategori): ?>
                                                 <option
                                                     value="<?= esc($kategori['id']) ?>"
-                                                    <?= old('id_kategori', $data['detailTicket']['kategori_id']) == $kategori['id'] ? 'selected' : '' ?>>
+                                                    <?= old('ticket_kategori_id', $data['tindakan']['kategoric']['form']['ticket_kategori_id']['value']) == $kategori['id'] ? 'selected' : '' ?>>
                                                     <?= esc($kategori['kode_kategori']) ?> | <?= esc($kategori['nama_kategori']) ?>
                                                 </option>
                                             <?php endforeach; ?>
-
                                         </select>
-
-                                        <?php if (session('errors.id_kategori')): ?>
+                                        <?php if (session('errors.ticket_kategori_id')): ?>
                                             <div class="invalid-feedback d-block">
-                                                <?= session('errors.id_kategori') ?>
+                                                <?= session('errors.ticket_kategori_id') ?>
                                             </div>
                                         <?php endif; ?>
                                     </div>
-
                                     <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-save me-1"></i> Ubah Kategori
                                     </button>
                                 </form>
                             </div>
                         </div>
-
                     </div>
 
                 </div>
@@ -476,60 +469,47 @@
         <?php if ($canTeruskan): ?>
             <div class="modal fade" id="modalTeruskan" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
-
-                    <form action="<?= $data['tindakan']['teruskan'][0] ?>"
+                    <form action="<?= $data['tindakan']['teruskan']['form']['url'] ?>"
                         method="post"
                         class="modal-content">
-
                         <?= csrf_field() ?>
-
                         <!-- hidden id tiket -->
-                        <input type="hidden" name="id_etiket" value="<?= $data['tindakan']['teruskan'][2] ?>">
-
+                        <input type="hidden" name="<?= $data['tindakan']['teruskan']['form']['id_etiket']['variable'] ?>" value="<?= esc($data['tindakan']['teruskan']['form']['id_etiket']['value']) ?>">
                         <div class="modal-header bg-warning text-dark">
                             <h5 class="modal-title">
-                                Teruskan Tiket
+                                <?= $data['tindakan']['teruskan']['pesan'] ?>
                             </h5>
-
                             <button type="button"
                                 class="btn-close"
                                 data-bs-dismiss="modal">
                             </button>
                         </div>
-
                         <div class="modal-body">
-
                             <!-- dropdown kd_jbtn -->
                             <div class="mb-3">
                                 <label class="form-label">Unit Tujuan</label>
-
                                 <select name="kd_jbtn" class="form-select" required>
-                                    <?php foreach ($data['tindakan']['teruskan'][1] as $i => $unit): ?>
+                                    <?php foreach ($data['tindakan']['teruskan']['form']['unit'] as $i => $unit): ?>
                                         <option value="<?= esc($unit['kd_jbtn']) ?>"
                                             <?= $i === 0 ? 'selected' : '' ?>>
                                             <?= esc($unit['kd_jbtn']) ?> - <?= esc($unit['nm_jbtn']) ?>
                                         </option>
                                     <?php endforeach; ?>
-
                                 </select>
                             </div>
                         </div>
-
                         <div class="modal-footer">
                             <button type="button"
                                 class="btn btn-secondary"
                                 data-bs-dismiss="modal">
                                 Batal
                             </button>
-
                             <button type="submit"
                                 class="btn btn-warning">
                                 Teruskan
                             </button>
                         </div>
-
                     </form>
-
                 </div>
             </div>
             <?php if (session('modal') === 'teruskan'): ?>
@@ -564,7 +544,6 @@
                             $rproses = $data['tindakan']['rproses'] ?? [];
                             $awal = $rproses[0] ?? null;
                             $proses = array_slice($rproses, 1);
-                            //dd($data['detailTicket']);
                             ?>
                             <?php if (!empty($rproses)): ?>
                                 <div class="row">
@@ -577,7 +556,6 @@
                                         <div style="max-height:700px;overflow-y:auto;" class="overflow-auto">
                                             <?php foreach ($rproses as $p): ?>
                                                 <?php
-                                                // jangan tampilkan tiket awal & keputusan final
                                                 if (
                                                     (!empty($messageId) && $p['id'] == $messageId) ||
                                                     (!empty($responId) && $p['id'] == $responId)

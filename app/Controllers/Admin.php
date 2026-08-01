@@ -25,7 +25,7 @@ class Admin extends BaseController
         $this->unitModel     = new KategoriUnitJabatanModel();
         $this->checkToken();
         $this->headers = [
-            'Authorization' => $this->session('token'),
+            'Authorization' => Services::session()->get('token') ?? null,
             'Accept'        => 'application/json',
         ];
     }
@@ -35,7 +35,8 @@ class Admin extends BaseController
      * ===================================================== */
     private function auth()
     {
-        if (!$this->session('token')) {
+        $userData = $this->userData;
+        if (!$userData['token']) {
             return redirect()->to('/login')->send();
         }
     }
@@ -195,9 +196,10 @@ class Admin extends BaseController
     private function getPegawai($nip): array
     {
         $client = Services::curlrequest();
+        $userData = $this->userData;
 
         $headers = [
-            'Authorization' => $this->session('token'),
+            'Authorization' => $userData['token'] ?? null,
             'Accept'        => 'application/json',
             'Content-Type'  => 'application/json',
         ];

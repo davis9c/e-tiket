@@ -41,8 +41,8 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->post('ambil-tiket', 'ETicket2::submit_ambil_tiket');
     $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change');
     $routes->post('etiket/ticket-edit-permintaan', 'ETicket2::eticket_edit_permintaan');
-    $routes->post('pelaksana/pelaksana_proses', 'ETicket2::submit_proses'); //fungsi teruskan
-    $routes->post('pelaksana/pelaksana_final', 'ETicket2::submit_final');
+    $routes->post('etiket/submit_teruskan', 'ETicket2::submit_teruskan'); //fungsi teruskan
+    $routes->post('etiket/submit_final', 'ETicket2::submit_final');
     $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
 
     //Notifikasi
@@ -59,7 +59,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('manual/(:any)', 'ETicket2::manual/$1'); //halaman untuk input manual, hanya bisa diakses oleh admin
     $routes->get('manual-baru', 'ETicket2::manual_baru'); //halaman untuk input manual, hanya bisa diakses oleh admin
     $routes->post('manual-submit', 'ETicket2::manual_submit'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
-    $routes->post('manual-approve', 'ETicket2::manual_approve'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
+
     $routes->post('manual-final', 'ETicket2::manual_final'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
 
     /*
@@ -92,16 +92,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     |--------------------------------------------------------------------------
     */
     $routes->group('admin', ['filter' => 'roleadmin'], function ($routes) {
-
-        // User Management
         $routes->get('users', 'Admin::users');
         $routes->get('pegawai', 'Admin::pegawai');
-
-        // Petugas
         $routes->get('petugas', 'Admin::petugas');
         $routes->get('petugas/(:segment)', 'Admin::petugas/$1');
-
-        // Head Section
         $routes->match(['get', 'post'], 'setheadsection/(:segment)', 'Admin::setHeadsection/$1');
     });
 });

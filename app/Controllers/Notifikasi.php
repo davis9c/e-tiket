@@ -17,18 +17,18 @@ class Notifikasi extends BaseController
     public function index()
     {
         try {
+            $userData = $this->userData;
 
-            //dd($this->session('headsection'));
-            if (!empty($this->session('headsection'))) {
-                $idPegawai = $this->session('id_pegawai');
+            if (! empty($userData['headsection'])) {
+                $idPegawai = $userData['id_pegawai'];
 
-            $builder = $this->db->table('tb_e_ticket_notifikasi');
-            $data = $builder
-                ->where('valid', 0)
-                ->where('kd_jbtn', $this->session('kd_jabatan'))
-                ->orderBy('created_at', 'DESC')
-                ->get()
-                ->getResult();
+                $builder = $this->db->table('tb_e_ticket_notifikasi');
+                $data = $builder
+                    ->where('valid', 0)
+                    ->where('kd_jbtn', $userData['kd_jabatan'])
+                    ->orderBy('created_at', 'DESC')
+                    ->get()
+                    ->getResult();
 
             // Hapus data di database berdasarkan data yang sudah di dapat
             if (!empty($data)) {
@@ -38,14 +38,14 @@ class Notifikasi extends BaseController
 
             return $this->response->setJSON($data);
             } else {
-                $idPegawai = $this->session('id_pegawai');
+                $idPegawai = $userData['id_pegawai'];
 
                 $builder = $this->db->table('tb_e_ticket_notifikasi');
                 $data = $builder
                     ->where('valid', 1)
                     ->groupStart() // buka kurung
-                    ->where('kd_jbtn', $this->session('kd_jabatan'))
-                    ->orWhere('id_pegawai', $this->session('id_pegawai'))
+                    ->where('kd_jbtn', $userData['kd_jabatan'])
+                    ->orWhere('id_pegawai', $userData['id_pegawai'])
                     ->groupEnd() // tutup kurung
                     ->orderBy('created_at', 'DESC')
                     ->get()

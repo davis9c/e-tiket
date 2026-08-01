@@ -1,5 +1,6 @@
 <?php
-$kdJabatan = session('kd_jabatan');
+$user = $user ?? [];
+$kdJabatan = $user['kd_jabatan'] ?? null;
 $uri = service('uri');
 $currentPath = trim($uri->getPath(), '/');
 $queryParams = [];
@@ -30,7 +31,7 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
                     <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
                     My E-Tiket
                 </a>
-                <?php if ((int) session('headsection') === 1): ?>
+                <?php if ((int) ($user['headsection'] ?? 0) === 1): ?>
 
                     <a class="nav-link<?= $activeLink('headsection') ? ' active' : '' ?>" href="<?= base_url('headsection') ?>">
                         <div class="sb-nav-link-icon"><i class="fas fa-clock"></i></div>
@@ -111,8 +112,8 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
         <!-- FOOTER -->
         <div class="sb-sidenav-footer">
             <div class="small">Logged in as</div>
-            <strong><?= esc(session('nama')) ?></strong><br>
-            <small><?= esc(session('jabatan')) ?></small>
+            <strong><?= esc($user['nama'] ?? '') ?></strong><br>
+            <small><?= esc($user['jabatan'] ?? '') ?></small>
         </div>
     </nav>
 </div>

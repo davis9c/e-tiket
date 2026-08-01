@@ -22,7 +22,8 @@ class KategoriETiket extends BaseController
 
     public function index()
     {
-        if (! $this->session('token')) {
+        $userData = $this->userData;
+        if (! $userData['token']) {
             return redirect()->to('/login');
         }
 
@@ -69,8 +70,10 @@ class KategoriETiket extends BaseController
 
     private function apiHeaders(): array
     {
+        $userData = $this->userData;
+
         return [
-            'Authorization' => $this->session('token'),
+            'Authorization' => $userData['token'] ?? null,
             'Accept'        => 'application/json',
         ];
     }

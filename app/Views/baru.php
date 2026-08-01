@@ -40,21 +40,14 @@
         <?php endif; ?>
 
         <div class="row">
-            <!-- FORM/DETAIL (ATAS) -->
-            <?php if (!empty($data['detailTicket'])): ?>
+            <?php if (!empty($form)): ?>
                 <div class="col-md-9">
-                    <?= $this->include('e-tiket/form-e') ?>
+                    <?= $this->include('e-tiket/form') ?>
                 </div>
             <?php else: ?>
-                <?php if (!empty($data['kategoriData'])): ?>
-                    <div class="col-md-9">
-                        <?= $this->include('e-tiket/form') ?>
-                    </div>
-                <?php else: ?>
-                    <div class="col-md-9">
-                        <?= $this->include('e-tiket/card') ?>
-                    </div>
-                <?php endif ?>
+                <div class="col-md-9">
+                    <?= $this->include('e-tiket/card') ?>
+                </div>
             <?php endif ?>
         </div>
     </div>

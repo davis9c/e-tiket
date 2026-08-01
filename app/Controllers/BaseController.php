@@ -11,6 +11,7 @@ use Config\Services;
 
 abstract class BaseController extends Controller
 {
+    protected array $userData = [];
 
     /**
      * @return void
@@ -18,7 +19,14 @@ abstract class BaseController extends Controller
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
-        // $this->session = service('session');
+        helper('formdata');
+        $this->userData = $this->extractUserSession();
+        Services::renderer()->setVar('user', $this->userData);
+    }
+
+    protected function buildFormData(string $url, array $fields = []): array
+    {
+        return build_form_data($url, $fields);
     }
 
     protected function session(string $key = null, $default = null)
@@ -42,6 +50,13 @@ abstract class BaseController extends Controller
             'nama'        => $this->session('nama'),
             'headsection' => $this->session('headsection'),
         ];
+    }
+
+    protected function extractUserSession(): array
+    {
+        return array_merge($this->getUserSessionData(), [
+            'token' => $this->session('token'),
+        ]);
     }
 
     protected function checkToken()

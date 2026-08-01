@@ -117,7 +117,7 @@
                                     <?php endif ?>
                                 <?php else: ?>
                                     <span class="badge bg-primary">
-                                        Diselesaikan <?= esc($p['selesai_nama']) ?>
+                                        Diselesaikan <?= esc($p['respon_message_id_petugas_nama']) ?>
                                     </span>
                                 <?php endif; ?>
                             <?php endif; ?>
