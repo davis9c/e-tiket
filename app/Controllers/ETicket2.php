@@ -397,6 +397,10 @@ class ETicket2 extends BaseController
                 'tindakan' => null,
             ];
         }
+        /** TODO 
+         * ambilkan data detailnya dari tabel, jangan dari API
+         * 
+         * */
 
         $detail = $this->attachNamaJabatanToUnits($detail);
         $detail = $this->attachNamaJabatanToProses($detail);
