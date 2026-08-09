@@ -399,7 +399,6 @@ class ETicket2 extends BaseController
         }
         /** TODO 
          * ambilkan data detailnya dari tabel, jangan dari API
-         * 
          * */
 
         $detail = $this->attachNamaJabatanToUnits($detail);
@@ -1216,7 +1215,7 @@ class ETicket2 extends BaseController
                 $tiket['unit_penanggung_jawab'] ?? [],
                 fn($item) => !in_array($item['kd_jbtn'], $upj)
             ));
-
+            //dd($unit);
             if (!empty($unit)) {
                 $tindakan['teruskan'] = [
                     'form' => $this->buildFormData(base_url('etiket/submit_teruskan'), [

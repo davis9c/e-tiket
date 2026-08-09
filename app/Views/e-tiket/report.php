@@ -184,19 +184,7 @@
                 <tr>
                     <td><span class="label">Kategori</span></td>
                     <td>: <?= esc($detailTicket['nama_kategori']) ?> (<?= esc($detailTicket['kode_kategori']) ?>)</td>
-                    <td class="text-right"><span class="label">Status</span></td>
-                    <td>:
-                        <?php
-                        if ($detailTicket['selesai_nama'] != null) {
-                            if ($detailTicket['reject_nama'] != null) {
-                                echo strtoupper('ditolak');
-                            } else {
-                                echo strtoupper('selesai');
-                            }
-                        }
-                        //dd($detailTicket);
-                        ?>
-                    </td>
+
                 </tr>
             </table>
         </div>

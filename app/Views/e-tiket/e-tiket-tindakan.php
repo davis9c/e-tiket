@@ -486,10 +486,13 @@
                         </div>
                         <div class="modal-body">
                             <!-- dropdown kd_jbtn -->
+                            <?php
+                            //dd($data['tindakan']['teruskan']['unit']);
+                            ?>
                             <div class="mb-3">
                                 <label class="form-label">Unit Tujuan</label>
                                 <select name="kd_jbtn" class="form-select" required>
-                                    <?php foreach ($data['tindakan']['teruskan']['form']['unit'] as $i => $unit): ?>
+                                    <?php foreach ($data['tindakan']['teruskan']['unit'] as $i => $unit): ?>
                                         <option value="<?= esc($unit['kd_jbtn']) ?>"
                                             <?= $i === 0 ? 'selected' : '' ?>>
                                             <?= esc($unit['kd_jbtn']) ?> - <?= esc($unit['nm_jbtn']) ?>
