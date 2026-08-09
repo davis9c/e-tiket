@@ -398,10 +398,10 @@ class ETicket2 extends BaseController
             ];
         }
 
-        //$detail = $this->attachNamaJabatanToUnits($detail);
-        //$detail = $this->attachNamaJabatanToProses($detail);
-        //$detail = $this->mapUnitWithJabatan($detail);
-        //$detail = $this->attachNamaJabatanToDetail($detail);
+        $detail = $this->attachNamaJabatanToUnits($detail);
+        $detail = $this->attachNamaJabatanToProses($detail);
+        $detail = $this->mapUnitWithJabatan($detail);
+        $detail = $this->attachNamaJabatanToDetail($detail);
         $detail['hashid'] = $this->hashIdService->encode($detail['id']);
 
         return [
