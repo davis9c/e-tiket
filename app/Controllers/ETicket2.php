@@ -137,7 +137,7 @@ class ETicket2 extends BaseController
         return $this->renderTicketList(
             'e-tiket',
             function ($filters, $userData, $id) use ($kdJbtn, $nip) {
-                return $this->eticketModel->getEticketAll2($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
+                return $this->eticketModel->getEticketAll($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
             },
             $hashid,
             $userData['kd_jabatan'],
@@ -398,10 +398,10 @@ class ETicket2 extends BaseController
             ];
         }
 
-        $detail = $this->attachNamaJabatanToUnits($detail);
-        $detail = $this->attachNamaJabatanToProses($detail);
-        $detail = $this->mapUnitWithJabatan($detail);
-        $detail = $this->attachNamaJabatanToDetail($detail);
+        //$detail = $this->attachNamaJabatanToUnits($detail);
+        //$detail = $this->attachNamaJabatanToProses($detail);
+        //$detail = $this->mapUnitWithJabatan($detail);
+        //$detail = $this->attachNamaJabatanToDetail($detail);
         $detail['hashid'] = $this->hashIdService->encode($detail['id']);
 
         return [
@@ -501,11 +501,9 @@ class ETicket2 extends BaseController
         if ($value === null || $value === '') {
             return null;
         }
-
         if (is_numeric($value)) {
             return (int) $value;
         }
-
         return $this->decodeHashId($value);
     }
 
@@ -1246,6 +1244,7 @@ class ETicket2 extends BaseController
     {
         $rules = $this->rulesForSubmit();
         $userData = $this->userData;
+        //dd($userData['id_pegawai']);
         $post = $this->request->getPost();
 
         // Simpan HTML asli
@@ -1264,6 +1263,7 @@ class ETicket2 extends BaseController
         $lampiran = $this->processFileUpload($this->request->getFile('bukti'));
 
         $kategoriId = $this->decodePostIdValue('kategori_id');
+        //dd($kategoriId);
         $kategori   = $this->kategoriModel->findDetail($kategoriId);
 
         if (!$kategori) {
@@ -1271,10 +1271,12 @@ class ETicket2 extends BaseController
                 ->withInput()
                 ->with('error', 'Kategori tidak ditemukan.');
         }
+
         $flow = $this->determineFlow($kategori, $userData['headsection']);
         //dd($flow, $kategori, $userData);
         $db = \Config\Database::connect();
         $db->transBegin();
+
         try {
             // Extract user session data
             // Insert Ticket

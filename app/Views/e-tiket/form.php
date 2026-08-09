@@ -57,7 +57,12 @@
 
                             <hr class="my-2">
                         <?php endif; ?>
-                        <input type="hidden" name="<?= form_field_name($form, 'kategori_id') ?>" value="<?= form_field_value($form, 'kategori_id') ?>">
+                        <?php
+                        //dd($data['kategoriData']);
+                        ?>
+                        <?= form_field_value($form, 'kategori_id') ?>
+                        <!-- sementara ka -->
+                        <input type="hidden" name="<?= form_field_name($form, 'kategori_id') ?>" value="<?= $data['kategoriData']['id'] ?>">
                     </div>
                 </div>
             </div>
