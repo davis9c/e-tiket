@@ -59,13 +59,15 @@
 
 
             <!-- TINDAKAN -->
-            <button
-                type="button"
-                class="btn btn-primary"
-                <?= $canTindakan ? 'data-bs-toggle="modal" data-bs-target="#modalTindakan"' : 'disabled' ?>>
-                <i class="fas fa-list-check me-1"></i>
-                Tindakan
-            </button>
+             <?php if($canTindakan):?>
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    <?= $canTindakan ? 'data-bs-toggle="modal" data-bs-target="#modalTindakan"' : 'disabled' ?>>
+                    <i class="fas fa-list-check me-1"></i>
+                    Tindakan
+                </button>
+            <?php endif; ?>
             <!-- TERUSKAN -->
             <button
                 type="button"
@@ -555,6 +557,7 @@
                                         <?php
                                         $messageId = $data['detailTicket']['message_id'] ?? null;
                                         $responId  = $data['detailTicket']['respon_message_id'] ?? null;
+                                        //dd($messageId);
                                         ?>
                                         <div style="max-height:700px;overflow-y:auto;" class="overflow-auto">
                                             <?php foreach ($rproses as $p): ?>
@@ -576,9 +579,9 @@
                                                         <div class="fw-bold text-primary">
                                                             <?= esc($p['nm_jbtn']) ?>
                                                         </div>
-                                                        <?php if (!empty($p['nm_petugas'])): ?>
+                                                        <?php if (!empty($p['id_petugas_nama'])): ?>
                                                             <small class="text-muted">
-                                                                <?= esc($p['nm_petugas']) ?>
+                                                                <?= esc($p['id_petugas_nama']) ?>
                                                             </small>
                                                         <?php endif ?>
                                                     </div>
