@@ -93,7 +93,7 @@
                     data-bs-toggle="modal"
                     data-bs-target="#modalPermintaan">
                     <i class="fas fa-file-alt me-1"></i>
-                    Permintaan
+                    Detail
                 </button>
                 <?php if (!empty($data['detailTicket']['respon_message_id'])): ?>
                     <button
