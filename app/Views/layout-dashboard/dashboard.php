@@ -63,7 +63,7 @@
         const BASE_URL = "<?= base_url() ?>";
         const SOUND_URL = BASE_URL + "assets/audio/bell.mp3";
 
-        let prevNotifCount = 0;
+        let previousNotifIds = new Set();
         let audioUnlocked = false;
 
         // =======================
@@ -154,8 +154,17 @@
         }
 
         document.getElementById('notifBtn').addEventListener('click', () => {
-            updateBadge(0);
-            prevNotifCount = 0;
+            const ids = Array.from(previousNotifIds);
+            if (!ids.length) return;
+
+            fetch(BASE_URL + "notif/read", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            }).then(() => {
+                previousNotifIds.clear();
+                updateBadge(0);
+            }).catch(error => console.error("❌ Error marking notifications read:", error));
         });
 
         // =======================
@@ -175,9 +184,12 @@
                         return;
                     }
 
-                    updateBadge(data.length);
+                    const ids = data.map(item => Number(item.id)).filter(Boolean);
+                    const newIds = ids.filter(id => !previousNotifIds.has(id));
+                    previousNotifIds = new Set(ids);
+                    updateBadge(ids.length);
 
-                    if (data.length > 0) {
+                    if (newIds.length > 0) {
                         playSound();
                     }
                 })

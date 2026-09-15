@@ -18,55 +18,37 @@ class Notifikasi extends BaseController
     {
         try {
             $userData = $this->userData;
-
-            if (! empty($userData['headsection'])) {
-                $idPegawai = $userData['id_pegawai'];
-
-                $builder = $this->db->table('tb_e_ticket_notifikasi');
-                $data = $builder
-                    ->where('valid', 0)
-                    ->where('kd_jbtn', $userData['kd_jabatan'])
-                    ->orderBy('created_at', 'DESC')
-                    ->get()
-                    ->getResult();
-
-            // Hapus data di database berdasarkan data yang sudah di dapat
-            if (!empty($data)) {
-                $ids = array_map(fn($item) => $item->id, $data);
-                $this->db->table('tb_e_ticket_notifikasi')->whereIn('id', $ids)->delete();
-            }
+            $data = $this->db->table('tb_e_ticket_notifikasi')
+                ->where('id_pegawai', $userData['id_pegawai'])
+                ->where('read_at IS NULL', null, false)
+                ->orderBy('created_at', 'DESC')
+                ->get()
+                ->getResult();
 
             return $this->response->setJSON($data);
-            } else {
-                $idPegawai = $userData['id_pegawai'];
-
-                $builder = $this->db->table('tb_e_ticket_notifikasi');
-                $data = $builder
-                    ->where('valid', 1)
-                    ->groupStart() // buka kurung
-                    ->where('kd_jbtn', $userData['kd_jabatan'])
-                    ->orWhere('id_pegawai', $userData['id_pegawai'])
-                    ->groupEnd() // tutup kurung
-                    ->orderBy('created_at', 'DESC')
-                    ->get()
-                    ->getResult();
-
-                // Hapus data di database berdasarkan data yang sudah di dapat
-                if (!empty($data)) {
-                    $ids = array_map(fn($item) => $item->id, $data);
-                    $this->db->table('tb_e_ticket_notifikasi')->whereIn('id', $ids)->delete();
-                }
-
-                return $this->response->setJSON($data);
-            }
         } catch (\Throwable $e) {
-
+            log_message('error', 'Notification fetch failed: ' . $e->getMessage());
             return $this->response->setJSON([
-                'message' => $e->getMessage(),
-                'line'    => $e->getLine(),
-                'file'    => $e->getFile(),
+                'message' => 'Gagal mengambil notifikasi.',
             ])->setStatusCode(500);
         }
+    }
+
+    public function read()
+    {
+        $userData = $this->userData;
+        $ids = $this->request->getJSON(true)['ids'] ?? [];
+        $ids = array_values(array_filter(array_map('intval', (array) $ids)));
+
+        if (!empty($ids)) {
+            $this->db->table('tb_e_ticket_notifikasi')
+                ->whereIn('id', $ids)
+                ->where('id_pegawai', $userData['id_pegawai'])
+                ->where('read_at IS NULL', null, false)
+                ->update(['read_at' => date('Y-m-d H:i:s')]);
+        }
+
+        return $this->response->setJSON(['status' => 'read']);
     }
 
     // ➕ Tambah notifikasi
@@ -75,6 +57,8 @@ class Notifikasi extends BaseController
         $data = [
             'id_pegawai' => $this->request->getPost('id_pegawai'),
             'id_eticket' => $this->request->getPost('id_eticket'),
+            'valid'      => $this->request->getPost('valid') ?? 1,
+            'kd_jbtn'    => $this->request->getPost('kd_jbtn'),
             'pesan'      => $this->request->getPost('pesan'),
             'tipe'       => $this->request->getPost('tipe'),
             'created_at' => date('Y-m-d H:i:s'),
@@ -91,7 +75,10 @@ class Notifikasi extends BaseController
     // 🗑️ (opsional) hapus notif
     public function delete($id)
     {
-        $this->db->table('tb_e_ticket_notifikasi')->delete(['id' => $id]);
+        $this->db->table('tb_e_ticket_notifikasi')
+            ->where('id', $id)
+            ->where('id_pegawai', $this->userData['id_pegawai'])
+            ->delete();
 
         return $this->response->setJSON([
             'status' => 'deleted'

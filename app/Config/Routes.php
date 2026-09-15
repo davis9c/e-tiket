@@ -47,6 +47,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
+    $routes->post('notif/read', 'Notifikasi::read');
     $routes->get('lampiran/view/(:segment)', 'ETicket2::viewLampiran/$1');
     $routes->get('lampiran/download/(:segment)', 'ETicket2::downloadLampiran/$1');
 

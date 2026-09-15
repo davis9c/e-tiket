@@ -484,14 +484,32 @@ class ETicket2 extends BaseController
             }
         }
 
-        $this->insertNotifikasi(
-            null,
+        $this->notifyJabatanUsers(
+            $flow['proses'] ?? $userData['kd_jabatan'],
             $ticketId,
             1,
-            $flow['proses'] ?? $userData['kd_jabatan'],
             'Tiket sedang diproses',
             'diproses'
         );
+    }
+
+    private function notifyJabatanUsers(
+        ?string $kdJbtn,
+        int $ticketId,
+        int $valid,
+        string $pesan,
+        string $tipe
+    ): void {
+        if (!$kdJbtn) {
+            return;
+        }
+
+        foreach ($this->getPetugas($kdJbtn) as $user) {
+            $idPegawai = $user['id_pegawai'] ?? null;
+            if ($idPegawai !== null) {
+                $this->insertNotifikasi($idPegawai, $ticketId, $valid, $kdJbtn, $pesan, $tipe);
+            }
+        }
     }
     private function decodeHashId($hashid): ?int
     {
@@ -693,7 +711,7 @@ class ETicket2 extends BaseController
                 $ticket['kd_pegawai'],
                 $ticketId,
                 1,
-                $ticket['kd_pegawai'],
+                null,
                 $nama . ' Menyelesaikan Ticket ini.',
                 'selesai'
             );
@@ -830,12 +848,11 @@ class ETicket2 extends BaseController
                 $kategori['unit_penanggung_jawab']
             );
         }
-        $this->insertNotifikasi(
-            null, //pegawai
-            $ticketId, //id ticket wajib
-            1, //valid
-            $ticket['unit_penanggung_jawab'][0]['kd_jbtn'], //kdjbtn
-            'Tiket sedang diproses', //pensan
+        $this->notifyJabatanUsers(
+            $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
+            $ticketId,
+            1,
+            'Tiket sedang diproses',
             'disetujui'
         );
         return redirect()->back()->with('success', 'Ticket berhasil di approve.');
@@ -1879,7 +1896,7 @@ class ETicket2 extends BaseController
                 'petugas_id'        => $petugasId,
                 'petugas_id_nama'   => $petugasNama,
                 'kd_jbtn'           => $kdJabatan,
-                'proses_unit'       => $prosesUnit ?? null,
+                'proses_unit'       => $flow['proses'] ?? null,
                 'headsection'       => $kategori['headsection'],
                 'valid_nama'        => $petugasNama
             ];
@@ -1914,21 +1931,19 @@ class ETicket2 extends BaseController
             ]);
             $db->transCommit();
             if ($kategori['headsection'] == 1) {
-                $this->insertNotifikasi(
-                    null, //pegawai
-                    $ticketId, //id ticket wajib
-                    0, //valid
-                    $userData['kd_jabatan'], //kdjbtn
-                    'Tiket sedang diproses', //pensan
+                $this->notifyJabatanUsers(
+                    $userData['kd_jabatan'],
+                    $ticketId,
+                    0,
+                    'Tiket sedang diproses',
                     'diproses'
                 );
             } elseif ($kategori['headsection'] == 0) {
-                $this->insertNotifikasi(
-                    null, //pegawai
-                    $ticketId, //id ticket wajib
-                    1, //valid 1 jika sudah valid
-                    !empty($flow['valid']) ? $flow['proses'] : null, //kdjbtn
-                    'Tiket sedang diproses', //pensan
+                $this->notifyJabatanUsers(
+                    $flow['proses'] ?? null,
+                    $ticketId,
+                    1,
+                    'Tiket sedang diproses',
                     'diproses'
                 );
             }
