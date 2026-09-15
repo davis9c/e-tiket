@@ -137,7 +137,7 @@ class ETicket2 extends BaseController
         return $this->renderTicketList(
             'e-tiket',
             function ($filters, $userData, $id) use ($kdJbtn, $nip) {
-                return $this->eticketModel->getEticketAll($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
+                return $this->eticketModel->getEticketAll2($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
             },
             $hashid,
             $userData['kd_jabatan'],
@@ -1840,7 +1840,7 @@ class ETicket2 extends BaseController
         $kdJabatan  = $dataPetugas[1];
         $nmJabatan  = $dataPetugas[2];
         $kd_pegawai = $this->getPegawai($nip)['id'];
-        $petugasId   = $this->request->getPost('nip');
+        $petugasId   = $nip;
         $petugasNama = $this->request->getPost('nama_petugas');
         $petugasJabatan = $this->request->getPost('nm_jbtn');
         $message   = $this->request->getPost('message');
