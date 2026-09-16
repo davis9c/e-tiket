@@ -1572,6 +1572,7 @@ class ETicket2 extends BaseController
     * ========================================================= */
     private function insertNotifikasi($idPegawai = null, $idTiket = null, $valid = 0, $kdJbtn = null, $pesan = null, $tipe = null)
     {
+        //TODO: $kdJbtn tidak boleh null
         if ($idTiket == null) {
             return 0;
         }
@@ -1579,7 +1580,7 @@ class ETicket2 extends BaseController
             'id_pegawai' => $idPegawai,
             'id_eticket' => $idTiket,
             'valid'      => $valid,
-            'kd_jbtn'    => $kdJbtn,
+            //'kd_jbtn'    => $kdJbtn,
             'pesan'      => $pesan,
             'tipe'       => $tipe,
             'created_at' => date('Y-m-d H:i:s'),
