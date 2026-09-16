@@ -71,6 +71,7 @@
                 </tr>
             </thead>
             <tbody>
+                
                 <?php foreach ($data['eticket'] as $index => $p): ?>
                     <tr>
                         <td><?= $index + 1 ?></td>
@@ -95,32 +96,31 @@
                         <!-- STATUS -->
                         <td>
                             <?php if ($p['valid_nama'] == null): ?>
+
                                 <span class="badge bg-secondary">
                                     Menunggu Persetujuan
                                 </span>
-                            <?php elseif ($p['valid_nama'] != null): ?>
-                                <?php if (!empty($p['selesai_nama'])): ?>
-                                <?php else: ?>
-                                    <span class="badge bg-success">
-                                        Disetujui
-                                    </span>
-                                <?php endif ?>
-                                <?php if ($p['selesai_nama'] == null): ?>
-                                    <?php if ($p['handler_nama'] != null): ?>
-                                        <span class="badge bg-warning">
-                                            Dikerjakan <?= esc($p['handler_nama']) ?>
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">
-                                            Dalam antrian
-                                        </span>
-                                    <?php endif ?>
-                                <?php else: ?>
-                                    <span class="badge bg-primary">
-                                        Diselesaikan <?= esc($p['respon_message_id_petugas_nama']) ?>
-                                    </span>
-                                <?php endif; ?>
+
+                            <?php elseif ($p['respon_message_id_petugas_nama'] != null): ?>
+
+                                <span class="badge bg-primary">
+                                    Diselesaikan <?= esc($p['respon_message_id_petugas_nama']) ?>
+                                </span>
+
+                            <?php elseif ($p['handler_nama'] != null): ?>
+
+                                <span class="badge bg-warning">
+                                    Dikerjakan <?= esc($p['handler_nama']) ?>
+                                </span>
+
+                            <?php else: ?>
+
+                                <span class="badge bg-secondary">
+                                    Dalam antrian
+                                </span>
+
                             <?php endif; ?>
+
                         </td>
                     </tr>
                 <?php endforeach; ?>
