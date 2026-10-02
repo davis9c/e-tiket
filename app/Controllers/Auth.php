@@ -23,7 +23,16 @@ class Auth extends BaseController
 
     public function login()
     {
-        return view('auth/login2');
+        $data = [];
+
+        // Dropdown user hanya untuk development. Di environment lain
+        // user mengetik User ID sendiri, jadi jangan sampai query
+        // daftar user ikut jalan.
+        if (ENVIRONMENT === 'development') {
+            $data['devUsers'] = $this->userModel->devLoginList();
+        }
+
+        return view('auth/login2', $data);
     }
 
     public function attempt()
@@ -129,6 +138,18 @@ class Auth extends BaseController
             'nik'  => $result['data']['nik'],
             'nama' => $result['data']['nama'],
         ];
+
+        // Unit + jabatan ikut disimpan. Halaman login tidak bisa memanggil
+        // API (semua endpoint mewajibkan token), jadi ini satu-satunya
+        // sumber unit yang terbaca sebelum login.
+        // Hanya ditulis kalau API benar-benar mengirimnya, supaya unit
+        // yang sudah tersimpan tidak tertimpa NULL.
+        if (! empty($result['data']['kd_jabatan'])) {
+            $dataUser['kd_jbtn'] = $result['data']['kd_jabatan'];
+        }
+        if (! empty($result['data']['jabatan'])) {
+            $dataUser['nm_jbtn'] = $result['data']['jabatan'];
+        }
 
         if (!$user) {
             $this->userModel->insert(array_merge($dataUser, [

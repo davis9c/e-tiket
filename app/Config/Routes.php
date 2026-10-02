@@ -30,10 +30,21 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('dashboard-saya', 'ETicket2::dashboard');
 
     // URL lama per role (tetap dipertahankan)
-    $routes->get('dashboard/headsection', 'Dashboard::headsection');
     $routes->get('dashboard/pelaksana', 'Dashboard::pelaksana');
     $routes->get('dashboard/user', 'Dashboard::user');
     $routes->get('dashboard/tugas', 'Dashboard::tugas');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Halaman Persetujuan Headsection (khusus role headsection)
+    |--------------------------------------------------------------------------
+    | Dashboard tidak dipisah per role; semua orang memakai /dashboard-saya.
+    */
+    $routes->group('', ['filter' => 'roleheadsection'], function ($routes) {
+        $routes->get('headsection', 'ETicket2::headsection');
+        $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
+        $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
+    });
     /*
     |--------------------------------------------------------------------------
     | E-Ticket
@@ -52,7 +63,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->post('etiket/ticket-edit-permintaan', 'ETicket2::eticket_edit_permintaan');
     $routes->post('etiket/submit_teruskan', 'ETicket2::submit_teruskan'); //fungsi teruskan
     $routes->post('etiket/submit_final', 'ETicket2::submit_final');
-    $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
 
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
@@ -60,8 +70,6 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('lampiran/view/(:segment)', 'ETicket2::viewLampiran/$1');
     $routes->get('lampiran/download/(:segment)', 'ETicket2::downloadLampiran/$1');
 
-    $routes->get('headsection', 'ETicket2::headsection');
-    $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
 

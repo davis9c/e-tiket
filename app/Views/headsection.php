@@ -17,19 +17,19 @@
         <?php if (!empty($data['detailTicket'])): ?>
             <div class="row">
                 <!-- STATUS -->
-                <div class="col-md-9">
+                <div class="d-flex gap-2 mb-4 flex-wrap">
                     <?= $this->include('e-tiket/e-tiket-status') ?>
                     <hr>
                 </div>
                 <!-- TINDAKAN Baru -->
-                <div class="col-md-9">
+                <div class="d-flex gap-2 mb-4 flex-wrap">
                     <?= $this->include('e-tiket/e-tiket-tindakan') ?>
                     <hr>
                 </div>
             </div>
         <?php endif; ?>
         <div class="row">
-            <div class="col-12">
+            <div class="d-flex gap-2 mb-4 flex-wrap">
                 <?= $this->include('e-tiket/list') ?>
             </div>
         </div>

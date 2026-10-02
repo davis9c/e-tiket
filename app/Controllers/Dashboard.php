@@ -15,18 +15,6 @@ class Dashboard extends BaseController
     }
 
     /**
-     * Dashboard khusus Headsection
-     * Menampilkan tiket yang perlu divalidasi dan sedang diproses
-     */
-    public function headsection()
-    {
-        return view(
-            'dashboard/headsection',
-            $this->dashboardService->headsectionData($this->userData['kd_jabatan'])
-        );
-    }
-
-    /**
      * Dashboard khusus Pelaksana
      * Menampilkan tiket yang sedang diproses dan selesai
      */

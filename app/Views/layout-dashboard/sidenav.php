@@ -34,7 +34,6 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
                 // $isDash juga true di URL lama (/dashboard/headsession dll)
                 // supaya menu ini tetap ter-highlight.
                 $isDash = $activeLink('dashboard-saya')
-                    || $activeLink('dashboard/headsection')
                     || $activeLink('dashboard/pelaksana')
                     || $activeLink('dashboard/user')
                     || $activeLink('dashboard/tugas');

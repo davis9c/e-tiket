@@ -1,3 +1,8 @@
+<?php
+// Dipakai juga oleh link detail tiket di tabel, supaya filter yang
+// sedang aktif ikut terbawa. pakai '??' karena key-nya tidak selalu ada.
+$queryString = $_SERVER['QUERY_STRING'] ?? '';
+?>
 <div class="card shadow-sm mb-4">
     <div class="card-header">
         <i class="fas fa-table me-1"></i>
@@ -79,7 +84,7 @@
                                     <?= esc($p['nama_kategori']) ?>
                                 </span>
                             <?php else: ?>
-                                <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) . '?' . $_SERVER['QUERY_STRING'] ?>">
+                                <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) . ($queryString ? '?' . $queryString : '') ?>">
                                     <?= esc($p['nama_kategori']) ?>
                                 </a>
                             <?php endif; ?>
@@ -93,7 +98,13 @@
                         </td>
                         <!-- STATUS -->
                         <td>
-                            <?php if ($p['valid_nama'] == null): ?>
+                            <?php if (($p['status'] ?? '') === 'reject'): ?>
+
+                                <span class="badge bg-danger">
+                                    Ditolak<?= ! empty($p['reject_nama']) ? ' ' . esc($p['reject_nama']) : '' ?>
+                                </span>
+
+                            <?php elseif ($p['valid_nama'] == null): ?>
 
                                 <span class="badge bg-secondary">
                                     Menunggu Persetujuan

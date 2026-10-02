@@ -8,8 +8,12 @@ use App\Models\KategoriETiketModel;
 /**
  * Pengumpulan data untuk dashboard per user.
  *
+ * Semua role memakai dashboard yang sama (view dashboard/user).
+ * Yang punya peran headsection mendapat section tambahan
+ * "Perlu Persetujuan" + "Sedang Diproses".
+ *
  * Dipakai oleh dua tempat:
- *   - App\Controllers\Dashboard  (URL lama: /dashboard/headsection, dll)
+ *   - App\Controllers\Dashboard  (URL lama: /dashboard/pelaksana, dll)
  *   - App\Controllers\ETicket2   (entry point baru: /dashboard-saya)
  *
  * Supaya keduanya tidak punya salinan logika yang bisa berbeda.
@@ -18,11 +22,29 @@ class DashboardService
 {
     protected ETicketModel $tiket;
     protected KategoriETiketModel $kategori;
+    protected HashIdService $hashId;
 
     public function __construct()
     {
         $this->tiket    = new ETicketModel();
         $this->kategori = new KategoriETiketModel();
+        $this->hashId   = new HashIdService();
+    }
+
+    /**
+     * Lampirkan hashid ke setiap baris tiket.
+     *
+     * Wajib untuk link detail: ETicket2::headsection() dan
+     * ETicket2::eticket() menerima hashid, bukan id mentah, dan
+     * decode() id angka selalu gagal.
+     */
+    private function attachHashId(array $rows): array
+    {
+        foreach ($rows as &$row) {
+            $row['hashid'] = $this->hashId->encode($row['id']);
+        }
+
+        return $rows;
     }
 
     /**
@@ -264,48 +286,20 @@ class DashboardService
     }
 
     /**
-     * Dashboard khusus Headsection
+     * Tiket yang sudah disetujui headsection tapi belum dijawab unit
+     * tujuan (valid_nama terisi, message_akhir masih NULL).
      */
-    public function headsectionData(?string $kdJbtn): array
+    public function sedangDisetujuiData(?string $kdJbtn, ?string $nip): array
     {
-        // Tanpa kd_jabatan tidak ada data yang bisa difilter.
-        // getHeadSectionTickets() parameter $kd_jbtn bertipe string (bukan nullable),
-        // jadi null akan memicu TypeError.
-        $perluValidasi = [];
-        $sedangDiproses = [];
-        $allTiket = [];
+        $list = [];
 
         if ($kdJbtn) {
-            // Tiket perlu validasi (belum valid)
-            $perluValidasi = $this->tiket->getHeadSectionTickets($kdJbtn, true, 0, null, null);
-
-            // Tiket sedang diproses
-            $sedangDiproses = $this->tiket->getHeadSectionTickets($kdJbtn, true, 1, 0, null);
-
-            // Statistik
-            $allTiket = $this->tiket->getHeadSectionTickets($kdJbtn, true, null, null, null);
-        }
-
-        $total = count($allTiket);
-        $belumValid = count($perluValidasi);
-        $proses = count($sedangDiproses);
-        $selesai = 0;
-        $reject = 0;
-
-        foreach ($allTiket as $t) {
-            if ($t['status'] == 'selesai') $selesai++;
-            if ($t['status'] == 'reject') $reject++;
+            $list = $this->tiket->getHeadSectionTickets($kdJbtn, 1, 0, null, $nip);
         }
 
         return [
-            'title' => 'Dashboard Headsection',
-            'total' => $total,
-            'belumValid' => $belumValid,
-            'proses' => $proses,
-            'selesai' => $selesai,
-            'reject' => $reject,
-            'perluValidasi' => $perluValidasi,
-            'sedangDiproses' => $sedangDiproses,
+            'total' => count($list),
+            'list'  => $this->attachHashId($list),
         ];
     }
 
@@ -411,27 +405,57 @@ class DashboardService
     }
 
     /**
-     * Tiket yang masih menunggu validasi (valid_nama IS NULL).
+     * Tiket yang belum divalidasi, gabungan dua sumber:
+     *   - tiket milik sendiri yang menunggu atasan
+     *     (getEticketAll2 -> dengan valid=0 hasilnya efektif hanya
+     *      tiket milik sendiri, karena cabang unit mensyaratkan
+     *      valid_nama IS NOT NULL)
+     *   - tiket unit saya yang menunggu approval headsection
+     *     (getHeadSectionTickets -> sudah exclude milik sendiri)
      *
-     * Gabungan dua sumber, sama seperti halaman /etiket:
-     *   - tiket yang diajxukan sendiri
-     *   - tiket unitnya yang belum divalidasi
-     *
-     * Dipakai untuk section "Perlu Validasi" di dashboard.
+     * Dipakai section "Perlu Validasi" di dashboard. Barisnya diberi
+     * penanda is_milik_sendiri supaya view bisa membedakan keduanya
+     * tanpa menambah kolom baru.
      */
     public function perluValidasiData(?string $kdJbtn, ?string $nip): array
     {
         // Tanpa NIP, filter dilewati -> semua tiket terekspos.
-        $list = [];
-
-        if ($nip) {
-            // valid = 0 -> valid_nama IS NULL
-            $list = $this->tiket->getEticketAll2($kdJbtn, $nip, 0, null, null);
+        if (! $nip) {
+            return ['total' => 0, 'list' => []];
         }
+
+        // valid = 0 -> valid_nama IS NULL
+        $milikSendiri = $this->tiket->getEticketAll2($kdJbtn, $nip, 0, null, null);
+
+        // getHeadSectionTickets() parameter $kd_jbtn bertipe string (bukan
+        // nullable), jadi null akan memicu TypeError. Tanpa kd_jabatan
+        // tidak ada yang bisa difilter - biarkan kosong.
+        $milikUnit = $kdJbtn
+            ? $this->tiket->getHeadSectionTickets($kdJbtn, 0, null, null, $nip)
+            : [];
+
+        // Dedup per id: tiket milik sendiri bisa muncul di kedua sumber
+        // kalau kategorinya tidak butuh persetujuan headsection.
+        $map = [];
+
+        foreach ($milikSendiri as $t) {
+            $t['is_milik_sendiri'] = true;
+            $map[$t['id']]          = $t;
+        }
+
+        foreach ($milikUnit as $t) {
+            if (! isset($map[$t['id']])) {
+                $t['is_milik_sendiri'] = false;
+                $map[$t['id']]          = $t;
+            }
+        }
+
+        $list = array_values($map);
+        usort($list, fn ($a, $b) => strcmp($b['created_at'], $a['created_at']));
 
         return [
             'total' => count($list),
-            'list'  => $list,
+            'list'  => $this->attachHashId($list),
         ];
     }
 

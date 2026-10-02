@@ -19,12 +19,12 @@
             <div class="row">
                 <!-- LIST (KIRI) -->
                 <!-- STATUS -->
-                <div class="col-md-9">
+                <div class="d-flex gap-2 mb-4 flex-wrap">
                     <?= $this->include('e-tiket/e-tiket-status') ?>
                     <hr>
                 </div>
                 <!-- TINDAKAN Baru -->
-                <div class="col-md-9">
+                <div class="d-flex gap-2 mb-4 flex-wrap">
                     <?= $this->include('e-tiket/e-tiket-tindakan') ?>
                     <hr>
                 </div>

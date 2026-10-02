@@ -46,41 +46,22 @@
                                             <?php if (ENVIRONMENT === 'development'): ?>
 
                                                 <?php
-                                                $defaultUser = '198511072009031002';
-
-                                                $devUsers = [
-                                                    'J002 - Pranata Komputer' => [
-                                                        '198511072009031002' => 'IRFAN FAUZI, A.Md.',
-                                                    ],
-                                                    'J036 - Arofah / Mina' => [
-                                                        '197005091995031002' => 'SULIONO, S.Kep.Ns.',
-                                                        '199004232019022005' => 'YULIANI, A.Md.Kep.',
-                                                        '199102102019022006' => 'SEJUK KARISMA, A.Md.Kep.',
-                                                    ],
-                                                    'J039 - Aqsha / VIP' => [
-                                                        '196807161989022002' => 'SUSI KRISTIANI, S.Kep.Ns.',
-                                                        '199304282019022004' => 'CATHARINA TRY MAYA SOVA, A.Md.Kep.',
-                                                        '198904012011012011' => 'APRILIA SISKARIYANTI, A.Md.Kep.',
-                                                    ],
-                                                    'J013 - Perekam Medis' => [
-                                                        '198509192010011015' => 'ARIF RAKHMAD ANDRIANTO, A.Md.',
-                                                    ],
-                                                    'J014 - Bendahara' => [
-                                                        '198310292010011001' => 'BAGUS IRAWAN OKTORIYANTO',
-                                                    ],
-                                                ];
+                                                // SULIONO - satu-satunya user headsection,
+                                                // dipakai default supaya halaman
+                                                // persetujuan bisa langsung diuji.
+                                                $defaultUser = '197005091995031002';
                                                 ?>
-                                                <select class="form-select" id="user_id" name="user_id">
-                                                    <?php foreach ($devUsers as $jabatan => $users): ?>
-                                                        <optgroup label="<?= $jabatan ?>">
-                                                            <?php foreach ($users as $id => $nama): ?>
+                                                <select class="form-select" id="user_id" name="user_id" required>
+                                                    <?php foreach (($devUsers ?? []) as $group): ?>
+                                                        <optgroup label="<?= esc($group['label']) ?>">
+                                                            <?php foreach ($group['users'] as $u): ?>
                                                                 <?php
                                                                 $selected = old('user_id')
-                                                                    ? old('user_id') == $id
-                                                                    : $defaultUser == $id;
+                                                                    ? old('user_id') == $u['nip']
+                                                                    : $defaultUser == $u['nip'];
                                                                 ?>
-                                                                <option value="<?= $id ?>" <?= $selected ? 'selected' : '' ?>>
-                                                                    <?= $nama ?>
+                                                                <option value="<?= esc($u['nip']) ?>" <?= $selected ? 'selected' : '' ?>>
+                                                                    <?= esc($u['nama']) ?><?= $u['headsection'] ? ' (Headsection)' : '' ?>
                                                                 </option>
                                                             <?php endforeach; ?>
                                                         </optgroup>

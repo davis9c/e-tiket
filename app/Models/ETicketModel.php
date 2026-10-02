@@ -540,25 +540,28 @@ class ETicketModel extends Model
     | FILTER STATUS
     |--------------------------------------------------------------------------
     */
-    //BARU
+    /**
+     * Tiket untuk halaman persetujuan headsection.
+     *
+     * Aturan: headsection hanya menyetujui tiket milik unitnya sendiri,
+     * jadi cukup cocokkan e.kd_jbtn (unit yang mengajukan tiket).
+     *
+     * Join kuj dan ep sengaja tidak dipakai lagi:
+     *   - kuj menambah ~70 baris per kategori sehingga fan-out besar
+     *     tanpa menyumbang apa pun ke hasil,
+     *   - ep tidak pernah dibaca di SELECT (WHERE memakai subquery terpisah).
+     *
+     * $excludePetugasId dipakai untuk menyembunyikan tiket yang dibuat
+     * oleh headsection sendiri.
+     */
     public function getHeadSectionTickets(
         string $kd_jbtn,
-        bool $penanggungJawab,
         ?int $valid = null,
         ?int $selesai = null,
-        ?int $kategori = null
+        ?int $kategori = null,
+        ?string $excludePetugasId = null
     ): array {
         $builder = $this->baseQuery()
-            ->join(
-            'tb_e_ticket_kategori_unit_jabatan kuj',
-                'kuj.kategori_id = e.kategori_id',
-                'inner'
-            )
-            ->join(
-            'tb_e_ticket_proses ep',
-                'ep.id_eticket = e.id',
-                'left'
-        )
             ->join(
             'tb_e_ticket_proses awal',
                 'awal.id = e.message_awal',
@@ -592,23 +595,18 @@ class ETicketModel extends Model
                 'akhir.created_at AS respon_message_created_at',
                 'akhir.updated_at AS respon_message_updated_at',
             ])
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
-            ->where('e.created_at >=', $this->enamBulanLalu())
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere(
-                "EXISTS (
-                    SELECT 1
-                    FROM tb_e_ticket_proses ep
-                    WHERE ep.id_eticket = e.id
-                    AND ep.kd_jbtn = " . $this->db->escape($kd_jbtn) . "
-                )",
-                null,
-                false
-            )
-            ->orWhere('e.kd_jbtn', $kd_jbtn)
-            ->groupEnd();
+            ->where('e.kd_jbtn', $kd_jbtn);
+
+        // KECUALI TIKET MILIK SENDIRI
+        // Headsection tidak perlu menyetujui tiket yang ia buat sendiri.
+        // NULL-safe karena kolom petugas_id boleh NULL.
+        if ($excludePetugasId !== null && $excludePetugasId !== '') {
+            $builder->groupStart()
+                ->where('e.petugas_id IS NULL', null, false)
+                ->orWhere('e.petugas_id <>', $excludePetugasId)
+                ->groupEnd();
+        }
+
         // FILTER VALIDASI 
         if ($valid === 1) {
             $builder->where(
@@ -627,14 +625,12 @@ class ETicketModel extends Model
         if ($selesai === 1) {
             $builder->where(
                 'e.message_akhir IS NOT NULL',
-                // 'e.selesai_nama IS NOT NULL',
                 null,
                 false
             );
         } elseif ($selesai === 0) {
             $builder->where(
                 'e.message_akhir IS NULL',
-                // 'e.selesai_nama IS NULL',
                 null,
                 false
             );
@@ -643,8 +639,9 @@ class ETicketModel extends Model
         if ($kategori !== null) {
             $builder->where('e.kategori_id', $kategori);
         }
+        // Tidak perlu groupBy: semua join di atas eq_ref ke primary key,
+        // jadi hasilnya sudah satu baris per tiket.
         $rows = $builder
-            ->groupBy('e.id')
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
@@ -654,28 +651,12 @@ class ETicketModel extends Model
 
     public function isSudahValid(
         string $kd_jbtn,
-        bool $penanggungJawab,
         ?bool $selesai = null
     ): bool {
         $builder = $this->baseQuery()
             ->select('1', false)
-            ->join('tb_e_ticket_kategori_unit_jabatan kuj', 'kuj.kategori_id = e.kategori_id', 'inner')
-            ->where('kuj.kd_jbtn', $kd_jbtn)
-            ->where('kuj.is_penanggung_jawab', $penanggungJawab)
+            ->where('e.kd_jbtn', $kd_jbtn)
             ->where('e.valid_nama IS NOT NULL', null, false)
-            ->groupStart()
-            ->where('e.proses_unit', $kd_jbtn)
-            ->orWhere(
-                "EXISTS (
-                    SELECT 1
-                    FROM tb_e_ticket_proses ep
-                    WHERE ep.id_eticket = e.id
-                    AND ep.kd_jbtn = " . $this->db->escape($kd_jbtn) . "
-                )",
-                null,
-                false
-            )
-            ->groupEnd()
             ->limit(1);
 
         return $builder->get()->getRow() !== null;

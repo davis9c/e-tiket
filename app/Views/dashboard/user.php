@@ -21,7 +21,10 @@
             $exTotal   = max($executor['total'], 1);
             $pvTotal   = max($perluValidasi['total'], 1);
 
-            // 9 kartu: 4 Tiket Saya + 4 Executor + 1 Perlu Validasi
+
+            // 9 kartu: 4 Tiket Saya + 4 Executor + 1 Perlu Validasi.
+            // Kartu "Perlu Validasi" sudah mencakup tiket milik sendiri
+            // maupun tiket unit yang menunggu approval.
             $cards = [
                 ['t' => 'Tiket Saya',            'v' => $total,                        'c' => 'primary',   'i' => 'fa-ticket-alt'],
                 ['t' => 'Belum Valid',            'v' => $belumValid,                   'c' => 'secondary', 'i' => 'fa-clock'],
@@ -102,6 +105,7 @@
 
         <!-- ===================== -->
         <!-- PERLU VALIDASI -->
+        <!-- Gabungan tiket milik sendiri + tiket unit yang menunggu validasi -->
         <!-- ===================== -->
         <div class="card shadow-sm mb-2">
             <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center">
@@ -122,8 +126,6 @@
                     <table class="table table-sm table-hover mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th>Kode</th>
-                                <th>Judul</th>
                                 <th>Kategori</th>
                                 <th>Pengaju</th>
                                 <th>Tanggal</th>
@@ -133,14 +135,22 @@
                         <tbody>
                             <?php foreach ($perluValidasi['list'] as $t): ?>
                                 <tr>
-                                    <td class="text-nowrap"><?= esc($t['kode_ticket'] ?? '-') ?></td>
-                                    <td><?= esc($t['judul'] ?? '-') ?></td>
                                     <td class="text-nowrap"><?= esc($t['nama_kategori'] ?? '-') ?></td>
-                                    <td class="text-nowrap"><?= esc($t['petugas_id_nama'] ?? '-') ?></td>
+                                    <td class="text-nowrap">
+                                        <?= esc($t['petugas_id_nama'] ?? '-') ?>
+                                        <?php if (! empty($t['is_milik_sendiri'])): ?>
+                                            <span class="badge bg-light text-dark ms-1">Saya</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-nowrap small"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
                                     <td class="text-end">
-                                        <a href="<?= base_url('etiket/' . $t['id']) ?>"
-                                           class="btn btn-sm btn-primary py-0">Lihat</a>
+                                        <?php if (isset($sedangDisetujui)): ?>
+                                            <a href="<?= base_url('headsection/' . ($t['hashid'] ?? $t['id'])) ?>"
+                                               class="btn btn-sm btn-primary py-0">Proses</a>
+                                        <?php else: ?>
+                                            <a href="<?= base_url('etiket/' . ($t['hashid'] ?? $t['id'])) ?>"
+                                               class="btn btn-sm btn-primary py-0">Lihat</a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -149,6 +159,54 @@
                 </div>
             <?php endif; ?>
         </div>
+
+        <?php if (isset($sedangDisetujui)): ?>
+            <!-- ===================== -->
+            <!-- SEDANG DISETUJUI (khusus headsection) -->
+            <!-- ===================== -->
+            <div class="card shadow-sm mb-2">
+                <div class="card-header py-1 px-2 d-flex justify-content-between align-items-center">
+                    <small class="fw-bold">
+                        <i class="fas fa-spinner me-1 text-info"></i>
+                        Sudah Disetujui &mdash; Menunggu Unit Tujuan
+                    </small>
+                    <span class="badge bg-info"><?= $sedangDisetujui['total'] ?></span>
+                </div>
+                <?php if (empty($sedangDisetujui['list'])): ?>
+                    <div class="card-body py-2">
+                        <small class="text-muted mb-0">
+                            Tidak ada tiket yang menunggu jawaban unit tujuan.
+                        </small>
+                    </div>
+                <?php else: ?>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Kategori</th>
+                                    <th>Pengaju</th>
+                                    <th>Tanggal</th>
+                                    <th class="text-end">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($sedangDisetujui['list'] as $t): ?>
+                                    <tr>
+                                        <td class="text-nowrap"><?= esc($t['nama_kategori'] ?? '-') ?></td>
+                                        <td class="text-nowrap"><?= esc($t['petugas_id_nama'] ?? '-') ?></td>
+                                        <td class="text-nowrap small"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
+                                        <td class="text-end">
+                                            <a href="<?= base_url('headsection/' . ($t['hashid'] ?? $t['id'])) ?>"
+                                               class="btn btn-sm btn-info py-0">Lihat</a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </main>
 

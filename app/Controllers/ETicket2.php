@@ -83,15 +83,9 @@ class ETicket2 extends BaseController
                 ->getHeadSectionByNip($userData['nip']);
         }
 
-        if ($isHeadsection) {
-            return view(
-                'dashboard/headsection',
-                $this->dashboardService->headsectionData($userData['kd_jabatan'])
-            );
-        }
-
-        // Admin dan user biasa -> dashboard yang sama:
-        // "Tiket Saya" (sumber /etiket) + ringkasan Executor (sumber /pelaksana).
+        // Semua role memakai dashboard yang sama. Yang berperan headsection
+        // mendapat dua section tambahan di bawah.
+        //
         // Data executor disimpan di key 'executor' supaya tidak
         // bentrok dengan key milik "Tiket Saya" (total, proses, selesai).
         $data = $this->dashboardService
@@ -102,6 +96,11 @@ class ETicket2 extends BaseController
 
         $data['perluValidasi'] = $this->dashboardService
             ->perluValidasiData($userData['kd_jabatan'], $userData['nip']);
+
+        if ($isHeadsection) {
+            $data['sedangDisetujui'] = $this->dashboardService
+                ->sedangDisetujuiData($userData['kd_jabatan'], $userData['nip']);
+        }
 
         return view('dashboard/user', $data);
     }
@@ -214,10 +213,10 @@ class ETicket2 extends BaseController
         $filters = $this->parseTicketFilters();
         $tickets = $this->eticketModel->getHeadSectionTickets(
             $kdJbtn,
-            false,
             $filters['valid'],
             $filters['selesai'],
-            $filters['kategori']
+            $filters['kategori'],
+            $userData['nip'] // exclude tiket yang dibuat user sendiri
         );
         $detail = null;
         $tindakan = null;
@@ -465,6 +464,12 @@ class ETicket2 extends BaseController
             'created_at' => $t['created_at'] ?? null,
             'valid_nama' => $t['valid_nama'] ?? null,
             'selesai_nama' => $t['selesai_nama'] ?? null,
+            'reject_nama' => $t['reject_nama'] ?? null,
+            // status sudah dinormalisasi model (reject/belum_valid/
+            // proses/selesai) di ETicketModel::attachProsesToRows().
+            // perlu diteruskan supaya view bisa membedakan tiket yang
+            // ditolak dari tiket yang cuma belum diproses.
+            'status' => $t['status'] ?? null,
             'handler_nama' => $t['handler_nama'] ?? null,
             'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
             'kategori_id' => $t['kategori_id'] ?? null,
@@ -632,6 +637,8 @@ class ETicket2 extends BaseController
 
     private function rulesForSubmit(): array
     {
+        $userNip = $this->userData['nip'];
+
         return [
             'message' => [
                 'label' => 'Deskripsi',
@@ -647,6 +654,31 @@ class ETicket2 extends BaseController
                 'errors' => [
                     'max_size' => '{field} maksimal 5 MB.',
                     'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
+                ],
+            ],
+            // Identitas pengaju harusnya selalu user yang sedang login.
+            // Nilai tetap dibaca dari session saat insert, tapi dicocokkan di
+            // sini supaya request yang mengirim NIP lain (disengaja atau
+            // tidak sengaja) langsung ditolak, bukan tersimpan diam-diam.
+            'petugas_id' => [
+                'label' => 'Petugas',
+                'rules' => [
+                    'required',
+                    static function ($value) use ($userNip) {
+                        return ((string) $value === (string) $userNip)
+                            ? true
+                            : 'Petugas harus user yang sedang login.';
+                    },
+                ],
+                'errors' => [
+                    'required' => '{field} wajib diisi.',
+                ],
+            ],
+            'kategori_id' => [
+                'label' => 'Kategori',
+                'rules' => 'required',
+                'errors' => [
+                    'required' => '{field} wajib diisi.',
                 ],
             ],
         ];
@@ -1334,13 +1366,20 @@ class ETicket2 extends BaseController
         $db->transBegin();
 
         try {
+            // Identitas pengaju SELALU diambil dari session, tidak dari POST.
+            // Sebelumnya petugas_id / petugas_id_nama dibaca dari POST
+            // sementara kd_jbtn dari session - kalau keduanya berbeda, nama
+            // pengaju dan unit tiket jadi tidak sinkron.
+            $petugasId   = $userData['nip'];
+            $petugasNama = $userData['nama'];
+
             // Extract user session data
             // Insert Ticket
             $ticketId = $this->eticketModel->insert([
                 'kategori_id'       => $kategoriId,
                 'kd_pegawai'        => $userData['id_pegawai'],
-                'petugas_id'        => $this->request->getPost('petugas_id') ?? null,
-                'petugas_id_nama'   => $this->request->getPost('petugas_id_nama') ?? null,
+                'petugas_id'        => $petugasId,
+                'petugas_id_nama'   => $petugasNama,
                 'judul'             => trim($this->request->getPost('judul')),
                 'kd_jbtn'           => $userData['kd_jabatan'],
                 'proses_unit'       => !empty($flow['valid']) ? $flow['proses'] : null,
@@ -1359,7 +1398,7 @@ class ETicket2 extends BaseController
                 $userData['kd_jabatan'],
                 $userData['jabatan'],
                 $userData['nip'],
-                $this->request->getPost('petugas_id_nama') ?? null,
+                $petugasNama,
                 trim($this->request->getPost('message')),
                 $userData['id_pegawai'],
                 $lampiran
