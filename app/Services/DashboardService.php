@@ -48,13 +48,11 @@ class DashboardService
     }
 
     /**
-     * Data dashboard global / admin: statistik + grafik + kategori.
+     * Data dashboard global / admin: statistik + kategori.
      *
-     * Logika disalin apa adanya dari Dashboard::index() yang lama,
-     * termasuk variabel yang dihitung dua kali
-     * ($chartLabels & $chartData dihitung ulang, blok kedua menimpa
-     * blok pertama). Perubahan itu sengaja tidak dirapikan supaya
-     * angka pada halaman publik tidak berubah.
+     * Hitungan status (total/belumValid/proses/selesai/reject) dihitung
+     * dari $allTiket yang sudah difilter range, jadi pilihan range di
+     * halaman publik ikut mengubah angka card.
      *
      * @param string|null $range 7hari|2minggu|1bulan|3bulan|6bulan|null
      */
@@ -96,52 +94,6 @@ class DashboardService
             );
         }
         // =========================
-        // DATA GRAFIK
-        // =========================
-        $chartLabels = [];
-        $chartData   = [];
-
-        if ($range == '7hari') {
-
-            // PER HARI (7 HARI)
-            for ($i = 6; $i >= 0; $i--) {
-                $date = date('Y-m-d', strtotime("-$i days"));
-                $chartLabels[] = date('d M', strtotime($date));
-
-                $count = count(array_filter($allTiket, function ($t) use ($date) {
-                    return date('Y-m-d', strtotime($t['created_at'])) == $date;
-                }));
-
-                $chartData[] = $count;
-            }
-        } elseif (in_array($range, ['1bulan', '3bulan'])) {
-
-            // PER MINGGU
-            $weeks = [];
-            foreach ($allTiket as $t) {
-                $week = date('o-W', strtotime($t['created_at']));
-                $weeks[$week] = ($weeks[$week] ?? 0) + 1;
-            }
-
-            foreach ($weeks as $w => $totalWeek) {
-                $chartLabels[] = "Minggu " . substr($w, -2);
-                $chartData[] = $totalWeek;
-            }
-        } elseif ($range == '6bulan') {
-
-            // PER BULAN
-            $months = [];
-            foreach ($allTiket as $t) {
-                $month = date('Y-m', strtotime($t['created_at']));
-                $months[$month] = ($months[$month] ?? 0) + 1;
-            }
-
-            foreach ($months as $m => $totalMonth) {
-                $chartLabels[] = date('M Y', strtotime($m));
-                $chartData[] = $totalMonth;
-            }
-        }
-        // =========================
         // HITUNG STATUS
         // =========================
         $total = count($allTiket);
@@ -177,104 +129,16 @@ class DashboardService
                 => $t['kategori_id'] == $k['id']
             ));
         }
-        // =========================
-        // DATA GRAFIK (hitung ulang)
-        // =========================
-        $chartLabels   = [];
-        $chartTotal    = [];
-        $chartSelesai  = [];
-        $chartProses   = [];
 
-        if (!$range) {
+        // Nilai range juga dipakai view untuk menandai opsi yang aktif di
+        // select rentang, jadi harus selalu terisi meski tidak ada grafik.
+        if (! $range) {
             $range = '7hari';
-        }
-
-        if ($range == '7hari') {
-
-            for ($i = 6; $i >= 0; $i--) {
-
-                $date = date('Y-m-d', strtotime("-$i days"));
-                $chartLabels[] = date('d M', strtotime($date));
-
-                // Variabel lokal per-hari. Sengaja dipisah dari
-                // $total/$selesai/$proses yang dipakai untuk card
-                // statistik, supaya angka kartu tidak tertimpa
-                // oleh nilai per-hari ini.
-                $cTotal   = 0;
-                $cSelesai = 0;
-                $cProses  = 0;
-
-                foreach ($allTiket as $t) {
-
-                    // TOTAL & SELESAI -> pakai created_at
-                    if (date('Y-m-d', strtotime($t['created_at'])) == $date) {
-
-                        $cTotal++;
-
-                        if ($t['status'] == 'selesai') {
-                            $cSelesai++;
-                        }
-                    }
-
-                    // PROSES -> pakai updated_at & belum selesai
-                    if (
-                        $t['status'] != 'selesai' &&
-                        date('Y-m-d', strtotime($t['updated_at'])) == $date
-                    ) {
-                        $cProses++;
-                    }
-                }
-
-                $chartTotal[]   = $cTotal;
-                $chartSelesai[] = $cSelesai;
-                $chartProses[]  = $cProses;
-            }
-
-        } else {
-
-            // Untuk 2minggu, 1bulan, 3bulan -> per minggu
-            $groupTotal = [];
-            $groupSelesai = [];
-            $groupProses = [];
-
-            foreach ($allTiket as $t) {
-
-                $weekCreated = date('o-W', strtotime($t['created_at']));
-                $weekUpdated = date('o-W', strtotime($t['updated_at']));
-
-                // TOTAL
-                $groupTotal[$weekCreated] = ($groupTotal[$weekCreated] ?? 0) + 1;
-
-                // SELESAI
-                if ($t['status'] == 'selesai') {
-                    $groupSelesai[$weekCreated] = ($groupSelesai[$weekCreated] ?? 0) + 1;
-                }
-
-                // PROSES (pakai updated_at & belum selesai)
-                if ($t['status'] != 'selesai') {
-                    $groupProses[$weekUpdated] = ($groupProses[$weekUpdated] ?? 0) + 1;
-                }
-            }
-
-            ksort($groupTotal);
-
-            foreach ($groupTotal as $key => $val) {
-
-                $chartLabels[]   = "Minggu " . substr($key, -2);
-                $chartTotal[]    = $val;
-                $chartSelesai[]  = $groupSelesai[$key] ?? 0;
-                $chartProses[]   = $groupProses[$key] ?? 0;
-            }
         }
 
         return [
             // Wajib: layout-dashboard memakai $title untuk <title> dan tidak punya default.
             'title'         => 'Dashboard',
-            'chartLabels'   => $chartLabels,
-            'chartData'     => $chartData,
-            'chartSelesai'  => $chartSelesai,
-            'chartTotal'   => $chartTotal,
-            'chartProses'  => $chartProses,
             'total'         => $total,
             'belumValid'    => $belumValid,
             'proses'        => $proses,
@@ -400,7 +264,6 @@ class DashboardService
             'selesai'    => $selesai,
             'reject'     => $reject,
             'tiketSaya'  => $tiketSaya,
-            'grafik'     => $this->grafikHarian($tiketSaya),
         ];
     }
 
@@ -456,54 +319,6 @@ class DashboardService
         return [
             'total' => count($list),
             'list'  => $this->attachHashId($list),
-        ];
-    }
-
-    /**
-     * Data grafik harian (14 hari terakhir) dari sekumpulan tiket.
-     *
-     * Mengembalikan dua seri:
-     *   - tiket  : tiket dibuat per hari  (created_at)
-     *   - selesai: tiket selesai per hari (updated_at)
-     *
-     * Dipakai oleh dashboard user untuk bagian Tiket Saya dan Executor.
-     */
-    public function grafikHarian(array $tiket, int $hari = 14): array
-    {
-        $labels  = [];
-        $series  = [];
-        $done    = [];
-
-        for ($i = $hari - 1; $i >= 0; $i--) {
-            $tgl     = date('Y-m-d', strtotime("-$i days"));
-            $labels[] = date('d M', strtotime($tgl));
-
-            $jmlTiket  = 0;
-            $jmlSelesai = 0;
-
-            foreach ($tiket as $t) {
-                // tiket baru di hari itu
-                if (date('Y-m-d', strtotime($t['created_at'])) === $tgl) {
-                    $jmlTiket++;
-                }
-
-                // selesai di hari itu
-                if (
-                    $t['status'] === 'selesai'
-                    && date('Y-m-d', strtotime($t['updated_at'])) === $tgl
-                ) {
-                    $jmlSelesai++;
-                }
-            }
-
-            $series[] = $jmlTiket;
-            $done[]   = $jmlSelesai;
-        }
-
-        return [
-            'labels' => $labels,
-            'tiket'  => $series,
-            'selesai'=> $done,
         ];
     }
 
@@ -569,8 +384,6 @@ class DashboardService
             'proses'     => $proses,
             'selesai'    => $selesai,
             'reject'     => $reject,
-            'tiketList'  => $tugas,
-            'grafik'     => $this->grafikHarian($allTiket),
         ];
     }
 }

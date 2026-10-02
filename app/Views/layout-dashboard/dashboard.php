@@ -60,7 +60,9 @@
         }
     </script>
     <script>
-        const BASE_URL = "<?= base_url() ?>";
+        //-window.BASE_URL dipakai oleh halaman yang melakukan request AJAX
+        window.BASE_URL = "<?= base_url() ?>";
+        const BASE_URL = window.BASE_URL;
         const SOUND_URL = BASE_URL + "assets/audio/bell.mp3";
 
         let previousNotifIds = new Set();
@@ -231,11 +233,17 @@
                         'redo'
                     ]
                 })
+                .then((editor) => {
+                    // Simpan instance supaya form AJAX bisa mengambil
+                    // isi HTML lewat editor.getData() sebelum submit.
+                    element.ckEditorInstance = editor;
+                })
                 .catch(error => {
                     console.error(error);
                 });
         });
     </script>
+    <?= $this->renderSection('pageScripts') ?>
 </body>
 
 </html>

@@ -44,6 +44,34 @@ $queryString = $_SERVER['QUERY_STRING'] ?? '';
                     Belum Disetujui
                 </option>
             </select>
+            <?php
+            // Status dihitung di PHP dari valid_nama / reject_nama / proses
+            // per unit, jadi tidak bisa difilter lewat kolom message_akhir
+            // seperti ?selesai. Nilainya divalidasi di parseTicketFilters().
+            $statusSelected = service('request')->getGet('status');
+            ?>
+            <select name="status" id="selectStatus" class="form-select w-auto mw-100">
+                <option value=""
+                    <?= ($statusSelected === null || $statusSelected === '') ? 'selected' : '' ?>>
+                    Semua Status
+                </option>
+                <option value="belum_valid"
+                    <?= ($statusSelected === 'belum_valid') ? 'selected' : '' ?>>
+                    Menunggu Persetujuan
+                </option>
+                <option value="proses"
+                    <?= ($statusSelected === 'proses') ? 'selected' : '' ?>>
+                    Proses
+                </option>
+                <option value="selesai"
+                    <?= ($statusSelected === 'selesai') ? 'selected' : '' ?>>
+                    Selesai
+                </option>
+                <option value="reject"
+                    <?= ($statusSelected === 'reject') ? 'selected' : '' ?>>
+                    Ditolak
+                </option>
+            </select>
             <select class="form-select w-auto mw-100" id="selectKategori" name="kategori">
                 <option value="">Pilih Kategori</option>
                 <?php

@@ -49,15 +49,12 @@ class Dashboard extends BaseController
 
     /**
      * Dashboard tiket yang harus dikerjakan unit login.
+     *
+     * Dihapus: bagian Executor sudah ada di /dashboard-saya sebagai
+     * kartu "Perlu Dikerjakan" / "Sedang Diproses" / "Selesai (Unit)" /
+     * "Total Tiket Unit". DashboardService::tugasData() masih dipakai
+     * ETicket2::dashboard() dan Dashboard::user().
      */
-    public function tugas()
-    {
-        return view(
-            'dashboard/tugas',
-            $this->dashboardService->tugasData($this->userData['kd_jabatan'])
-        );
-    }
-
     public function index()
     {
         // Logika dipindah ke DashboardService::adminData() supaya bisa dipakai

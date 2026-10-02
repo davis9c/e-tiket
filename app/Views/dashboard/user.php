@@ -1,6 +1,30 @@
 <?= $this->extend('layout-dashboard/dashboard') ?>
 <?= $this->section('content') ?>
 <main>
+    <style>
+        /* Kartu statistik yang bisa diklik menuju daftar tiket terfilter.
+           .text-reset sudah mengembalikan warna teks, tapi Safari masih
+           memakai -webkit-text-fill-color sehingga teks jadi biru. */
+        .kt-card-link {
+            text-decoration: none;
+        }
+
+        .kt-card-link,
+        .kt-card-link * {
+            -webkit-text-fill-color: currentColor;
+        }
+
+        .kt-card-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .15);
+        }
+
+        .kt-card-link:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+    </style>
+
     <div class="container-fluid px-3">
 
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -25,24 +49,48 @@
             // 9 kartu: 4 Tiket Saya + 4 Executor + 1 Perlu Validasi.
             // Kartu "Perlu Validasi" sudah mencakup tiket milik sendiri
             // maupun tiket unit yang menunggu approval.
+            //
+            // Setiap 'url' menuju ke halaman daftar tiket yang difilter,
+            // sehingga jumlah baris di sana sama persis dengan angka kartu.
+            // DashboardService memakai method model dengan argumen yang sama
+            // dengan halaman tujuan (userData -> getEticketAll2 untuk
+            // /etiket, tugasData -> getEticketAll untuk /pelaksana).
+            //
+            // 'Perlu Validasi' sengaja tanpa url: isinya gabungan tiket milik
+            // sendiri dan tiket unit, sedangkan /headsection secara eksplisit
+            // mengecualikan tiket milik sendiri. Tidak ada satu halaman yang
+            // merepresentasikan gabungan itu.
+            $urlEticket = static fn (string $q = ''): string
+                => base_url('etiket') . ($q !== '' ? '?' . $q : '');
+
+            $urlPelaksana = static fn (string $q = ''): string
+                => base_url('pelaksana') . ($q !== '' ? '?' . $q : '');
+
             $cards = [
-                ['t' => 'Tiket Saya',            'v' => $total,                        'c' => 'primary',   'i' => 'fa-ticket-alt'],
-                ['t' => 'Belum Valid',            'v' => $belumValid,                   'c' => 'secondary', 'i' => 'fa-clock'],
-                ['t' => 'Proses',                 'v' => $proses,                       'c' => 'warning',   'i' => 'fa-spinner'],
-                ['t' => 'Selesai',                'v' => $selesai,                      'c' => 'success',   'i' => 'fa-check-circle'],
-                ['t' => 'Perlu Dikerjakan',       'v' => $executor['tugas'],            'c' => 'warning',   'i' => 'fa-clipboard-list'],
-                ['t' => 'Sedang Diproses',        'v' => $executor['proses'],           'c' => 'info',      'i' => 'fa-spinner'],
-                ['t' => 'Selesai (Unit)',         'v' => $executor['selesai'],          'c' => 'success',   'i' => 'fa-check-circle'],
-                ['t' => 'Total Tiket Unit',       'v' => $executor['total'],            'c' => 'primary',   'i' => 'fa-ticket-alt'],
-                ['t' => 'Perlu Validasi',         'v' => $perluValidasi['total'],       'c' => 'danger',    'i' => 'fa-exclamation-triangle'],
+                ['t' => 'Tiket Saya',            'v' => $total,                        'c' => 'primary',   'i' => 'fa-ticket-alt',           'url' => $urlEticket()],
+                ['t' => 'Belum Valid',            'v' => $belumValid,                   'c' => 'secondary', 'i' => 'fa-clock',                  'url' => $urlEticket('valid=0')],
+                ['t' => 'Proses',                 'v' => $proses,                       'c' => 'warning',   'i' => 'fa-spinner',               'url' => $urlEticket('status=proses')],
+                ['t' => 'Selesai',                'v' => $selesai,                      'c' => 'success',   'i' => 'fa-check-circle',          'url' => $urlEticket('status=selesai')],
+                ['t' => 'Perlu Dikerjakan',       'v' => $executor['tugas'],            'c' => 'warning',   'i' => 'fa-clipboard-list',        'url' => $urlPelaksana('selesai=0')],
+                ['t' => 'Sedang Diproses',        'v' => $executor['proses'],           'c' => 'info',      'i' => 'fa-spinner',               'url' => $urlPelaksana('status=proses')],
+                ['t' => 'Selesai (Unit)',         'v' => $executor['selesai'],          'c' => 'success',   'i' => 'fa-check-circle',          'url' => $urlPelaksana('selesai=1')],
+                ['t' => 'Total Tiket Unit',       'v' => $executor['total'],            'c' => 'primary',   'i' => 'fa-ticket-alt',           'url' => $urlPelaksana()],
+                ['t' => 'Perlu Validasi',         'v' => $perluValidasi['total'],       'c' => 'danger',    'i' => 'fa-exclamation-triangle',  'url' => null],
             ];
 
             $dasar = max($total, $executor['total'], 1);
             foreach ($cards as $c):
                 $percent = round(($c['v'] / $dasar) * 100);
+                // Kartu jadi tautan kalau punya url. Tag pembuka/penutup
+                // dipilih supaya markup tetap valid tanpa url.
+                $isLink = $c['url'] !== null;
+                $tag    = $isLink ? 'a' : 'div';
+                $attrs  = $isLink
+                    ? ' href="' . esc($c['url']) . '" title="Lihat daftar ' . esc($c['t']) . '"'
+                    : '';
             ?>
                 <div class="col-xl-4 col-lg-4 col-md-4 col-6">
-                    <div class="card shadow-sm h-100 p-2">
+                    <<?= $tag ?> class="card shadow-sm h-100 p-2 kt-card-link text-reset"<?= $attrs ?>>
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="text-truncate">
                                 <small class="text-muted d-block text-truncate"><?= esc($c['t']) ?></small>
@@ -53,7 +101,7 @@
                         <div class="progress mt-1" style="height:3px;">
                             <div class="progress-bar bg-<?= $c['c'] ?>" style="width: <?= $percent ?>%"></div>
                         </div>
-                    </div>
+                    </<?= $tag ?>>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -80,28 +128,6 @@
                 </small>
             </div>
         <?php endif; ?>
-
-        <!-- ===================== -->
-        <!-- GRAFIK (side by side) -->
-        <!-- ===================== -->
-        <div class="row g-2 mb-2">
-            <div class="col-xl-6">
-                <div class="card shadow-sm h-100 p-2">
-                    <small class="fw-bold d-block mb-1">Tiket Saya &mdash; 14 hari</small>
-                    <div style="height:150px;">
-                        <canvas id="chartSaya"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-6">
-                <div class="card shadow-sm h-100 p-2">
-                    <small class="fw-bold d-block mb-1">Tiket Unit &mdash; 14 hari</small>
-                    <div style="height:150px;">
-                        <canvas id="chartUnit"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- ===================== -->
         <!-- PERLU VALIDASI -->
@@ -210,68 +236,4 @@
     </div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-
-        function buatGrafik(id, labels, tiket, selesai) {
-            const canvas = document.getElementById(id);
-            if (!canvas) return;
-
-            new Chart(canvas.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Tiket Masuk',
-                            data: tiket,
-                            borderColor: '#0d6efd',
-                            tension: 0.3,
-                            borderWidth: 2,
-                            pointRadius: 0
-                        },
-                        {
-                            label: 'Tiket Selesai',
-                            data: selesai,
-                            borderColor: '#198754',
-                            tension: 0.3,
-                            borderWidth: 2,
-                            pointRadius: 0
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { precision: 0, font: { size: 9 } }
-                        },
-                        x: {
-                            ticks: { font: { size: 9 }, maxRotation: 0, autoSkipPadding: 10 }
-                        }
-                    }
-                }
-            });
-        }
-
-        buatGrafik(
-            'chartSaya',
-            <?= json_encode($grafik['labels'] ?? []) ?>,
-            <?= json_encode($grafik['tiket'] ?? []) ?>,
-            <?= json_encode($grafik['selesai'] ?? []) ?>
-        );
-
-        buatGrafik(
-            'chartUnit',
-            <?= json_encode($executor['grafik']['labels'] ?? []) ?>,
-            <?= json_encode($executor['grafik']['tiket'] ?? []) ?>,
-            <?= json_encode($executor['grafik']['selesai'] ?? []) ?>
-        );
-
-    });
-</script>
 <?= $this->endSection() ?>

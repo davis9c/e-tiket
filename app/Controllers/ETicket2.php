@@ -266,6 +266,11 @@ class ETicket2 extends BaseController
         $kategori = ($kategori !== null && $kategori !== '') ? (int)$kategori : null;
 
         $tickets = $this->eticketModel->getEticketAll($kdJbtn, null, $valid, $selesai, $kategori);
+
+        // Halaman ini punya jalur sendiri (tidak lewat renderTicketList),
+        // jadi filter status dari card dashboard diterapkan di sini juga.
+        $tickets = $this->filterByStatus($tickets, $this->getQueryStatus());
+
         $detail = null;
         $tindakan = null;
         $timeline = [];
@@ -337,7 +342,51 @@ class ETicket2 extends BaseController
             'selesai' => $this->getQueryInt('selesai'),
             'kategori' => $this->getQueryInt('kategori'),
             'valid' => $this->getQueryInt('valid'),
+            'status' => $this->getQueryStatus(),
         ];
+    }
+
+    /**
+     * Nilai status yang sah. Status tiket dihitung di PHP dari
+     * valid_nama / reject_nama / proses per unit, jadi whitelist ini
+     * sekaligus menjadi penjaga: query string bebas tidak boleh
+     * diteruskan mentah ke filter.
+     */
+    private const STATUS_LIST = ['belum_valid', 'proses', 'selesai', 'reject'];
+
+    private function getQueryStatus(): ?string
+    {
+        $value = $this->request->getGet('status');
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        return in_array($value, self::STATUS_LIST, true) ? $value : null;
+    }
+
+    /**
+     * Filter status tidak bisa jadi WHERE clause karena status dihitung
+     * setelah query (lihat attachProsesToRows). Jadi disaring di PHP.
+     *
+     * Aman karena halaman daftar mengambil seluruh baris lalu paginasi di
+     * sisi klien — tidak ada LIMIT yang terpotong sebelum filter ini.
+     *
+     * Dipakai juga oleh card dashboard supaya angka pada card sama dengan
+     * jumlah baris di halaman tujuan.
+     */
+    private function filterByStatus(array $tickets, ?string $status): array
+    {
+        if ($status === null) {
+            return $tickets;
+        }
+
+        return array_values(array_filter(
+            $tickets,
+            static fn ($row) => ($row['status'] ?? null) === $status
+        ));
     }
 
     private function addHashIds(array $tickets): array
@@ -360,6 +409,9 @@ class ETicket2 extends BaseController
         $userData = $this->userData;
 
         $tickets = $fetcher($filters, $userData, $id);
+
+        // Diletakkan setelah query karena status bukan kolom di database.
+        $tickets = $this->filterByStatus($tickets, $filters['status']);
 
         $detail = null;
         $tindakan = null;

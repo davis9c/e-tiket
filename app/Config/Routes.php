@@ -32,7 +32,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     // URL lama per role (tetap dipertahankan)
     $routes->get('dashboard/pelaksana', 'Dashboard::pelaksana');
     $routes->get('dashboard/user', 'Dashboard::user');
-    $routes->get('dashboard/tugas', 'Dashboard::tugas');
+    // /dashboard/tugas dihapus: isinya sudah ada di /dashboard-saya.
 
     /*
     |--------------------------------------------------------------------------
@@ -87,11 +87,17 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     */
     $routes->group('kategori', ['filter' => 'roleadmin'], function ($routes) {
         $routes->get('/', 'KategoriETiket::index');
+        // Sumber data tabel daftar (refresh tanpa reload)
+        $routes->get('list', 'KategoriETiket::dataList');
+        // Satu kategori + jabatan tersedia, untuk mengisi modal edit & unit
+        $routes->get('detail/(:num)', 'KategoriETiket::detail/$1');
         $routes->post('store', 'KategoriETiket::store');
         $routes->post('updateUnit', 'KategoriETiket::updateUnit');
+        // Alias: merender halaman daftar dengan modal edit terbuka
         $routes->get('edit/(:num)', 'KategoriETiket::edit/$1');
         $routes->put('update/(:num)', 'KategoriETiket::update/$1');
-        $routes->get('toggle-status/(:num)', 'KategoriETiket::toggleStatus/$1');
+        // Kategori tidak dapat dihapus, hanya dinonaktifkan
+        $routes->post('toggle-status/(:num)', 'KategoriETiket::toggleStatus/$1');
     });
 
     /*

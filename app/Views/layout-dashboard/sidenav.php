@@ -31,12 +31,12 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
                 <?php
                 // Satu link untuk semua role. Halaman /dashboard-saya
                 // yang menentukan dashboard mana yang ditampilkan.
-                // $isDash juga true di URL lama (/dashboard/headsession dll)
+                // $isDash juga true di URL lama (/dashboard/pelaksana dll)
                 // supaya menu ini tetap ter-highlight.
+                // /dashboard/tugas tidak lagi ada (merged ke /dashboard-saya).
                 $isDash = $activeLink('dashboard-saya')
                     || $activeLink('dashboard/pelaksana')
-                    || $activeLink('dashboard/user')
-                    || $activeLink('dashboard/tugas');
+                    || $activeLink('dashboard/user');
                 ?>
                 <a class="nav-link<?= $isDash ? ' active' : '' ?>" href="<?= base_url('dashboard-saya') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
