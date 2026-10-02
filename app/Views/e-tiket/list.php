@@ -4,65 +4,63 @@
         Daftar E-Tiket
     </div>
     <div class="card-body">
-        <div class="d-flex gap-2 mb-4 flex-wrap">
-            <form id="formCariKategori" class="d-flex gap-2">
+        <form id="formCariKategori" class="d-flex flex-wrap gap-2 align-items-center mb-4">
+            <?php
+            $selesaiSelected = service('request')->getGet('selesai');
+            ?>
+            <select name="selesai" id="selectSelesai" class="form-select w-auto mw-100">
+                <option value=""
+                    <?= ($selesaiSelected === null || $selesaiSelected === '') ? 'selected' : '' ?>>
+                    Semua
+                </option>
+                <option value="1"
+                    <?= ($selesaiSelected === '1') ? 'selected' : '' ?>>
+                    Selesai
+                </option>
+                <option value="0"
+                    <?= ($selesaiSelected === '0') ? 'selected' : '' ?>>
+                    Belum Selesai
+                </option>
+            </select>
+            <?php
+            $validSelected = service('request')->getGet('valid');
+            ?>
+            <select name="valid" id="selectValid" class="form-select w-auto mw-100">
+                <option value=""
+                    <?= ($validSelected === null || $validSelected === '') ? 'selected' : '' ?>>
+                    Semua
+                </option>
+                <option value="1"
+                    <?= ($validSelected === '1') ? 'selected' : '' ?>>
+                    Disetujui
+                </option>
+                <option value="0"
+                    <?= ($validSelected === '0') ? 'selected' : '' ?>>
+                    Belum Disetujui
+                </option>
+            </select>
+            <select class="form-select w-auto mw-100" id="selectKategori" name="kategori">
+                <option value="">Pilih Kategori</option>
                 <?php
-                $selesaiSelected = service('request')->getGet('selesai');
+                $kategoriSelected = service('request')->getGet('kategori');
                 ?>
-                <select name="selesai" id="selectSelesai" class="form-select">
-                    <option value=""
-                        <?= ($selesaiSelected === null || $selesaiSelected === '') ? 'selected' : '' ?>>
-                        Semua
-                    </option>
-                    <option value="1"
-                        <?= ($selesaiSelected === '1') ? 'selected' : '' ?>>
-                        Selesai
-                    </option>
-                    <option value="0"
-                        <?= ($selesaiSelected === '0') ? 'selected' : '' ?>>
-                        Belum Selesai
-                    </option>
-                </select>
-                <?php
-                $validSelected = service('request')->getGet('valid');
-                ?>
-                <select name="valid" id="selectValid" class="form-select">
-                    <option value=""
-                        <?= ($validSelected === null || $validSelected === '') ? 'selected' : '' ?>>
-                        Semua
-                    </option>
-                    <option value="1"
-                        <?= ($validSelected === '1') ? 'selected' : '' ?>>
-                        Disetujui
-                    </option>
-                    <option value="0"
-                        <?= ($validSelected === '0') ? 'selected' : '' ?>>
-                        Belum Disetujui
-                    </option>
-                </select>
-                <select class="form-select" id="selectKategori" name="kategori">
-                    <option value="">Pilih Kategori</option>
-                    <?php
-                    $kategoriSelected = service('request')->getGet('kategori');
-                    ?>
-                    <?php if (!empty($data['kategori'])): ?>
-                        <?php foreach ($data['kategori'] as $p): ?>
-                            <option value="<?= esc($p['id']) ?>"
-                                <?= ($kategoriSelected == $p['id']) ? 'selected' : '' ?>>
-                                <?= esc($p['kode_kategori']) ?> - <?= esc($p['nama_kategori']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </select>
-                <button type="submit" class="btn btn-primary">
-                    Cari
-                </button>
-            </form>
-        </div>
-        <table class="table table-bordered table-striped datatable">
+                <?php if (!empty($data['kategori'])): ?>
+                    <?php foreach ($data['kategori'] as $p): ?>
+                        <option value="<?= esc($p['id']) ?>"
+                            <?= ($kategoriSelected == $p['id']) ? 'selected' : '' ?>>
+                            <?= esc($p['kode_kategori']) ?> - <?= esc($p['nama_kategori']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+            <button type="submit" class="btn btn-primary">
+                Cari
+            </button>
+        </form>
+        <table class="table table-bordered table-striped datatable" style="min-width: 900px">
             <thead>
                 <tr>
-                    <th width="5%">No</th>
+                    <th>No</th>
                     <th>Kategori</th>
                     <th>Petugas</th>
                     <th>Deskripsi</th>

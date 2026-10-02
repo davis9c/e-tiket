@@ -86,9 +86,13 @@ class ETicketModel extends Model
             $row['unit_penanggung_jawab'] = $units;
 
             // STATUS LOGIC
-            if (!empty($row['reject'])) {
+            // Kolom yang dipakai: valid_nama / reject_nama.
+            // (Kolom 'valid' dan 'reject' tidak ada di tabel tb_e_ticket,
+            //  sehingga pakai kolom itu membuat semua tiket selalu
+            //  berstatus 'belum_valid'.)
+            if (!empty($row['reject_nama'])) {
                 $row['status'] = 'reject';
-            } elseif (empty($row['valid'])) {
+            } elseif (empty($row['valid_nama'])) {
                 $row['status'] = 'belum_valid';
             } elseif (count($prosesKdjbtn) < count($units)) {
                 $row['status'] = 'proses';
@@ -229,8 +233,9 @@ class ETicketModel extends Model
         );
         // ================================
         // STATUS LOGIC (tanpa array loop)
+        // Pakai valid_nama, bukan 'valid' (kolom itu tidak ada).
         // ================================
-        if (empty($row['valid'])) {
+        if (empty($row['valid_nama'])) {
             $row['status'] = 'belum_valid';
         } elseif (count($prosesKdjbtn) < count($units)) {
             $row['status'] = 'proses';

@@ -11,6 +11,7 @@ use App\Models\ETicketProsesModel;
 use App\Models\ETicketUPJModel;
 use CodeIgniter\HTTP\CURLRequest;
 use App\Services\HashIdService;
+use App\Services\DashboardService;
 
 class ETicket2 extends BaseController
 {
@@ -23,6 +24,7 @@ class ETicket2 extends BaseController
     protected ETicketProsesModel $eticketProsesModel;
     protected \Hashids\Hashids $hashids;
     protected HashIdService $hashIdService;
+    protected DashboardService $dashboardService;
     protected $db;
 
     private const ALLOWED_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'pdf'];
@@ -40,6 +42,7 @@ class ETicket2 extends BaseController
         $this->client               = Services::curlrequest();
         $this->hashids              = \Config\Services::hashids();
         $this->hashIdService        = new HashIdService();
+        $this->dashboardService     = new DashboardService();
         $this->db                   = \Config\Database::connect();
         $this->checkToken();
         $this->headers = [
@@ -60,19 +63,52 @@ class ETicket2 extends BaseController
     /* =========================================================
     * LIST & CREATE E-TICKET
     * ========================================================= */
-    public function index()
+    /**
+     * Entry point dashboard per user.
+     *
+     * Satu method untuk semua role, jadi tidak ada lagi logika
+     * penentuan role yang tersebar di banyak tempat.
+     */
+    public function dashboard()
     {
         $userData = $this->userData;
-        if ($userData['headsection'] != null) {
-            return redirect()->to('headsection/');
-        } else {
-            $kdJbtn = $userData['kd_jabatan'];
-            if ($this->eticketModel->isSudahValid($kdJbtn, true) == true) {
-                return redirect()->to('pelaksana/');
-            } else {
-                return redirect()->to('etiket/');
-            }
+
+        // Headsection
+        // Cek session dulu (murah). Kalau kosong, tanya DB supaya
+        // perubahan status headsection langsung tercermin tanpa login ulang.
+        $isHeadsection = ! empty($userData['headsection']);
+
+        if (! $isHeadsection && ! empty($userData['nip'])) {
+            $isHeadsection = (bool) $this->usersModel
+                ->getHeadSectionByNip($userData['nip']);
         }
+
+        if ($isHeadsection) {
+            return view(
+                'dashboard/headsection',
+                $this->dashboardService->headsectionData($userData['kd_jabatan'])
+            );
+        }
+
+        // Admin dan user biasa -> dashboard yang sama:
+        // "Tiket Saya" (sumber /etiket) + ringkasan Executor (sumber /pelaksana).
+        // Data executor disimpan di key 'executor' supaya tidak
+        // bentrok dengan key milik "Tiket Saya" (total, proses, selesai).
+        $data = $this->dashboardService
+            ->userData($userData['kd_jabatan'], $userData['nip']);
+
+        $data['executor'] = $this->dashboardService
+            ->tugasData($userData['kd_jabatan']);
+
+        $data['perluValidasi'] = $this->dashboardService
+            ->perluValidasiData($userData['kd_jabatan'], $userData['nip']);
+
+        return view('dashboard/user', $data);
+    }
+
+    public function index()
+    {
+        return $this->dashboard();
     }
     public function baru()
     {

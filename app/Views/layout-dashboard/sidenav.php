@@ -27,6 +27,23 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
     <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
         <div class="sb-sidenav-menu">
             <div class="nav">
+                <!-- DASHBOARD -->
+                <?php
+                // Satu link untuk semua role. Halaman /dashboard-saya
+                // yang menentukan dashboard mana yang ditampilkan.
+                // $isDash juga true di URL lama (/dashboard/headsession dll)
+                // supaya menu ini tetap ter-highlight.
+                $isDash = $activeLink('dashboard-saya')
+                    || $activeLink('dashboard/headsection')
+                    || $activeLink('dashboard/pelaksana')
+                    || $activeLink('dashboard/user')
+                    || $activeLink('dashboard/tugas');
+                ?>
+                <a class="nav-link<?= $isDash ? ' active' : '' ?>" href="<?= base_url('dashboard-saya') ?>">
+                    <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                    Dashboard
+                </a>
+
                 <a class="nav-link<?= $activeLink('etiket') ? ' active' : '' ?>" href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
                     My E-Tiket

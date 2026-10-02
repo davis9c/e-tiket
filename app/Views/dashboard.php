@@ -126,12 +126,11 @@
                 ['title' => 'Belum Valid', 'value' => $belumValid, 'color' => 'secondary'],
                 ['title' => 'Proses', 'value' => $proses, 'color' => 'warning'],
                 ['title' => 'Selesai', 'value' => $selesai, 'color' => 'success'],
-                ['title' => 'Reject', 'value' => $reject, 'color' => 'danger'],
             ];
             foreach ($cards as $c):
                 $percent = round(($c['value'] / $totalData) * 100);
             ?>
-                <div class="col-xl-2 col-md-4 col-6">
+                <div class="col-xl-3 col-md-4 col-6">
                     <div class="card shadow-sm h-100 p-3">
                         <small class="text-muted"><?= $c['title'] ?></small>
                         <h5 class="fw-bold"><?= $c['value'] ?></h5>

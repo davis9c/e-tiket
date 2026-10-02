@@ -148,7 +148,7 @@
                 </div>
             </div>
             <!-- List -->
-            <div class="col-md-9">
+            <div class="col-12">
                 <?= $this->include('e-tiket/list') ?>
             </div>
         </div>

@@ -14,6 +14,8 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('login', 'Auth::login');
 $routes->post('auth/attempt', 'Auth::attempt');
 $routes->get('logout', 'Auth::logout');
+
+// Dashboard Global (Public - tidak perlu login)
 $routes->get('dashboard', 'Dashboard::index');
 
 /*
@@ -25,6 +27,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     // Dashboard & Home
     $routes->get('/', 'ETicket2::index');
+    $routes->get('dashboard-saya', 'ETicket2::dashboard');
+
+    // URL lama per role (tetap dipertahankan)
+    $routes->get('dashboard/headsection', 'Dashboard::headsection');
+    $routes->get('dashboard/pelaksana', 'Dashboard::pelaksana');
+    $routes->get('dashboard/user', 'Dashboard::user');
+    $routes->get('dashboard/tugas', 'Dashboard::tugas');
     /*
     |--------------------------------------------------------------------------
     | E-Ticket
