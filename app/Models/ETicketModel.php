@@ -42,10 +42,37 @@ class ETicketModel extends Model
         parent::__construct();
         $this->prosesModel = new \App\Models\ETicketProsesModel();
     }
-    private function enamBulanLalu(): string
-    {
-        return Time::now()->subMonths(6)->toDateTimeString();
-    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BATAS USIA TIKET
+    |--------------------------------------------------------------------------
+    | Dulu setiap query daftar memfilter `created_at >= 6 bulan lalu`.
+    | Batas itu sekarang DINONAKTIFKAN (nilai null) dengan sengaja:
+    |
+    |   - Halaman /etiket, /pelaksana, dan /headsection digabung jadi satu
+    |     query, dan /headsection sendiri TIDAK PERNAH punya batas 6 bulan.
+    |     Memaksakan batas itu hanya di sini akan menyembunyikan tiket lama
+    |     yang masih menunggu persetujuan headsection.
+    |
+    | Set ke angka (mis. 6) untuk mengaktifkan kembali batas tersebut.
+    |
+    | Peringatan performa: query daftar tidak memakai LIMIT (paginasi dan
+    | pencarian ada di sisi klien, lihat public/js/dataTables.js), jadi
+    | kalau jmlah tiket bertambah banyak, tambahkan filter created_at di
+    | ETicketModel::getTickets() sekaligus paginasi di server.
+    */
+    private const RANGE_BULAN = null;
+
+    /**
+     * Cache unit kategori per request.
+     *
+     * Dipakai untuk collapses N+1 di attachProsesToRows(): tanpa cache,
+     * setiap baris memicu satu query ke tb_e_ticket_kategori_unit_jabatan.
+     * Key: "{kategori_id}:{is_penanggung_jawab}".
+     */
+    private array $unitCache = [];
+
     private function attachProsesToRows(array $rows): array
     {
         if (empty($rows)) return $rows;
@@ -66,12 +93,18 @@ class ETicketModel extends Model
         }
 
         // Inject ke masing-masing tiket
+        //
+        // primeUnitCache(): ambil unit PJ semua kategori yang muncul di
+        // hasil query dalam 1 query. Tanpa ini, getUnitByKategori()
+        // di dalam loop akan menembak 1 query per baris (N+1).
+        $this->primeUnitCache(array_column($rows, 'kategori_id'));
+
         foreach ($rows as &$row) {
 
             $proses = $prosesGrouped[$row['id']] ?? [];
             $row['proses'] = $proses;
 
-            // Ambil unit penanggung jawab
+            // Ambil unit penanggung jawab (dari cache, bukan query baru)
             $units = $this->getUnitByKategori(
                 (int)$row['kategori_id'],
                 1
@@ -82,6 +115,7 @@ class ETicketModel extends Model
             foreach ($units as &$unit) {
                 $unit['is_proses'] = in_array($unit['kd_jbtn'], $prosesKdjbtn);
             }
+            unset($unit);
 
             $row['unit_penanggung_jawab'] = $units;
 
@@ -100,6 +134,7 @@ class ETicketModel extends Model
                 $row['status'] = 'selesai';
             }
         }
+        unset($row);
 
         return $rows;
     }
@@ -257,396 +292,261 @@ class ETicketModel extends Model
         return $row;
     }
 
-    public function getEticketAll(
-        ?string $kd_jbtn = null, //filter penanggung jawab
-        ?string $nip = null, // filter berdasarkan user ang mengajukan
-        //?bool $penanggungJawab = null,
-        ?int $valid = null,
-        ?int $selesai = null,
-        ?int $kategori = null
-    ): array {
-        $builder = $this->baseQuery()
-            ->distinct()
-            ->join(
-            'tb_e_ticket_proses awal',
-                'awal.id = e.message_awal',
-                'left'
-            )
-            ->join(
-            'tb_e_ticket_proses akhir',
-                'akhir.id = e.message_akhir',
-                'left'
-            )
-            ->select([
-            'e.*',
-                'awal.id AS message_id',
-                'awal.kd_jbtn AS message_kd_jbtn',
-                'awal.nm_jbtn AS message_nm_jbtn',
-                'awal.id_petugas AS message_id_petugas',
-                'awal.id_petugas_nama AS message_id_petugas_nama',
-                'awal.catatan AS message_catatan',
-                'awal.created_at AS message_created_at',
+/*
+    |--------------------------------------------------------------------------
+    | DAFTAR TIKET - SATU QUERY UNTUK SEMUA HALAMAN
+    |--------------------------------------------------------------------------
+    | Satu query menggantikan 3 method lama:
+    |
+    |   getEticketAll()         -> /pelaksana  : unit login adalah UPJ, 6 bulan
+    |   getEticketAll2()        -> /etiket     : milik sendiri OR unit = UPJ, 6 bulan
+    |   getHeadSectionTickets() -> /headsection: diajukan unit login, bukan milik sendiri, tanpa batas
+    |
+    | Ketiganya sekarang satu method. Bedanya hanya isi $sumber, yang
+    | diterjemahkan jadi cabang WHERE yang di-OR-kan.
+    |
+    | Perbedaan-perbedaan yang HILANG dengan sengaja (sudah diperbaiki):
+    |   - DISTINCT + GROUP BY tidak lagi dipakai karena semua join eq_ref
+    |     ke PK/UNIQUE (k.id, u.user_id, awal.id, akhir.id) sehingga
+    |     tidak ada baris yang menggandakan diri.
+    |   - Batas 6 bulan dilepas, lihat konstanta RANGE_BULAN di atas.
+    |   - /headsection dulu mengabaikan ?status=. Sekarang semua sumber
+    |     memakai filter yang sama, termasuk status.
+    */
 
-                'akhir.id AS respon_message_id',
-                'akhir.kd_jbtn AS respon_message_kd_jbtn',
-                'akhir.nm_jbtn AS respon_message_nm_jbtn',
-                'akhir.id_petugas AS respon_message_id_petugas',
-                'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
-                'akhir.catatan AS respon_message_catatan',
-                'akhir.created_at AS respon_message_created_at',
-            ])
-            ->where('e.created_at >=', $this->enamBulanLalu());
-        if (!empty($kd_jbtn)) {
-            $builder->where("
-                EXISTS (
-                    SELECT 1
-                    FROM tb_e_ticket_upj upj
-                    WHERE upj.etiket_id = e.id
-                    AND upj.kd_jbtn = " . $this->db->escape($kd_jbtn) . "
-                )
-            ", null, false);
-        }
-        // filter petugas
-        if (!empty($nip)) {
-            $builder->where('e.petugas_id', $nip);
-        }
-        // FILTER VALIDASI 
-        if ($valid === 1) {
-            $builder->where(
-                'e.valid_nama IS NOT NULL',
-                null,
-                false
-            );
-        } elseif ($valid === 0) {
-            $builder->where(
-                'e.valid_nama IS NULL',
-                null,
-                false
-            );
-        }
-        // filter status selesai
-        if ($selesai === 1) {
-            $builder->where(
-                // 'e.selesai_nama IS NOT NULL',
-                'e.message_akhir IS NOT NULL',
-                null,
-                false
-            );
-        } elseif ($selesai === 0) {
-            $builder->where(
-                // 'e.selesai_nama IS NULL',
-                'e.message_akhir IS NULL',
-                null,
-                false
-            );
-        }
-        // filter kategori
-        if ($kategori !== null) {
-            $builder->where('e.kategori_id', $kategori);
-        }
-        $rows = $builder
-            ->groupBy('e.id')
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
-        $upjRows = $this->db->table('tb_e_ticket_upj')
-            ->select('etiket_id, kd_jbtn')
-            ->get()
-            ->getResultArray();
+    /**
+     * Sumber tiket yang sah untuk getTickets().
+     *
+     * - saya        : tiket yang dibuat user login
+     * - pelaksana   : tiket yang ditugaskan ke unit user (sudah divalidasi)
+     * - headsection : tiket yang diajukan unit user, kecuali miliknya sendiri
+     * - all         : semua tiket, tanpa filter cakupan (khusus admin)
+     */
+    public const SUMBER_LIST = ['saya', 'pelaksana', 'headsection', 'all'];
 
-        $upjMap = [];
+    /**
+     * Sumber yang dipakai halaman /etiket saat ?sumber= tidak diisi.
+     *
+     * 'all' sengaja tidak ikut: halaman user biasa tidak boleh melihat
+     * seluruh tiket tanpa batas cakupan.
+     */
+    public const SUMBER_DEFAULT = ['saya', 'pelaksana', 'headsection'];
 
-        foreach ($upjRows as $upj) {
-            $upjMap[$upj['etiket_id']][] = $upj['kd_jbtn'];
-        }
-
-        foreach ($rows as &$row) {
-            $row['upj'] = $upjMap[$row['id']] ?? [];
-        }
-        foreach ($rows as &$row) {
-            $row['upj_kd_jbtn'] = !empty($row['upj_kd_jbtn'])
-                ? explode(',', $row['upj_kd_jbtn'])
-                : [];
-        }
-        return $this->attachProsesToRows($rows);
-    }
-    public function getEticketAll2(
-        ?string $kd_jbtn = null,
+    /**
+     * Satu-satunya query untuk seluruh halaman daftar tiket.
+     *
+     * @param string[] $sumber salah satu / gabungan dari SUMBER_LIST.
+     *                     'all' = tanpa filter cakupan (admin).
+     * @param string|null $kdJbtn unit/jabatan user yang login
+     * @param string|null $nip    NIP user yang login
+     */
+    public function getTickets(
+        array $sumber = [],
+        ?string $kdJbtn = null,
         ?string $nip = null,
         ?int $valid = null,
         ?int $selesai = null,
         ?int $kategori = null
     ): array {
+        $sumber  = array_values(array_intersect($sumber, self::SUMBER_LIST));
+        $semua   = in_array('all', $sumber, true);
 
         $builder = $this->baseQuery()
-            ->distinct()
-            ->join(
-                'tb_e_ticket_proses awal',
-                'awal.id = e.message_awal',
-                'left'
-            )
-            ->join(
-                'tb_e_ticket_proses akhir',
-                'akhir.id = e.message_akhir',
-                'left'
-            )
+            ->join('tb_e_ticket_proses awal', 'awal.id = e.message_awal', 'left')
+            ->join('tb_e_ticket_proses akhir', 'akhir.id = e.message_akhir', 'left')
             ->select([
-                'e.*',
+            'e.*',
 
-                'awal.id AS message_id',
-                'awal.kd_jbtn AS message_kd_jbtn',
-                'awal.nm_jbtn AS message_nm_jbtn',
-                'awal.id_petugas AS message_id_petugas',
-                'awal.id_petugas_nama AS message_id_petugas_nama',
-                'awal.catatan AS message_catatan',
-                'awal.created_at AS message_created_at',
+            'awal.id AS message_id',
+            'awal.id_eticket AS message_id_eticket',
+            'awal.kd_jbtn AS message_kd_jbtn',
+            'awal.nm_jbtn AS message_nm_jbtn',
+            'awal.id_petugas AS message_id_petugas',
+            'awal.id_petugas_nama AS message_id_petugas_nama',
+            'awal.catatan AS message_catatan',
+            'awal.created_at AS message_created_at',
+            'awal.updated_at AS message_updated_at',
 
-                'akhir.id AS respon_message_id',
-                'akhir.kd_jbtn AS respon_message_kd_jbtn',
-                'akhir.nm_jbtn AS respon_message_nm_jbtn',
-                'akhir.id_petugas AS respon_message_id_petugas',
-                'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
-                'akhir.catatan AS respon_message_catatan',
-                'akhir.created_at AS respon_message_created_at',
-            ])
-            ->where('e.created_at >=', $this->enamBulanLalu());
+            'akhir.id AS respon_message_id',
+            'akhir.id_eticket AS respon_message_id_eticket',
+            'akhir.kd_jbtn AS respon_message_kd_jbtn',
+            'akhir.nm_jbtn AS respon_message_nm_jbtn',
+            'akhir.id_petugas AS respon_message_id_petugas',
+            'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
+            'akhir.catatan AS respon_message_catatan',
+            'akhir.created_at AS respon_message_created_at',
+            'akhir.updated_at AS respon_message_updated_at',
+        ]);
 
-        /*
-    |--------------------------------------------------------------------------
-    | FILTER LOGIN USER
-    | Pembuat ATAU Pelaksana
-    |--------------------------------------------------------------------------
-    */
-
-        if (!empty($nip) || !empty($kd_jbtn)) {
-
-            $builder->groupStart();
-
-            // =========================
-            // Tiket milik pembuat
-            // =========================
-            if (!empty($nip)) {
-                $builder->where('e.petugas_id', $nip);
-            }
-
-            // =========================
-            // Tiket pelaksana
-            // Harus sudah divalidasi
-            // =========================
-            if (!empty($kd_jbtn)) {
-
-                $builder->orGroupStart();
-
-                $builder->where("
-            EXISTS (
-                SELECT 1
-                FROM tb_e_ticket_upj upj
-                WHERE upj.etiket_id = e.id
-                AND upj.kd_jbtn = " . $this->db->escape($kd_jbtn) . "
-            )
-        ", null, false);
-
-                $builder->where('e.valid_nama IS NOT NULL', null, false);
-
-                $builder->groupEnd();
-            }
-
-            $builder->groupEnd();
+        // =========================
+        // CAKUPAN / SUMBER
+        // =========================
+        if (! $semua) {
+            $this->whereBySumber($builder, $sumber, $kdJbtn, $nip);
         }
 
-        /*
-    |--------------------------------------------------------------------------
-    | FILTER VALIDASI
-    |--------------------------------------------------------------------------
-    */
+        // =========================
+        // BATAS USIA (dinonaktifkan, lihat RANGE_BULAN)
+        // =========================
+        if (self::RANGE_BULAN !== null) {
+            $builder->where(
+                'e.created_at >=',
+                Time::now()->subMonths(self::RANGE_BULAN)->toDateTimeString()
+            );
+        }
 
+        // =========================
+        // FILTER VALIDASI
+        // =========================
         if ($valid === 1) {
             $builder->where('e.valid_nama IS NOT NULL', null, false);
         } elseif ($valid === 0) {
             $builder->where('e.valid_nama IS NULL', null, false);
         }
 
-        /*
-    |--------------------------------------------------------------------------
-    | FILTER SELESAI
-    |--------------------------------------------------------------------------
-    */
-
+        // =========================
+        // FILTER SELESAI
+        // =========================
         if ($selesai === 1) {
             $builder->where('e.message_akhir IS NOT NULL', null, false);
         } elseif ($selesai === 0) {
             $builder->where('e.message_akhir IS NULL', null, false);
         }
 
-        /*
-    |--------------------------------------------------------------------------
-    | FILTER KATEGORI
-    |--------------------------------------------------------------------------
-    */
-
+        // =========================
+        // FILTER KATEGORI
+        // =========================
         if ($kategori !== null) {
             $builder->where('e.kategori_id', $kategori);
         }
 
         $rows = $builder
-            ->groupBy('e.id')
             ->orderBy('e.created_at', 'DESC')
             ->get()
             ->getResultArray();
 
-        /*
-    |--------------------------------------------------------------------------
-    | UPJ
-    |--------------------------------------------------------------------------
-    */
-
-        $upjRows = $this->db->table('tb_e_ticket_upj')
-            ->select('etiket_id, kd_jbtn')
-            ->get()
-            ->getResultArray();
-
-        $upjMap = [];
-
-        foreach ($upjRows as $upj) {
-            $upjMap[$upj['etiket_id']][] = $upj['kd_jbtn'];
+        if ($rows === []) {
+            return [];
         }
+
+        // =========================
+        // UPJ + PENANDA HUBUNGAN
+        // =========================
+        $upjMap = $this->loadUpjMap(array_column($rows, 'id'));
 
         foreach ($rows as &$row) {
-
             $row['upj'] = $upjMap[$row['id']] ?? [];
 
-            $row['upj_kd_jbtn'] = !empty($row['upj_kd_jbtn'])
-                ? explode(',', $row['upj_kd_jbtn'])
-                : [];
+            // Diperlukan view untuk memberi badge sumber pada tiap baris,
+            // jadi user bisa lihat kenapa sebuah tiket muncul di daftar.
+            $row['is_creator'] = $nip !== null && $nip !== ''
+                && (string) $row['petugas_id'] === (string) $nip;
 
-            /*
-        |--------------------------------------------------------------------------
-        | Menandai hubungan user login dengan tiket
-        |--------------------------------------------------------------------------
-        */
+            $row['is_executor'] = $kdJbtn !== null && $kdJbtn !== ''
+                && in_array($kdJbtn, $row['upj']);
 
-            $row['is_creator'] = ($nip && $row['petugas_id'] == $nip);
-
-            $row['is_executor'] = (
-                $kd_jbtn &&
-                in_array($kd_jbtn, $row['upj'])
-            );
+            // Tiket yang diajukan oleh unit user (sumber 'headsection').
+            $row['is_unit_saya'] = $kdJbtn !== null && $kdJbtn !== ''
+                && (string) $row['kd_jbtn'] === (string) $kdJbtn;
         }
+        unset($row);
 
+        // Memasok status + unit_penanggung_jawab + proses.
         return $this->attachProsesToRows($rows);
     }
-    /*
-    |--------------------------------------------------------------------------
-    | FILTER STATUS
-    |--------------------------------------------------------------------------
-    */
+
     /**
-     * Tiket untuk halaman persetujuan headsection.
+     * Terjemahkan daftar $sumber jadi satu kelompok WHERE yang di-OR-kan.
      *
-     * Aturan: headsection hanya menyetujui tiket milik unitnya sendiri,
-     * jadi cukup cocokkan e.kd_jbtn (unit yang mengajukan tiket).
+     * Setiap cabang dibungkus orGroupStart() supaya syarat multi-kolom
+     * (mis. EXISTS + valid_nama IS NOT NULL) tidak bocor ke cabang lain.
      *
-     * Join kuj dan ep sengaja tidak dipakai lagi:
-     *   - kuj menambah ~70 baris per kategori sehingga fan-out besar
-     *     tanpa menyumbang apa pun ke hasil,
-     *   - ep tidak pernah dibaca di SELECT (WHERE memakai subquery terpisah).
-     *
-     * $excludePetugasId dipakai untuk menyembunyikan tiket yang dibuat
-     * oleh headsection sendiri.
+     * PENTING: kalau scope memang aktif tapi identitas user tidak
+     * lengkap (nip/kd_jbtn kosong), hasilnya harus "tidak ada tiket"
+     * (1 = 0) -- bukan "semua tiket". Melewati filter seperti ini pernah
+     * membuat seluruh tabel terekspos.
      */
-    public function getHeadSectionTickets(
-        string $kd_jbtn,
-        ?int $valid = null,
-        ?int $selesai = null,
-        ?int $kategori = null,
-        ?string $excludePetugasId = null
-    ): array {
-        $builder = $this->baseQuery()
-            ->join(
-            'tb_e_ticket_proses awal',
-                'awal.id = e.message_awal',
-                'left'
-            )
-            ->join(
-            'tb_e_ticket_proses akhir',
-                'akhir.id = e.message_akhir',
-                'left'
-            )
-            ->select([
-                'e.*',
+    private function whereBySumber($builder, array $sumber, ?string $kdJbtn, ?string $nip): void
+    {
+        $nip    = ($nip === '') ? null : $nip;
+        $kdJbtn = ($kdJbtn === '') ? null : $kdJbtn;
 
-                'awal.id AS message_id',
-                'awal.id_eticket AS message_id_eticket',
-                'awal.kd_jbtn AS message_kd_jbtn',
-                'awal.nm_jbtn AS message_nm_jbtn',
-                'awal.id_petugas AS message_id_petugas',
-                'awal.id_petugas_nama AS message_id_petugas_nama',
-                'awal.catatan AS message_catatan',
-                'awal.created_at AS message_created_at',
-                'awal.updated_at AS message_updated_at',
+        $adaCabang = false;
 
-                'akhir.id AS respon_message_id',
-                'akhir.id_eticket AS respon_message_id_eticket',
-                'akhir.kd_jbtn AS respon_message_kd_jbtn',
-                'akhir.nm_jbtn AS respon_message_nm_jbtn',
-                'akhir.id_petugas AS respon_message_id_petugas',
-                'akhir.id_petugas_nama AS respon_message_id_petugas_nama',
-                'akhir.catatan AS respon_message_catatan',
-                'akhir.created_at AS respon_message_created_at',
-                'akhir.updated_at AS respon_message_updated_at',
-            ])
-            ->where('e.kd_jbtn', $kd_jbtn);
+        $builder->groupStart();
 
-        // KECUALI TIKET MILIK SENDIRI
-        // Headsection tidak perlu menyetujui tiket yang ia buat sendiri.
-        // NULL-safe karena kolom petugas_id boleh NULL.
-        if ($excludePetugasId !== null && $excludePetugasId !== '') {
-            $builder->groupStart()
-                ->where('e.petugas_id IS NULL', null, false)
-                ->orWhere('e.petugas_id <>', $excludePetugasId)
-                ->groupEnd();
+        // ---------------------------------------------------------------
+        // SAYA: tiket yang dibuat sendiri.
+        // Tidak perlu syarat validasi, jadi tiket yang masih dian's
+        // maupun yang sudah selesai sama-sama tampil.
+        // ---------------------------------------------------------------
+        if (in_array('saya', $sumber, true) && $nip !== null) {
+            $builder->where('e.petugas_id', $nip);
+            $adaCabang = true;
         }
 
-        // FILTER VALIDASI 
-        if ($valid === 1) {
+        // ---------------------------------------------------------------
+        // PELAKSANA: unit user masuk daftar tb_e_ticket_upj.
+        // Wajib sudah divalidasi -- inilah yang membuat daftar tugas
+        // hanya berisi tiket yang memang boleh dikerjakan.
+        // ---------------------------------------------------------------
+        if (in_array('pelaksana', $sumber, true) && $kdJbtn !== null) {
+            if ($adaCabang) {
+                $builder->orGroupStart();
+            }
+
             $builder->where(
-                'e.valid_nama IS NOT NULL',
+                'EXISTS (
+                    SELECT 1
+                    FROM tb_e_ticket_upj upj
+                    WHERE upj.etiket_id = e.id
+                    AND upj.kd_jbtn = ' . $this->db->escape($kdJbtn) . '
+                )',
                 null,
                 false
             );
-        } elseif ($valid === 0) {
-            $builder->where(
-                'e.valid_nama IS NULL',
-                null,
-                false
-            );
-        }
-        // filter status selesai
-        if ($selesai === 1) {
-            $builder->where(
-                'e.message_akhir IS NOT NULL',
-                null,
-                false
-            );
-        } elseif ($selesai === 0) {
-            $builder->where(
-                'e.message_akhir IS NULL',
-                null,
-                false
-            );
-        }
-        // FILTER KATEGORI
-        if ($kategori !== null) {
-            $builder->where('e.kategori_id', $kategori);
-        }
-        // Tidak perlu groupBy: semua join di atas eq_ref ke primary key,
-        // jadi hasilnya sudah satu baris per tiket.
-        $rows = $builder
-            ->orderBy('e.created_at', 'DESC')
-            ->get()
-            ->getResultArray();
 
-        return $this->attachProsesToRows($rows);
+            $builder->where('e.valid_nama IS NOT NULL', null, false);
+
+            if ($adaCabang) {
+                $builder->groupEnd();
+            }
+
+            $adaCabang = true;
+        }
+
+        // ---------------------------------------------------------------
+        // HEADSECTION: tiket yang DI AJUKAN oleh unit user (e.kd_jbtn),
+        // bukan yang ditugaskan ke unit user. Tiket milik sendiri
+        // dikecualikan supaya orang tidak menyetujui tiketnya sendiri.
+        // ---------------------------------------------------------------
+        if (in_array('headsection', $sumber, true) && $kdJbtn !== null) {
+            if ($adaCabang) {
+                $builder->orGroupStart();
+            }
+
+            $builder->where('e.kd_jbtn', $kdJbtn);
+
+            // NULL-safe: kolom petugas_id boleh NULL.
+            if ($nip !== null) {
+                $builder->groupStart()
+                    ->where('e.petugas_id IS NULL', null, false)
+                    ->orWhere('e.petugas_id <>', $nip)
+                    ->groupEnd();
+            }
+
+            if ($adaCabang) {
+                $builder->groupEnd();
+            }
+
+            $adaCabang = true;
+        }
+
+        if (! $adaCabang) {
+            $builder->where('1 = 0', null, false);
+        }
+
+        $builder->groupEnd();
     }
 
     public function isSudahValid(
@@ -717,11 +617,79 @@ class ETicketModel extends Model
     */
     private function getUnitByKategori(int $kategoriId, int $isPenanggungJawab): array
     {
-        return $this->db->table('tb_e_ticket_kategori_unit_jabatan')
-            ->where('kategori_id', $kategoriId)
-            ->where('is_penanggung_jawab', $isPenanggungJawab)
+        $key = $kategoriId . ':' . $isPenanggungJawab;
+
+        if (! isset($this->unitCache[$key])) {
+            $this->unitCache[$key] = $this->db->table('tb_e_ticket_kategori_unit_jabatan')
+                ->where('kategori_id', $kategoriId)
+                ->where('is_penanggung_jawab', $isPenanggungJawab)
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getResultArray();
+        }
+
+        return $this->unitCache[$key];
+    }
+
+    /**
+     * Isi cache unit untuk banyak kategori sekaligus (1 query).
+     *
+     * Dipanggil sebelum attachProsesToRows() supaya N baris tiket hanya
+     * menghasilkan 1 query, bukan N.
+     */
+    private function primeUnitCache(array $kategoriIds): void
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map('intval', $kategoriIds),
+            static fn ($id) => $id > 0
+        )));
+
+        if ($ids === []) {
+            return;
+        }
+
+        $rows = $this->db->table('tb_e_ticket_kategori_unit_jabatan')
+            ->whereIn('kategori_id', $ids)
             ->orderBy('id', 'ASC')
             ->get()
             ->getResultArray();
+
+        foreach ($rows as $row) {
+            $key = (int) $row['kategori_id'] . ':' . (int) $row['is_penanggung_jawab'];
+
+            // is_penanggung_jawab selalu 0 atau 1, jadi belum pernah ada
+            // key tersebut -- ||= aman dipakai di sini.
+            $this->unitCache[$key] ??= [];
+            $this->unitCache[$key][] = $row;
+        }
+    }
+
+    /**
+     * Peta unit penanggung jawab (tb_e_ticket_upj) untuk sekumpulan tiket.
+     *
+     * Sebelumnya daftar tiket memuat SELURUH isi tb_e_ticket_upj tanpa
+     * filter, sekali per halaman. Sekarang hanya id yang memang tampil.
+     *
+     * @return array<int, string[]> kd_jbtn per id tiket
+     */
+    private function loadUpjMap(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = $this->db->table('tb_e_ticket_upj')
+            ->select('etiket_id, kd_jbtn')
+            ->whereIn('etiket_id', $ids)
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $map[$row['etiket_id']][] = $row['kd_jbtn'];
+        }
+
+        return $map;
     }
 }

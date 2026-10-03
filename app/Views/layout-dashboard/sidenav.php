@@ -19,8 +19,27 @@ $activeLink = function ($route, $status = null) use ($currentPath, $queryParams)
 
     return ($queryParams['status'] ?? null) === $status;
 };
-$openKanza = preg_match('#^admin(/|$)#', $currentPath);
-$openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
+
+// /pelaksana dan /headsection sudah jadi redirect ke /etiket?sumber=...,
+// tapi tetap dikenali supaya menunya ter-highlight selama transisi.
+$isTiket = $activeLink('etiket')
+    || $activeLink('pelaksana')
+    || $activeLink('headsection');
+// /admin?tab=petugas adalah satu-satunya entry admin yang masih ada di
+// navigasi (grup KANZA sudah dihapus, lihat blok ADMIN di bawah).
+//
+// Penandanya harus yang membaca QUERY STRING, bukan hanya path: semua tab
+// /admin berbagi path 'admin', jadi bedanya hanya ?tab=.
+$isAdminPetugas = $currentPath === 'admin'
+    && ($queryParams['tab'] ?? '') === 'petugas';
+
+// $openKanza (penanda grup KANZA) ikut dibuang: grupnya sudah tidak ada
+// di navigasi, lihat blok ADMIN di bawah.
+//
+// 'admin' sengaja ikut di pola ini: tanpa itu, membuka /admin lewat
+// submenu APP akan menutup grupnya sendiri, sehingga link yang baru saja
+// diklik langsung hilang dari pandangan.
+$openApp = preg_match('#^(kategori|allticket|manual|admin)(/|$)#', $currentPath);
 ?>
 
 <div id="layoutSidenav_nav">
@@ -43,56 +62,44 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
                     Dashboard
                 </a>
 
-                <a class="nav-link<?= $activeLink('etiket') ? ' active' : '' ?>" href="<?= base_url('etiket') ?>">
+                <?php
+                // Satu link untuk semua daftar tiket. Dulu ada tiga
+                // menu (My E-Tiket, Persetujuan, Pelaksana) yang mengarah
+                // ke tiga halaman terpisah; sekarang semuanya /etiket dan
+                // dibedakan lewat filter ?sumber=.
+                //
+                // Badge menampilkan ?sumber= yang aktif supaya user tetap
+                // tahu sedang melihat potongan data yang mana.
+                $sumberAktif = $queryParams['sumber'] ?? '';
+                ?>
+                <a class="nav-link<?= $isTiket ? ' active' : '' ?>" href="<?= base_url('etiket') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-ticket-alt"></i></div>
-                    My E-Tiket
-                </a>
-                <?php if ((int) ($user['headsection'] ?? 0) === 1): ?>
-
-                    <a class="nav-link<?= $activeLink('headsection') ? ' active' : '' ?>" href="<?= base_url('headsection') ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-clock"></i></div>
-                        Persetujuan
-                    </a>
-                <?php endif; ?>
-                <a class="nav-link<?= $activeLink('pelaksana') ? ' active' : '' ?>" href="<?= base_url('pelaksana') ?>">
-                    <div class="sb-nav-link-icon"><i class="fas fa-user-cog"></i></div>
-                    Pelaksana
+                    E-Tiket
+                    <?php if ($sumberAktif !== '' && $sumberAktif !== null): ?>
+                        <span class="badge bg-primary ms-2"><?= esc($sumberAktif) ?></span>
+                    <?php endif; ?>
                 </a>
 
                 <!-- ===================== -->
                 <!-- ADMIN -->
                 <!-- ===================== -->
+                <?php
+                // Menu grup KANZA (User E-Tiket, Pegawai, Petugas sebagai tiga
+                // halaman terpisah) DIHAPUS dari navigasi. Datanya tidak
+                // ikut hilang: semuanya kini hidup di satu halaman
+                // /admin dengan User E-Tiket, Pegawai, dan Petugas
+                // sebagai tab.
+                //
+                // Route lamanya (/admin/users, /admin/pegawai,
+                // /admin/petugas) tetap ada sebagai redirect ke tab yang
+                // sesuai, supaya bookmark dan tautan lama tidak mati.
+                //
+                // Tab Petugas tetap punya link di submenu APP, karena di
+                // situ tombol Set/Unset Head Section berada dan fitur itu
+                // masih dipakai.
+                ?>
                 <?php if ($kdJabatan === env('ROLE_ADMIN')): ?>
                     <div class="sb-sidenav-menu-heading">MASTER DATA</div>
-
-                    <a class="nav-link collapsed<?= $openKanza ? ' active' : '' ?>"
-                        href="#"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#collapseKanza"
-                        aria-expanded="<?= $openKanza ? 'true' : 'false' ?>">
-                        <div class="sb-nav-link-icon"><i class="fas fa-database"></i></div>
-                        KANZA
-                        <div class="sb-sidenav-collapse-arrow">
-                            <i class="fas fa-angle-down"></i>
-                        </div>
-                    </a>
-
-                    <div class="collapse<?= $openKanza ? ' show' : '' ?>" id="collapseKanza">
-                        <nav class="sb-sidenav-menu-nested nav">
-                            <a class="nav-link<?= $activeLink('admin/users') ? ' active' : '' ?>" href="<?= base_url('admin/users') ?>">
-                                <i class="fas fa-user-shield me-2"></i> User E-Tiket
-                            </a>
-                            <a class="nav-link<?= $activeLink('admin/pegawai') ? ' active' : '' ?>" href="<?= base_url('admin/pegawai') ?>">
-                                <i class="fas fa-user-tie me-2"></i> Pegawai
-                            </a>
-                            <a class="nav-link<?= $activeLink('admin/petugas') ? ' active' : '' ?>" href="<?= base_url('admin/petugas') ?>">
-                                <i class="fas fa-headset me-2"></i> Petugas
-                            </a>
-                            <a class="nav-link disabled">
-                                <i class="fas fa-user-md me-2"></i> Dokter
-                            </a>
-                        </nav>
-                    </div>
 
                     <a class="nav-link collapsed<?= $openApp ? ' active' : '' ?>"
                         href="#"
@@ -107,6 +114,18 @@ $openApp = preg_match('#^(kategori|allticket|manual)(/|$)#', $currentPath);
                     </a>
                     <div class="collapse<?= $openApp ? ' show' : '' ?>" id="collapseApp">
                         <nav class="sb-sidenav-menu-nested nav">
+                            <!--
+                                Satu-satunya pintu navigasi ke /admin.
+                                Tombol Set/Unset Head Section ADA DI DALAM
+                                tab Petugas, jadi menu ini wajib ada --
+                                sebelumnya grup KANZA dihapus tanpa
+                                menyisakan jalan masuk ke sana.
+                            -->
+                            <a class="nav-link<?= $isAdminPetugas ? ' active' : '' ?>"
+                                href="<?= base_url('admin?tab=petugas') ?>">
+                                <i class="fas fa-headset me-2"></i> Petugas &amp; Head Section
+                            </a>
+
                             <a class="nav-link<?= $activeLink('kategori') ? ' active' : '' ?>" href="<?= base_url('kategori') ?>">
                                 <i class="fas fa-folder-tree me-2"></i> Kategori E-Tiket
                             </a>

@@ -36,19 +36,31 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     /*
     |--------------------------------------------------------------------------
-    | Halaman Persetujuan Headsection (khusus role headsection)
+    | Halaman Persetujuan Headsection
     |--------------------------------------------------------------------------
-    | Dashboard tidak dipisah per role; semua orang memakai /dashboard-saya.
+    | Daftar tiket /headsection dan /pelaksana sudah digabung ke /etiket
+    | (lihat ETicketModel::getTickets()). Route GET di bawah sengaja
+    | DIPERTAHANKAN untuk redirect, supaya bookmark dan tautan lama
+    | yang sudah dibagikan tidak mati.
     */
+    $routes->get('headsection', 'ETicket2::headsection');          // -> /etiket?sumber=headsection
+    $routes->get('headsection/(:any)', 'ETicket2::headsection/$1'); // -> /etiket/{hashid}?sumber=headsection
+
+    // Aksi menyetujui TETAP dikunci hanya untuk headsection. Inilah satu-satunya
+    // bagian alur headsection yang tidak ikut digabung ke /etiket.
     $routes->group('', ['filter' => 'roleheadsection'], function ($routes) {
-        $routes->get('headsection', 'ETicket2::headsection');
-        $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
         $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
     });
+
     /*
     |--------------------------------------------------------------------------
     | E-Ticket
     |--------------------------------------------------------------------------
+    | /etiket adalah SATU-SATUNYA halaman daftar tiket. Halaman /pelaksana
+    | dan /headsection hanya redirect ke sini dengan ?sumber= yang sesuai.
+    |
+    | Filter ?sumber, ?valid, ?selesai, ?status, ?kategori didefinisikan
+    | di ETicketModel::getTickets() dan ETicket2::parseSumber().
     */
     $routes->get('index', 'ETicket2::index');
     $routes->get('baru', 'ETicket2::baru');
@@ -70,6 +82,7 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('lampiran/view/(:segment)', 'ETicket2::viewLampiran/$1');
     $routes->get('lampiran/download/(:segment)', 'ETicket2::downloadLampiran/$1');
 
+    // URL lama -> /etiket?sumber=pelaksana (lihat ETicket2::pelaksana)
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
 
@@ -115,7 +128,15 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     | Admin
     |--------------------------------------------------------------------------
     */
+    /*
+    | /admin adalah SATU-SATUNYA halaman admin: User E-Tiket, Pegawai, dan
+    | Petugas jadi tab di dalamnya (?tab=users|pegawai|petugas).
+    |
+    | Route /admin/users, /admin/pegawai, /admin/petugas/:jbtn tetap ada
+    | sebagai redirect ke tab yang sesuai, supaya bookmark lama masih jalan.
+    */
     $routes->group('admin', ['filter' => 'roleadmin'], function ($routes) {
+        $routes->get('/', 'Admin::index');
         $routes->get('users', 'Admin::users');
         $routes->get('pegawai', 'Admin::pegawai');
         $routes->get('petugas', 'Admin::petugas');

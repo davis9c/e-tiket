@@ -22,7 +22,7 @@
                         <?php $isActive = ($jbtn ?? null) === $j['kd_jbtn']; ?>
                         <tr class="<?= $isActive ? 'table-success' : '' ?>">
                             <td class="font-weight-bold">
-                                <a href="<?= base_url('admin/petugas/' . esc($j['kd_jbtn'])) ?>"
+                                <a href="<?= base_url('admin?tab=petugas&jbtn=' . esc($j['kd_jbtn'])) ?>"
                                     class="text-decoration-none text-dark fw-bold">
                                     <?= esc($j['nm_jbtn']) ?>
                                     <span class="badge bg-secondary ms-2"><?= $count ?></span>

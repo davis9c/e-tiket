@@ -25,14 +25,14 @@
                             <td>
                                 <?php if ($p['headsection']) : ?>
                                     <!-- JIKA SUDAH HEADSECTION -->
-                                    <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . $jbtn : '') ?>"
+                                    <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . esc($jbtn) : '') ?>"
                                         class="btn btn-sm btn-danger"
                                         onclick="return confirm('Nonaktifkan Head Section?')">
                                         <i class="fas fa-user-times"></i> Unset
                                     </a>
                                 <?php else : ?>
                                     <!-- JIKA BELUM HEADSECTION -->
-                                    <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . $jbtn : '') ?>"
+                                    <a href="<?= base_url('admin/setheadsection/' . esc($p['nip'])) . ($jbtn ? '?jbtn=' . esc($jbtn) : '') ?>"
                                         class="btn btn-sm btn-success"
                                         onclick="return confirm('Jadikan Head Section?')">
                                         <i class="fas fa-user-check"></i> Set

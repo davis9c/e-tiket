@@ -17,6 +17,12 @@ use App\Models\KategoriETiketModel;
  *   - App\Controllers\ETicket2   (entry point baru: /dashboard-saya)
  *
  * Supaya keduanya tidak punya salinan logika yang bisa berbeda.
+ *
+ * PENTING: setiap angka di sini sengaja dihitung dari
+ * ETicketModel::getTickets() dengan scope + filter yang PERSIS sama
+ * dengan query halaman /etiket yang ditautkan dari card. Kalau someday
+ * query halaman diubah tanpa mengubah method ini, angka card akan
+ * berhenti cocok dengan isi halaman.
  */
 class DashboardService
 {
@@ -152,13 +158,22 @@ class DashboardService
     /**
      * Tiket yang sudah disetujui headsection tapi belum dijawab unit
      * tujuan (valid_nama terisi, message_akhir masih NULL).
+     *
+     * Sumber 'headsection' = tiket yang diajukan oleh unit login.
+     * Targets: /etiket?sumber=headsection&valid=1&selesai=0
      */
     public function sedangDisetujuiData(?string $kdJbtn, ?string $nip): array
     {
         $list = [];
 
         if ($kdJbtn) {
-            $list = $this->tiket->getHeadSectionTickets($kdJbtn, 1, 0, null, $nip);
+            $list = $this->tiket->getTickets(
+                ['headsection'],
+                $kdJbtn,
+                $nip,
+                1,
+                0
+            );
         }
 
         return [
@@ -168,69 +183,76 @@ class DashboardService
     }
 
     /**
-     * Dashboard khusus Pelaksana
+     * Dashboard khusus Pelaksana (URL lama /dashboard/pelaksana).
      */
     public function pelaksanaData(?string $kdJbtn): array
     {
-        // Tanpa kd_jabatan, filter dilewati oleh getEticketAll2()
-        // sehingga semua tiket akan terekspos. Cegah dengan array kosong.
-        $sedangDiproses = [];
-        $selesai = [];
+        // Tanpa kd_jabatan, filter dilewati oleh getTickets() sehingga
+        // semua tiket akan terekspos. Cegah dengan array kosong.
         $allTiket = [];
 
         if ($kdJbtn) {
-            // Tiket sedang diproses (tugas)
-            $sedangDiproses = $this->tiket->getEticketAll2($kdJbtn, null, null, 0, null);
-
-            // Tiket selesai
-            $selesai = $this->tiket->getEticketAll2($kdJbtn, null, null, 1, null);
-
-            // Semua tiket
-            $allTiket = $this->tiket->getEticketAll2($kdJbtn, null, null, null, null);
+            $allTiket = $this->tiket->getTickets(['pelaksana'], $kdJbtn, null);
         }
 
         $total = count($allTiket);
-        $proses = count($sedangDiproses);
-        $selesaiCount = count($selesai);
+        $proses = 0;
+        $selesai = 0;
         $reject = 0;
 
         foreach ($allTiket as $t) {
-            if ($t['status'] == 'reject') $reject++;
+            if ($t['message_akhir'] !== null) {
+                $selesai++;
+            }
+
+            switch ($t['status']) {
+                case 'proses':
+                    $proses++;
+                    break;
+                case 'reject':
+                    $reject++;
+                    break;
+            }
         }
 
         return [
             'title' => 'Dashboard Pelaksana',
             'total' => $total,
             'proses' => $proses,
-            'selesai' => $selesaiCount,
+            'selesai' => $selesai,
             'reject' => $reject,
-            'sedangDiproses' => $sedangDiproses,
-            'selesaiList' => $selesai,
+            'sedangDiproses' => $allTiket,
+            'selesaiList' => array_values(array_filter(
+                $allTiket,
+                static fn ($t) => $t['message_akhir'] !== null
+            )),
         ];
     }
 
     /**
-     * Tiket milik user yang login (sumber: halaman /etiket).
+     * "Tiket Saya": isi halaman /etiket saat ?sumber= tidak diisi.
      *
-     * Mencakup tiket yang dibuat user sendiri, DIUTAMAKAN dengan
-     * tiket unitnya yang sudah divalidasi — persis seperti query
-     * ETicket2::eticket().
+     * Memakai SUMBER_DEFAULT (saya + pelaksana + headsection) supaya
+     * angka card sama persis dengan jumlah baris di halaman. Tiket yang
+     * diajukan unit sendiri ikut dihitung karena memang tampil di
+     * /etiket -- sebelumnya tidak dihitung, jadi angka dan halaman
+     * tidak cocok.
      *
-     * Dipakai untuk bagian "Tiket Saya" di dashboard user biasa
-     * maupun dashboard admin.
+     * Cukup 1 query: keempat status dihitung dari satu hasil.
      */
     public function userData(?string $kdJbtn, ?string $nip): array
     {
         // Tanpa NIP tidak bisa memfilter tiket milik sendiri.
-        // JANGAN panggil getEticketAll2() dengan nip kosong,
-        // karena filter di model dilewati -> semua tiket terekspos.
+        // JANGAN panggil getTickets() dengan nip kosong, karena filter
+        // di model dilewati -> semua tiket terekspos.
         $tiketSaya = [];
 
         if ($nip) {
-            // Query sama dengan ETicket2::eticket() (halaman /etiket):
-            // tiket yang dibuat user DIUTAMAKAN dengan tiket unitnya
-            // yang sudah divalidasi (OR di dalam getEticketAll2).
-            $tiketSaya = $this->tiket->getEticketAll2($kdJbtn, $nip, null, null, null);
+            $tiketSaya = $this->tiket->getTickets(
+                ETicketModel::SUMBER_DEFAULT,
+                $kdJbtn,
+                $nip
+            );
         }
 
         $total = count($tiketSaya);
@@ -270,15 +292,18 @@ class DashboardService
     /**
      * Tiket yang belum divalidasi, gabungan dua sumber:
      *   - tiket milik sendiri yang menunggu atasan
-     *     (getEticketAll2 -> dengan valid=0 hasilnya efektif hanya
-     *      tiket milik sendiri, karena cabang unit mensyaratkan
-     *      valid_nama IS NOT NULL)
-     *   - tiket unit saya yang menunggu approval headsection
-     *     (getHeadSectionTickets -> sudah exclude milik sendiri)
+     *   - tiket yang diajukan unit saya, menunggu approval headsection
      *
-     * Dipakai section "Perlu Validasi" di dashboard. Barisnya diberi
-     * penanda is_milik_sendiri supaya view bisa membedakan keduanya
-     * tanpa menambah kolom baru.
+     * Sekarang cukup SATU query: scope 'saya' + 'headsection' di-OR-kan
+     * di dalam satu WHERE, dengan filter valid = 0.
+     *
+     * Sebelumnya butuh dua query lalu dedup per id di PHP, karena tidak
+     * ada satu halaman yang mewakili gabungan itu -- sekarang sudah ada:
+     * /etiket?sumber=saya,headsection&valid=0. Karena itu kartu
+     * "Perlu Validasi" di dashboard sekarang bisa diberi tautan.
+     *
+     * Baris diberi penanda is_milik_sendiri supaya view bisa
+     * membedakan keduanya tanpa menambah kolom baru.
      */
     public function perluValidasiData(?string $kdJbtn, ?string $nip): array
     {
@@ -287,35 +312,20 @@ class DashboardService
             return ['total' => 0, 'list' => []];
         }
 
-        // valid = 0 -> valid_nama IS NULL
-        $milikSendiri = $this->tiket->getEticketAll2($kdJbtn, $nip, 0, null, null);
+        $list = $this->tiket->getTickets(
+            ['saya', 'headsection'],
+            $kdJbtn,
+            $nip,
+            0
+        );
 
-        // getHeadSectionTickets() parameter $kd_jbtn bertipe string (bukan
-        // nullable), jadi null akan memicu TypeError. Tanpa kd_jabatan
-        // tidak ada yang bisa difilter - biarkan kosong.
-        $milikUnit = $kdJbtn
-            ? $this->tiket->getHeadSectionTickets($kdJbtn, 0, null, null, $nip)
-            : [];
-
-        // Dedup per id: tiket milik sendiri bisa muncul di kedua sumber
-        // kalau kategorinya tidak butuh persetujuan headsection.
-        $map = [];
-
-        foreach ($milikSendiri as $t) {
-            $t['is_milik_sendiri'] = true;
-            $map[$t['id']]          = $t;
+        foreach ($list as &$t) {
+            $t['is_milik_sendiri'] = ! empty($t['is_creator']);
         }
+        unset($t);
 
-        foreach ($milikUnit as $t) {
-            if (! isset($map[$t['id']])) {
-                $t['is_milik_sendiri'] = false;
-                $map[$t['id']]          = $t;
-            }
-        }
-
-        $list = array_values($map);
-        usort($list, fn ($a, $b) => strcmp($b['created_at'], $a['created_at']));
-
+        // Satu query sudah memakai ORDER BY created_at DESC, jadi urutannya
+        // sama dengan versi lama yang usort() di sini.
         return [
             'total' => count($list),
             'list'  => $this->attachHashId($list),
@@ -325,44 +335,42 @@ class DashboardService
     /**
      * Ringkasan peran executor: tiket unit login yang harus dikerjakan.
      *
-     * Query-nya sengaja memakai getEticketAll() dengan valid = 1, sama
-     * seperti halaman /pelaksana (ETicket2::pelaksana()). Kalau memakai
-     * getEticketAll2() angka dashboard tidak akan sama dengan yang
-     * terlihat di halaman Pelaksana.
+     * Sumber 'pelaksana'. Syarat "sudah divalidasi" melekat di dalam
+     * scope itu sendiri, jadi tidak perlu diulang sebagai filter ?valid=.
      *
-     * Dipakai untuk section "Executor" di dashboard user biasa.
-     * Tiket milik sendiri ada di userData() / halaman My E-Tiket.
+     * Cukup 1 query untuk keempat angka. ?selesai=0 dan ?selesai=1 saling
+     * melengkapi, jadi kedua kelompoknya disaring di PHP dari satu hasil
+     * alih-alih menjalankan dua query terpisah.
      */
     public function tugasData(?string $kdJbtn): array
     {
         // Tanpa kd_jabatan filter akan dilewati -> semua tiket terekspos.
-        $tugas = [];
         $allTiket = [];
-        $selesaiList = [];
 
         if ($kdJbtn) {
-            // Tiket untuk unit saya yang belum selesai -> masih harus dikerjakan
-            $tugas = $this->tiket->getEticketAll($kdJbtn, null, 1, 0, null);
-
-            // Semua tiket valid untuk unit saya (angka total)
-            $allTiket = $this->tiket->getEticketAll($kdJbtn, null, 1, null, null);
-
-            // Yang sudah selesai (untuk angka & grafik "selesai")
-            $selesaiList = $this->tiket->getEticketAll($kdJbtn, null, 1, 1, null);
+            $allTiket = $this->tiket->getTickets(['pelaksana'], $kdJbtn, null);
         }
 
-        // Since $allTiket only contains tickets that have been validated (valid = 1),
-        // the belum_valid status never appears. It's only counted to maintain
-        // the status of the $allTiket data itself.
-        $belumValid = 0;
+        $total = count($allTiket);
+        $tugas = 0;
+        $selesai = 0;
         $proses = 0;
         $reject = 0;
 
         foreach ($allTiket as $t) {
+            // Syarat ?selesai= pada query: message_akhir IS [NOT] NULL.
+            // Kalau sudah ada respons, tiket selesai -- tidak perlu
+            // dikerjakan lagi.
+            if ($t['message_akhir'] !== null) {
+                $selesai++;
+            } else {
+                $tugas++;
+            }
+
+            // Status dihitung model dari reject_nama / valid_nama / jumlah
+            // proses per unit PJ. Tidak selalu sama dengan message_akhir,
+            // jadi dihitung terpisah.
             switch ($t['status']) {
-                case 'belum_valid':
-                    $belumValid++;
-                    break;
                 case 'proses':
                     $proses++;
                     break;
@@ -372,14 +380,14 @@ class DashboardService
             }
         }
 
-        // Finished count taken from $selesaiList so it isn't overwritten
-        // by the incomplete-ticket data in $allTiket.
-        $selesai = count($selesaiList);
+        // Tidak ada status 'belum_valid' di sini: scope 'pelaksana'
+        // mensyaratkan valid_nama IS NOT NULL.
+        $belumValid = 0;
 
         return [
             'title'      => 'Tiket untuk Saya Kerjakan',
-            'total'      => count($allTiket),
-            'tugas'      => count($tugas),
+            'total'      => $total,
+            'tugas'      => $tugas,
             'belumValid' => $belumValid,
             'proses'     => $proses,
             'selesai'    => $selesai,

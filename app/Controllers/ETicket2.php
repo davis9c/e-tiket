@@ -140,7 +140,7 @@ class ETicket2 extends BaseController
         }
         return view('baru', $data);
     }
-    public function allticket($hashid = null)
+public function allticket($hashid = null)
     {
         if ($redirect = $this->guard()) return $redirect;
         $userData = $this->userData;
@@ -152,13 +152,23 @@ class ETicket2 extends BaseController
         return $this->renderTicketList(
             'allticket',
             function ($filters, $userData, $id) {
-                return $this->eticketModel->getEticketAll(null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
+                // 'all' = tanpa filter cakupan. Halaman ini khusus admin
+                // (route-nya dibungkus filter roleadmin).
+                return $this->eticketModel->getTickets(['all'], null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
             },
             $hashid,
             null,
             'All Ticket'
         );
     }
+
+    /**
+     * Halaman daftar tiket Tunggal.
+     *
+     * Menggantikan /pelaksana dan /headsection. Bedanya hanya ?sumber=,
+     * jadi user cukup mengganti filter, tidak perlu pindah halaman.
+     * Arti tiap sumber dijelaskan di ETicketModel::getTickets().
+     */
     public function eticket($hashid = null)
     {
         if ($redirect = $this->guard()) return $redirect;
@@ -172,139 +182,57 @@ class ETicket2 extends BaseController
         return $this->renderTicketList(
             'e-tiket',
             function ($filters, $userData, $id) use ($kdJbtn, $nip) {
-                return $this->eticketModel->getEticketAll2($kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
+                return $this->eticketModel->getTickets($filters['sumber'], $kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
             },
             $hashid,
             $userData['kd_jabatan'],
-            'Pengajuan E-Ticket'
+            'E-Ticket',
+            true
         );
     }
-    // UNUSED: method currently not linked from routes and reserved for future per-user ticket list
-    public function myeticket($hashid = null)
-    {
-        if ($redirect = $this->guard()) return $redirect;
-        $userData = $this->userData;
-        $nip = $userData['nip'];
-        $kdJbtn = $userData['kd_jabatan'];
-        if (!$nip) {
-            return redirect()->to('/login')->with('error', 'Session expired');
-        }
 
-        return $this->renderTicketList(
-            'e-tiket',
-            function ($filters, $userData, $id) {
-                return $this->eticketModel->getEticketAll(null, $userData['nip'], $filters['valid'], $filters['selesai'], $filters['kategori']);
-            },
-            $hashid,
-            $userData['kd_jabatan'],
-            'Pengajuan E-Ticket'
-        );
-    }
-    public function headsection($hashid = null)
-    {
-        if ($redirect = $this->guard()) return $redirect;
-        $userData = $this->userData;
-        $kdJbtn = $userData['kd_jabatan'];
-        if (!$kdJbtn) {
-            return redirect()->to('/login')
-                ->with('error', 'Session expired');
-        }
-        $id = $this->decodeHashId($hashid);
-        $filters = $this->parseTicketFilters();
-        $tickets = $this->eticketModel->getHeadSectionTickets(
-            $kdJbtn,
-            $filters['valid'],
-            $filters['selesai'],
-            $filters['kategori'],
-            $userData['nip'] // exclude tiket yang dibuat user sendiri
-        );
-        $detail = null;
-        $tindakan = null;
-        $timeline = [];
-        if ($id) {
-            $detail = $this->eticketModel->findOneLengkap($id);
-            if ($detail) {
-                $timeline = $this->buildStatusTimeline($detail['id']);
-                $jabatanMap = $this->getJabatanMap();
-                $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
-                $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit']] ?? null;
-                $detail = $this->attachNamaJabatanToUnits($detail);
-                $detail = $this->attachNamaJabatanToProses($detail);
-                $detail = $this->mapUnitWithJabatan($detail);
-                $detail['hashid'] = $this->hashIdService->encode($detail['id']);
-                $tindakan = $this->tindakan($detail);
-            }
-        }
-        $tickets = $this->addHashIds($tickets);
-        $tickets = array_map([$this, 'sanitizeTicketSummary'], $tickets);
-        if ($detail) $detail = $this->sanitizeTicketDetail($detail);
-        return view('headsection', [
-            'title' => 'Persetujuan E-Ticket',
-            'data'  => [
-                'kategori'          => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
-                'tindakan'          =>  $tindakan,
-                'eticket'          => $tickets,
-                'detailTicket'     => $detail,
-                'timeline_status'  => $timeline,
-                'user'             => $userData,
-            ]
-        ]);
-    }
+    /**
+     * URL lama /pelaksana -> /etiket?sumber=pelaksana
+     */
     public function pelaksana($hashid = null)
     {
-        if ($redirect = $this->guard()) return $redirect;
-        $userData = $this->userData;
-        $kdJbtn = $userData['kd_jabatan'];
-        if (!$kdJbtn) {
-            return redirect()->to('/login')->with('error', 'Session expired');
-        }
-        $userData = $this->userData;
-        $selesai = $this->request->getGet('selesai');
-        $kategori = $this->request->getGet('kategori');
-        $valid = 1;
-        $selesai = ($selesai !== null && $selesai !== '') ? (int)$selesai : null;
-        $kategori = ($kategori !== null && $kategori !== '') ? (int)$kategori : null;
-
-        $tickets = $this->eticketModel->getEticketAll($kdJbtn, null, $valid, $selesai, $kategori);
-
-        // Halaman ini punya jalur sendiri (tidak lewat renderTicketList),
-        // jadi filter status dari card dashboard diterapkan di sini juga.
-        $tickets = $this->filterByStatus($tickets, $this->getQueryStatus());
-
-        $detail = null;
-        $tindakan = null;
-        $timeline = [];
-        $id = $this->decodeHashId($hashid);
-        if ($id) {
-            $detail = $this->eticketModel->findOneLengkap($id);
-            //dd($detail);
-            if ($detail) {
-                $timeline = $this->buildStatusTimeline($detail['id']);
-                $jabatanMap = $this->getJabatanMap();
-                $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
-                $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit']] ?? null;
-                $detail = $this->attachNamaJabatanToUnits($detail);
-                $detail = $this->attachNamaJabatanToProses($detail);
-                $detail = $this->mapUnitWithJabatan($detail);
-                $detail['hashid'] = $this->hashIdService->encode($detail['id']);
-                $tindakan = $this->tindakan($detail);
-            }
-        }
-        $tickets = $this->addHashIds($tickets);
-        $tickets = array_map([$this, 'sanitizeTicketSummary'], $tickets);
-        if ($detail) $detail = $this->sanitizeTicketDetail($detail);
-        return view('pelaksana', [
-            'title' => 'Pelaksana',
-            'data'  => [
-                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
-                'tindakan'          =>  $tindakan,
-                'eticket'      => $tickets,
-                'detailTicket' => $detail,
-                'timeline_status' => $timeline,
-                'user'         => $userData,
-            ]
-        ]);
+        return $this->redirectKeEticket('pelaksana', $hashid);
     }
+
+    /**
+     * URL lama /headsection -> /etiket?sumber=headsection
+     *
+     * Catatan: filter 'roleheadsection' tidak lagi dipakai untuk halaman
+     * daftar. Data sumber 'headsection' hanyalah "tiket yang diajukan
+     * oleh unit saya", jadi memang wajar dilihat anggota unit mana pun --
+     * dan sudah ikut terlihat di /etiket tanpa filter sumber.
+     * Yang tetap dilindungi adalah aksi menyetujui, yaitu route POST
+     * headsection/headsection_approve (lihat Config/Routes.php).
+     */
+    public function headsection($hashid = null)
+    {
+        return $this->redirectKeEticket('headsection', $hashid);
+    }
+
+    /**
+     * Teruskan URL lama ke /etiket sambil mempertahankan query string.
+     *
+     * Filter lama (?selesai=0, ?kategori=3, ...) ikut dibawa, supaya
+     * bookmark dan tautan yang sudah dibagikan tetap jalan.
+     */
+    private function redirectKeEticket(string $sumber, ?string $hashid = null)
+    {
+        $query = $this->request->getGet();
+        unset($query['sumber']);
+        $query['sumber'] = $sumber;
+
+        $url = $hashid
+            ? base_url('etiket/' . $hashid)
+            : base_url('etiket');
+
+        return redirect()->to($url . '?' . http_build_query($query));
+    }
+
     /* =========================================================
      * Kategori GET
      * ========================================================= */
@@ -343,7 +271,42 @@ class ETicket2 extends BaseController
             'kategori' => $this->getQueryInt('kategori'),
             'valid' => $this->getQueryInt('valid'),
             'status' => $this->getQueryStatus(),
+            'sumber' => $this->parseSumber(),
         ];
+    }
+
+    /**
+     * Sumber tiket yang diminta lewat ?sumber=.
+     *
+     * Format: daftar dipisah koma, mis. "saya,headsection".
+     *
+     * Tidak diisi  -> ETicketModel::SUMBER_DEFAULT (tiga sumber, union).
+     * Nilai asing  -> dianggap tidak diisi, sama seperti ?status=.
+     *
+     * 'all' sengaja TIDAK diterima di sini: halaman user biasa tidak
+     * boleh melihat seluruh tiket. Yang butuh 'all' (halaman admin)
+     * memanggil getTickets(['all'], ...) secara langsung.
+     */
+    private function parseSumber(): array
+    {
+        $raw = $this->request->getGet('sumber');
+
+        if (! is_string($raw) || trim($raw) === '') {
+            return ETicketModel::SUMBER_DEFAULT;
+        }
+
+        $items = array_values(array_filter(array_map(
+            'trim',
+            explode(',', $raw)
+        )));
+
+        // Batasi ke daftar sumber untuk user biasa.
+        $items = array_values(array_intersect(
+            $items,
+            ETicketModel::SUMBER_DEFAULT
+        ));
+
+        return $items === [] ? ETicketModel::SUMBER_DEFAULT : $items;
     }
 
     /**
@@ -401,8 +364,11 @@ class ETicket2 extends BaseController
      * Central renderer for ticket list pages to reduce duplication.
      * - $fetcher: callable(fn($filters, $userData, $id): array $tickets)
      * - $kategoriUnit: unit id passed to findByUnitPengajuan (null for global)
+     * - $withSumberFilter: tampilkan dropdown ?sumber=. Hanya /etiket yang
+     *   boleh: di /allticket dan /manual cakupannya sudah 'all', jadi
+     *   memilih sumber tidak akan mengubah hasil.
      */
-    private function renderTicketList(string $view, callable $fetcher, ?string $hashid = null, $kategoriUnit = null, ?string $title = null)
+    private function renderTicketList(string $view, callable $fetcher, ?string $hashid = null, $kategoriUnit = null, ?string $title = null, bool $withSumberFilter = false)
     {
         $id = $this->decodeHashId($hashid);
         $filters = $this->parseTicketFilters();
@@ -442,6 +408,10 @@ class ETicket2 extends BaseController
                 'detailTicket'  => $detail,
                 'timeline_status' => $timeline,
                 'user'          => $userData,
+                // Disalin ke view supaya filter bisa dirender apa adanya
+                // (option terpilih) tanpa membaca query string ulang.
+                'filters'       => $filters,
+                'sumberFilter'  => $withSumberFilter,
             ]
         ]);
     }
@@ -525,6 +495,11 @@ class ETicket2 extends BaseController
             'handler_nama' => $t['handler_nama'] ?? null,
             'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
             'kategori_id' => $t['kategori_id'] ?? null,
+            // Penanda hubungan user login dengan tiket, dipakai view untuk
+            // memberi badge sumber pada setiap baris daftar.
+            'is_creator' => ! empty($t['is_creator']),
+            'is_executor' => ! empty($t['is_executor']),
+            'is_unit_saya' => ! empty($t['is_unit_saya']),
         ];
     }
 
@@ -1862,11 +1837,8 @@ class ETicket2 extends BaseController
         }
         $id = $this->decodeHashId($hashid);
         // filter GET
-        $selesai = $this->request->getGet('selesai');
-        $kategori = $this->request->getGet('kategori');
-        $valid    = $this->request->getGet('valid');
         $filters = $this->parseTicketFilters();
-        $tickets = $this->eticketModel->getEticketAll(null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
+        $tickets = $this->eticketModel->getTickets(['all'], null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
         //$tickets = $this->attachNamaJabatanToTickets($tickets);
         //$tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
         $detail = null;
@@ -1931,6 +1903,9 @@ class ETicket2 extends BaseController
                 'detailTicket'  => $detail,
                 'user'          => $userData,
                 'timeline_status' => $timeline,
+                // Halaman ini selalu menampilkan seluruh tiket (?sumber= tidak
+                // berlaku), tapi list.php butuh key ini agar tidak error.
+                'filters'       => $filters,
             ]
         ]);
     }

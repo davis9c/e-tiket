@@ -1,30 +1,6 @@
 <?= $this->extend('layout-dashboard/dashboard') ?>
 <?= $this->section('content') ?>
 <main>
-    <style>
-        /* Kartu statistik yang bisa diklik menuju daftar tiket terfilter.
-           .text-reset sudah mengembalikan warna teks, tapi Safari masih
-           memakai -webkit-text-fill-color sehingga teks jadi biru. */
-        .kt-card-link {
-            text-decoration: none;
-        }
-
-        .kt-card-link,
-        .kt-card-link * {
-            -webkit-text-fill-color: currentColor;
-        }
-
-        .kt-card-link:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .15);
-        }
-
-        .kt-card-link:focus-visible {
-            outline: 2px solid #0d6efd;
-            outline-offset: 2px;
-        }
-    </style>
-
     <div class="container-fluid px-3">
 
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -41,67 +17,74 @@
         <!-- ===================== -->
         <div class="row g-2 mb-2">
             <?php
-            $totalData = max($total, 1);
-            $exTotal   = max($executor['total'], 1);
-            $pvTotal   = max($perluValidasi['total'], 1);
-
-
             // 9 kartu: 4 Tiket Saya + 4 Executor + 1 Perlu Validasi.
-            // Kartu "Perlu Validasi" sudah mencakup tiket milik sendiri
-            // maupun tiket unit yang menunggu approval.
             //
-            // Setiap 'url' menuju ke halaman daftar tiket yang difilter,
-            // sehingga jumlah baris di sana sama persis dengan angka kartu.
-            // DashboardService memakai method model dengan argumen yang sama
-            // dengan halaman tujuan (userData -> getEticketAll2 untuk
-            // /etiket, tugasData -> getEticketAll untuk /pelaksana).
+            // Semua kartu menuju ke SATU halaman /etiket, dibedakan hanya
+            // lewat query string. ?sumber= menentukan dari tiket mana
+            // angka ini dihitung -- lihat DashboardService, yang memakai
+            // ETicketModel::getTickets() dengan scope + filter yang sama
+            // persis dengan halaman tujuan. Karena itu jumlah baris di
+            // halaman selalu sama dengan angka di kartu.
             //
-            // 'Perlu Validasi' sengaja tanpa url: isinya gabungan tiket milik
-            // sendiri dan tiket unit, sedangkan /headsection secara eksplisit
-            // mengecualikan tiket milik sendiri. Tidak ada satu halaman yang
-            // merepresentasikan gabungan itu.
-            $urlEticket = static fn (string $q = ''): string
-                => base_url('etiket') . ($q !== '' ? '?' . $q : '');
+            // Nilai 'sumber' di bawah sengaja sama persis dengan scope
+            // yang dipakai service saat menghitung $v.
+            $url = static function (array $q = []): string {
+                $q = array_filter($q, static fn ($v) => $v !== null && $v !== '');
 
-            $urlPelaksana = static fn (string $q = ''): string
-                => base_url('pelaksana') . ($q !== '' ? '?' . $q : '');
+                return base_url('etiket') . ($q === [] ? '' : '?' . http_build_query($q));
+            };
 
             $cards = [
-                ['t' => 'Tiket Saya',            'v' => $total,                        'c' => 'primary',   'i' => 'fa-ticket-alt',           'url' => $urlEticket()],
-                ['t' => 'Belum Valid',            'v' => $belumValid,                   'c' => 'secondary', 'i' => 'fa-clock',                  'url' => $urlEticket('valid=0')],
-                ['t' => 'Proses',                 'v' => $proses,                       'c' => 'warning',   'i' => 'fa-spinner',               'url' => $urlEticket('status=proses')],
-                ['t' => 'Selesai',                'v' => $selesai,                      'c' => 'success',   'i' => 'fa-check-circle',          'url' => $urlEticket('status=selesai')],
-                ['t' => 'Perlu Dikerjakan',       'v' => $executor['tugas'],            'c' => 'warning',   'i' => 'fa-clipboard-list',        'url' => $urlPelaksana('selesai=0')],
-                ['t' => 'Sedang Diproses',        'v' => $executor['proses'],           'c' => 'info',      'i' => 'fa-spinner',               'url' => $urlPelaksana('status=proses')],
-                ['t' => 'Selesai (Unit)',         'v' => $executor['selesai'],          'c' => 'success',   'i' => 'fa-check-circle',          'url' => $urlPelaksana('selesai=1')],
-                ['t' => 'Total Tiket Unit',       'v' => $executor['total'],            'c' => 'primary',   'i' => 'fa-ticket-alt',           'url' => $urlPelaksana()],
-                ['t' => 'Perlu Validasi',         'v' => $perluValidasi['total'],       'c' => 'danger',    'i' => 'fa-exclamation-triangle',  'url' => null],
+                // -- Tiket Saya: scope default /etiket (saya + pelaksana + headsection)
+                ['t' => 'Tiket Saya',      'v' => $total,      'c' => 'primary',   'url' => $url()],
+                ['t' => 'Belum Valid',      'v' => $belumValid, 'c' => 'secondary', 'url' => $url(['valid' => 0])],
+                ['t' => 'Proses',           'v' => $proses,     'c' => 'warning',   'url' => $url(['status' => 'proses'])],
+                ['t' => 'Selesai',          'v' => $selesai,    'c' => 'success',   'url' => $url(['status' => 'selesai'])],
+                // -- Executor: scope 'pelaksana' (valid melekat di dalam scope)
+                ['t' => 'Perlu Dikerjakan', 'v' => $executor['tugas'],   'c' => 'warning', 'url' => $url(['sumber' => 'pelaksana', 'selesai' => 0])],
+                ['t' => 'Sedang Diproses',  'v' => $executor['proses'],  'c' => 'info',    'url' => $url(['sumber' => 'pelaksana', 'status' => 'proses'])],
+                ['t' => 'Selesai (Unit)',   'v' => $executor['selesai'], 'c' => 'success', 'url' => $url(['sumber' => 'pelaksana', 'selesai' => 1])],
+                ['t' => 'Total Tiket Unit', 'v' => $executor['total'],   'c' => 'primary', 'url' => $url(['sumber' => 'pelaksana'])],
+                // -- Gabungan milik sendiri + yang diajukan unit, menunggu validasi.
+                //   Dulu tidak bisa punya tautan karena tidak ada satu
+                //    halaman yang mewakili gabungan dua sumber itu. Sekarang
+                //    ?sumber= menerima daftar dipisah koma, jadi bisa.
+                ['t' => 'Perlu Validasi',   'v' => $perluValidasi['total'], 'c' => 'danger', 'url' => $url(['sumber' => 'saya,headsection', 'valid' => 0])],
             ];
 
             $dasar = max($total, $executor['total'], 1);
             foreach ($cards as $c):
                 $percent = round(($c['v'] / $dasar) * 100);
-                // Kartu jadi tautan kalau punya url. Tag pembuka/penutup
-                // dipilih supaya markup tetap valid tanpa url.
-                $isLink = $c['url'] !== null;
-                $tag    = $isLink ? 'a' : 'div';
-                $attrs  = $isLink
-                    ? ' href="' . esc($c['url']) . '" title="Lihat daftar ' . esc($c['t']) . '"'
-                    : '';
             ?>
                 <div class="col-xl-4 col-lg-4 col-md-4 col-6">
-                    <<?= $tag ?> class="card shadow-sm h-100 p-2 kt-card-link text-reset"<?= $attrs ?>>
+                    <?php
+                    // Kartu SENGAJA bukan <a>. Kalau seluruh area kartu jadi
+                    // target klik, user mengira ada elemen di dalamnya yang
+                    // bisa diklik, padahal tidak ada. Area klik yang
+                    // besar dengan penanda visual kecil juga bikin target
+                    // klik meleset.
+                    //
+                    // Baris paling atas: pengenal kartu di kiri, tautan di
+                    // kanan. Angka turun ke baris sendiri supaya tidak ikut
+                    // terpotong saat label panjang harus di-truncate.
+                    //
+                    // flex-shrink-0 pada link supaya yang terpotong label,
+                    // bukan tautannya.
+                    ?>
+                    <div class="card shadow-sm h-100 p-2">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div class="text-truncate">
-                                <small class="text-muted d-block text-truncate"><?= esc($c['t']) ?></small>
-                                <span class="fw-bold fs-5 lh-1"><?= $c['v'] ?></span>
-                            </div>
-                            <i class="fas <?= $c['i'] ?> text-<?= $c['c'] ?> opacity-25"></i>
+                            <small class="text-muted text-truncate"><?= esc($c['t']) ?></small>
+                            <a href="<?= esc($c['url']) ?>"
+                                class="small text-decoration-none flex-shrink-0 ms-2"
+                                title="Lihat daftar <?= esc($c['t']) ?>">
+                                Lihat <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </a>
                         </div>
+                        <div class="fw-bold fs-5 lh-1 mt-1"><?= $c['v'] ?></div>
                         <div class="progress mt-1" style="height:3px;">
                             <div class="progress-bar bg-<?= $c['c'] ?>" style="width: <?= $percent ?>%"></div>
                         </div>
-                    </<?= $tag ?>>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -171,7 +154,7 @@
                                     <td class="text-nowrap small"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
                                     <td class="text-end">
                                         <?php if (isset($sedangDisetujui)): ?>
-                                            <a href="<?= base_url('headsection/' . ($t['hashid'] ?? $t['id'])) ?>"
+                                            <a href="<?= base_url('etiket/' . ($t['hashid'] ?? $t['id']) . '?sumber=headsection') ?>"
                                                class="btn btn-sm btn-primary py-0">Proses</a>
                                         <?php else: ?>
                                             <a href="<?= base_url('etiket/' . ($t['hashid'] ?? $t['id'])) ?>"
@@ -222,7 +205,7 @@
                                         <td class="text-nowrap"><?= esc($t['petugas_id_nama'] ?? '-') ?></td>
                                         <td class="text-nowrap small"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
                                         <td class="text-end">
-                                            <a href="<?= base_url('headsection/' . ($t['hashid'] ?? $t['id'])) ?>"
+                                            <a href="<?= base_url('etiket/' . ($t['hashid'] ?? $t['id']) . '?sumber=headsection') ?>"
                                                class="btn btn-sm btn-info py-0">Lihat</a>
                                         </td>
                                     </tr>

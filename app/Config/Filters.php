@@ -131,8 +131,9 @@ class Filters extends BaseFilters
                     'allticket/*',
                     'headsection',
                     'headsection/*',
-                    'myeticket',
-                    'myeticket/*',
+                    // myeticket dihapus: method-nya tidak pernah dipakai.
+                    // URL lama /pelaksana dan /headsection tetap ada sebagai
+                    // redirect ke /etiket?sumber=...
                 ],
             ],
         ];

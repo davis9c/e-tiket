@@ -7,7 +7,7 @@
         </h1>
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a href="<?= base_url('pelaksana') ?>">Daftar E-Ticket </a></li>
+                <li class="breadcrumb-item active"><a href="<?= base_url('manual') ?>">Daftar E-Ticket </a></li>
                 <?php if (!empty($data['detailTicket'])): ?>
                     <li class="breadcrumb-item">Tiket <?= esc($data['detailTicket']['hashid']) ?></li>
                 <?php endif; ?>

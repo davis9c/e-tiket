@@ -2,6 +2,18 @@
 // Dipakai juga oleh link detail tiket di tabel, supaya filter yang
 // sedang aktif ikut terbawa. pakai '??' karena key-nya tidak selalu ada.
 $queryString = $_SERVER['QUERY_STRING'] ?? '';
+
+// Sumber yang sedang aktif. Kalau >1, baris tabel perlu badge sumber
+// supaya user tahu kenapa sebuah tiket muncul. Controller sudah
+// menyaring ke whitelist, jadi di sini cukup dibaca apa adanya.
+$sumberAktif = $data['filters']['sumber'] ?? [];
+if (! is_array($sumberAktif)) {
+    $sumberAktif = [];
+}
+
+// Hanya /etiket yang punya filter sumber. Di /allticket dan /manual
+// cakupannya sudah 'all', jadi dropdown-nya tidak akan mengubah hasil.
+$adaFilterSumber = ! empty($data['sumberFilter']);
 ?>
 <div class="card shadow-sm mb-4">
     <div class="card-header">
@@ -27,6 +39,34 @@ $queryString = $_SERVER['QUERY_STRING'] ?? '';
                     Belum Selesai
                 </option>
             </select>
+            <?php if ($adaFilterSumber): ?>
+                <?php
+                // SUMBER tiket. Default (kosong) = semua sumber, yaitu gabungan
+                // tiket milik sendiri, tiket yang ditugaskan ke unit saya, dan
+                // tiket yang diajukan unit saya. Ini yang dulu terpisah jadi
+                // tiga halaman /etiket, /pelaksana, dan /headsection.
+                //
+                // Whitelist + default-nya di ETicket2::parseSumber(); daftar
+                // nilai sahnya di ETicketModel::SUMBER_DEFAULT.
+                $sumberRaw = service('request')->getGet('sumber');
+                $sumberSelected = is_string($sumberRaw) ? trim($sumberRaw) : '';
+                $sumberOpsi = [
+                    ''             => 'Semua Sumber',
+                    'saya'         => 'Tiket Saya',
+                    'pelaksana'    => 'Pelaksana',
+                    'headsection'  => 'Persetujuan Unit',
+                ];
+                ?>
+                <select name="sumber" id="selectSumber" class="form-select w-auto mw-100"
+                    title="Sumber tiket. Kosong = gabungan semua sumber.">
+                    <?php foreach ($sumberOpsi as $nilai => $label): ?>
+                        <option value="<?= esc($nilai) ?>"
+                            <?= ($sumberSelected === $nilai) ? 'selected' : '' ?>>
+                            <?= esc($label) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
             <?php
             $validSelected = service('request')->getGet('valid');
             ?>
@@ -103,7 +143,29 @@ $queryString = $_SERVER['QUERY_STRING'] ?? '';
             </thead>
             <tbody>
                 
-                <?php foreach ($data['eticket'] as $index => $p): ?>
+                <?php
+    // Satu tiket bisa masuk dari lebih dari satu sumber (mis. saya yang
+    // mengajukan sekaligus unit saya yang ditugaskan), jadi badge
+    // ditampilkan berlapis, bukan satu label.
+    $sumberBadge = static function (array $p): array {
+        $badge = [];
+
+        if (! empty($p['is_creator'])) {
+            $badge[] = ['Saya', 'primary'];
+        }
+
+        if (! empty($p['is_executor'])) {
+            $badge[] = ['Pelaksana', 'info'];
+        }
+
+        if (! empty($p['is_unit_saya'])) {
+            $badge[] = ['Unit Saya', 'secondary'];
+        }
+
+        return $badge;
+    };
+    ?>
+    <?php foreach ($data['eticket'] as $index => $p): ?>
                     <tr>
                         <td><?= $index + 1 ?></td>
                         <td>
@@ -115,6 +177,19 @@ $queryString = $_SERVER['QUERY_STRING'] ?? '';
                                 <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) . ($queryString ? '?' . $queryString : '') ?>">
                                     <?= esc($p['nama_kategori']) ?>
                                 </a>
+                            <?php endif; ?>
+                            <?php
+                            // Hanya perlu kolom sumber kalau daftar memang
+                            // menampilkan lebih dari satu sumber. Pada
+                            // ?sumber= yang sudah dikunci, badge ini Noise.
+                            $badge = $sumberBadge($p);
+                            ?>
+                            <?php if ($adaFilterSumber && count($sumberAktif) > 1 && $badge): ?>
+                                <div class="mt-1">
+                                    <?php foreach ($badge as [$label, $warna]): ?>
+                                        <span class="badge bg-<?= $warna ?>"><?= esc($label) ?></span>
+                                    <?php endforeach; ?>
+                                </div>
                             <?php endif; ?>
                         </td>
                         <td><?= esc($p['petugas_id_nama']) ?></td>
