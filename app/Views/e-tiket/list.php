@@ -11,8 +11,8 @@ if (! is_array($sumberAktif)) {
     $sumberAktif = [];
 }
 
-// Hanya /etiket yang punya filter sumber. Di /allticket dan /manual
-// cakupannya sudah 'all', jadi dropdown-nya tidak akan mengubah hasil.
+// Hanya /etiket yang punya filter sumber. Di /allticket cakupannya sudah
+// 'all', jadi dropdown-nya tidak akan mengubah hasil.
 $adaFilterSumber = ! empty($data['sumberFilter']);
 ?>
 <div class="card shadow-sm mb-4">
@@ -45,6 +45,11 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                 // tiket milik sendiri, tiket yang ditugaskan ke unit saya, dan
                 // tiket yang diajukan unit saya. Ini yang dulu terpisah jadi
                 // tiga halaman /etiket, /pelaksana, dan /headsection.
+                //
+                // Di /allticket dropdown ini sengaja tidak dirender: halaman itu
+                // cakupannya sudah 'all', jadi memilih sumber tidak akan
+                // mengubah hasil. Tombol "Buat Tiket" yang jadi pembeda dua
+                // halaman itu dipindah ke sana (lihat allticket.php).
                 //
                 // Whitelist + default-nya di ETicket2::parseSumber(); daftar
                 // nilai sahnya di ETicketModel::SUMBER_DEFAULT.

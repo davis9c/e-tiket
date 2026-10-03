@@ -6,10 +6,13 @@
         <!--UPDATE 2 END-->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-4">
-                <li class="breadcrumb-item active"><a href="<?= base_url('baru') ?>">E-Tiket (baru)</a></li>
-                <?php if (!empty($data['detailTicket'])): ?>
-                    <li class="breadcrumb-item"><?= esc($data['detailTicket']['hashid']) ?></li>
-                <?php elseif (!empty($data['kategoriData'])): ?>
+                <!--
+                    Kembali ke /allticket, bukan /baru: /baru adalah form
+                    pengajuan milik user sendiri, sedangkan halaman ini form
+                    milik admin yang membuatkan tiket atas nama orang lain.
+                -->
+                <li class="breadcrumb-item active"><a href="<?= base_url('allticket') ?>">Semua Tiket</a></li>
+                <?php if (!empty($data['kategoriData'])): ?>
                     <li class="breadcrumb-item"><?= esc($data['kategoriData']['nama_kategori']) ?> (Baru)</li>
                 <?php endif; ?>
             </ol>
@@ -41,20 +44,14 @@
 
         <div class="row">
             <!-- FORM/DETAIL (ATAS) -->
-            <?php if (!empty($data['detailTicket'])): ?>
+            <?php if (!empty($data['kategoriData'])): ?>
                 <div class="col-md-9">
-                    <?= $this->include('manual/form-e') ?>
+                    <?= $this->include('manual/form') ?>
                 </div>
             <?php else: ?>
-                <?php if (!empty($data['kategoriData'])): ?>
-                    <div class="col-md-9">
-                        <?= $this->include('manual/form') ?>
-                    </div>
-                <?php else: ?>
-                    <div class="col-md-9">
-                        <?= $this->include('manual/card') ?>
-                    </div>
-                <?php endif ?>
+                <div class="col-md-9">
+                    <?= $this->include('manual/card') ?>
+                </div>
             <?php endif ?>
         </div>
     </div>

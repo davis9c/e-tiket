@@ -1,3 +1,11 @@
+<?php
+// Kartu kategori untuk membuat tiket manual.
+//
+// Dipakai /manual-baru saat kategori belum dipilih. Tombolnya harus
+// mengarah ke /manual-baru?kategori=... (form milik admin), bukan ke
+// /baru yang itu form pengajuan milik user sendiri: keduanya sama-sama
+// bertuliskan "Buat Tiket", jadi salah alamat tidak langsung terlihat.
+?>
 <div class="row">
     <?php if (!empty($data['kategori'])): ?>
         <?php foreach ($data['kategori'] as $p): ?>
@@ -23,7 +31,7 @@
                     <!-- Footer -->
                     <div class="card-footer d-flex align-items-center justify-content-between">
                         <a class="small text-white stretched-link"
-                            href="<?= base_url('baru?kategori=' . $p['id']) ?>">
+                            href="<?= base_url('manual-baru?kategori=' . $p['id']) ?>">
                             Buat Tiket
                         </a>
                         <div class="small text-white">

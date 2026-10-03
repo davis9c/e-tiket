@@ -311,11 +311,45 @@ final class AdminTabTest extends CIUnitTestCase
             'Grup KANZA tidak boleh dirender di sidebar'
         );
 
-        // Tapi menu APP (kategori, allticket, manual) harus tetap ada.
+        // Tapi menu APP (Petugas & Head Section, Kategori E-Tiket,
+        // Semua Tiket) harus tetap ada.
         $this->assertStringContainsString(
             'id="collapseApp"',
             $html,
             'Menu APP harus tetap ada untuk admin'
+        );
+    }
+
+    /**
+     * /manual sudah gabung ke /allticket, jadi tidak boleh ada lagi link
+     * menu-nya di sidebar. Kalau masih ada, admin melihat dua menu yang
+     * isinya sama persis -- persis kebingungan yang dihapus perubahan ini.
+     */
+    public function testSidebarHasNoSeparateMenuForManualInput(): void
+    {
+        $result = $this->asAdmin()->get('admin');
+        $result->assertStatus(200);
+
+        $sidebar = $this->sidebarOnly($this->html($result));
+
+        $this->assertStringNotContainsString(
+            'href="' . base_url('manual') . '"',
+            $sidebar,
+            'Link menu ke /manual harus hilang; isinya sekarang di /allticket'
+        );
+
+        $this->assertStringNotContainsString(
+            'Input Tiket Manual',
+            $sidebar,
+            'Label menu "Input Tiket Manual" harus hilang dari sidebar'
+        );
+
+        // Link ke /allticket tetap harus ada, karena di sanalah sekarang
+        // admin melihat semua tiket sekaligus membuat tiket manual.
+        $this->assertStringContainsString(
+            'href="' . base_url('allticket') . '"',
+            $sidebar,
+            'Link /allticket harus tetap ada di sidebar'
         );
     }
 
@@ -375,6 +409,99 @@ final class AdminTabTest extends CIUnitTestCase
     }
 
     /**
+     * Grup APP harus berisi PERSIS dua menu: Petugas & Head Section dan
+     * Kategori E-Tiket. Link "Semua Tiket" berdiri sendiri sebagai menu
+     * level atas, di luar grup -- bukan data master, sifatnya sama dengan
+     * menu E-Tiket.
+     *
+     * Yang dijaga di sini adalah POSISI link, bukan hanya keberadaannya:
+     * link yang keluar dari #collapseApp tetap muncul di sidebar, tapi
+     * tidak ikut terlipat saat grup ditutup dan terlihat menjulur.
+     */
+    public function testAppGroupContainsExactlyPetugasAndKategori(): void
+    {
+        $result = $this->asAdmin()->get('admin');
+        $result->assertStatus(200);
+
+        $grup = $this->appGroupOnly($this->html($result));
+
+        // Guard: kalau pemotongan gagal, grup kosong dan dua assertion
+        // di bawah akan gagal dengan pesan yang menyesatkan.
+        $this->assertStringContainsString(
+            'sb-sidenav-menu-nested',
+            $grup,
+            'Pemotongan isi grup APP tidak boleh gagal diam-diam'
+        );
+
+        $this->assertStringContainsString(
+            'admin?tab=petugas',
+            $grup,
+            'Petugas & Head Section harus DI DALAM grup APP'
+        );
+
+        $this->assertStringContainsString(
+            'href="' . base_url('kategori') . '"',
+            $grup,
+            'Kategori E-Tiket harus DI DALAM grup APP'
+        );
+
+        // Yang menangkap regresi yang dulu menimpa: kalau "Semua Tiket"
+        // ikut terpotong, berarti dia salah masuk grup.
+        $this->assertStringNotContainsString(
+            'Semua Tiket',
+            $grup,
+            'Semua Tiket harus menu level atas, BUKAN isi grup APP'
+        );
+    }
+
+    /**
+     * Menu level atas harus pakai sb-nav-link-icon supaya ikonnya rata kiri
+     * dengan Dashboard dan E-Tiket. Kalau hilang, link turun ke gaya anak
+     * grup (me-2) dan kelihatan menjulur.
+     */
+    public function testSemuaTiketLinkUsesTopLevelIconWrapper(): void
+    {
+        $result = $this->asAdmin()->get('admin');
+        $result->assertStatus(200);
+
+        $html = $this->html($result);
+
+        $mulai = strpos($html, base_url('allticket') . '"');
+        $this->assertNotFalse($mulai, 'Link Semua Tiket harus ada di sidebar');
+
+        // Ambil blok <a> pembungkusnya (mulai dari '<a' terdekat di atas).
+        $buka = strrpos(substr($html, 0, $mulai), '<a');
+        $tutup = strpos($html, '</a>', $mulai);
+        $this->assertNotFalse($buka);
+        $this->assertNotFalse($tutup);
+
+        $blok = substr($html, $buka, $tutup - $buka);
+
+        $this->assertStringContainsString(
+            'sb-nav-link-icon',
+            $blok,
+            'Semua Tiket harus pakai sb-nav-link-icon agar sejajar menu atas'
+        );
+    }
+
+    /**
+     * Grup APP hanya boleh terbuka di halaman miliknya (/kategori, /admin).
+     * Di /allticket grup harus tertutup: menu itu sudah pindah keluar, jadi
+     * membukanya hanya menampilkan dua link yang tidak aktif.
+     */
+    public function testAppGroupIsClosedOnAllticketPage(): void
+    {
+        $result = $this->asAdmin()->get('allticket');
+        $result->assertStatus(200);
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/class="collapse show" id="collapseApp"/',
+            $this->html($result),
+            'Grup APP harus tertutup di /allticket karena Semua Tiket bukan lagi isi grupnya'
+        );
+    }
+
+    /**
      * Ambil hanya bagian sidebar.
      *
      * Dipakai karena nav-tabs di dalam halaman /admin juga memakai
@@ -392,6 +519,30 @@ final class AdminTabTest extends CIUnitTestCase
         }
 
         return substr($html, $mulai, $selesai - $mulai);
+    }
+
+    /**
+     * Ambil isi grup APP: bagian di dalam <nav class="sb-sidenav-menu-nested">.
+     *
+     * Batas yang dipakai adalah </nav>, bukan #collapseApp, karena tag
+     * </div> penutup collapse tidak bisa dicari lewat string -- sedangkan
+     * </nav> bisa, dan isinya memang tepat isi grup tanpa ada yang setelahnya.
+     */
+    private function appGroupOnly(string $html): string
+    {
+        $buka = strpos($html, '<nav class="sb-sidenav-menu-nested nav">');
+
+        if ($buka === false) {
+            return '';
+        }
+
+        $tutup = strpos($html, '</nav>', $buka);
+
+        if ($tutup === false) {
+            return '';
+        }
+
+        return substr($html, $buka, $tutup - $buka + 6);
     }
 
     /**

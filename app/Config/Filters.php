@@ -123,12 +123,17 @@ class Filters extends BaseFilters
                 'before' => [
                     'etiket',
                     'etiket/*',
-                    'manual',
-                    'manual/*',
                     'pelaksana',
                     'pelaksana/*',
                     'allticket',
                     'allticket/*',
+                    // /manual sudah redirect ke /allticket, tapi tetap
+                    // didaftarkan supaya route lamanya tidak lolos tanpa
+                    // cek session. Filter admin-nya ada di Config/Routes.php.
+                    'manual',
+                    'manual/*',
+                    'manual-baru',
+                    'manual-submit',
                     'headsection',
                     'headsection/*',
                     // myeticket dihapus: method-nya tidak pernah dipakai.

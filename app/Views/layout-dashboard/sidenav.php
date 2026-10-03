@@ -39,7 +39,18 @@ $isAdminPetugas = $currentPath === 'admin'
 // 'admin' sengaja ikut di pola ini: tanpa itu, membuka /admin lewat
 // submenu APP akan menutup grupnya sendiri, sehingga link yang baru saja
 // diklik langsung hilang dari pandangan.
-$openApp = preg_match('#^(kategori|allticket|manual|admin)(/|$)#', $currentPath);
+//
+// Aturan lainnya: grup APP terbuka hanya kalau kita sedang berada di salah
+// satu halaman milik APP, yaitu /kategori dan /admin. Di halaman lain,
+// isinya cuma dua link yang tidak aktif -- itu noise.
+//
+// 'allticket' TIDAK ikut: menu "Semua Tiket" sekarang berada di luar grup
+// APP (lihat blok ADMIN di bawah), jadi ke sana grup harus tertutup dan
+// yang menyala adalah link-nya sendiri.
+//
+// 'manual' juga tidak ikut: /manual sudah gabung ke /allticket (lihat
+// ETicket2::manual), jadi halaman itu tidak lagi jadi tujuan navigasi.
+$openApp = preg_match('#^(kategori|admin)(/|$)#', $currentPath);
 ?>
 
 <div id="layoutSidenav_nav">
@@ -101,7 +112,19 @@ $openApp = preg_match('#^(kategori|allticket|manual|admin)(/|$)#', $currentPath)
                 <?php if ($kdJabatan === env('ROLE_ADMIN')): ?>
                     <div class="sb-sidenav-menu-heading">MASTER DATA</div>
 
-                    <a class="nav-link collapsed<?= $openApp ? ' active' : '' ?>"
+                    <?php
+                    // Class 'collapsed' mengatur arah panah lewat CSS
+                    // (styles.css: .nav-link.collapsed .sb-sidenav-collapse-arrow
+                    // { transform: rotate(-90deg) }). Kalau dibiarkan selalu
+                    // ada, panahnya terlihat tertutup padahal submenunya
+                    // terbuka.
+                    //
+                    // Bootstrap sebenarnya memperbaiki class ini sendiri
+                    // setelah JS dimuat, jadi ini cuma supaya tampilan benar
+                    // sejak HTML pertama di-render dan tetap benar kalau JS
+                    // gagal dimuat.
+                    ?>
+                    <a class="nav-link<?= $openApp ? '' : ' collapsed' ?><?= $openApp ? ' active' : '' ?>"
                         href="#"
                         data-bs-toggle="collapse"
                         data-bs-target="#collapseApp"
@@ -129,16 +152,28 @@ $openApp = preg_match('#^(kategori|allticket|manual|admin)(/|$)#', $currentPath)
                             <a class="nav-link<?= $activeLink('kategori') ? ' active' : '' ?>" href="<?= base_url('kategori') ?>">
                                 <i class="fas fa-folder-tree me-2"></i> Kategori E-Tiket
                             </a>
-
-                            <a class="nav-link<?= $activeLink('allticket') ? ' active' : '' ?>" href="<?= base_url('allticket') ?>">
-                                <i class="fas fa-list-check me-2"></i> Semua Tiket
-                            </a>
-
-                            <a class="nav-link<?= $activeLink('manual') ? ' active' : '' ?>" href="<?= base_url('manual') ?>">
-                                <i class="fas fa-plus-circle me-2"></i> Input Tiket Manual
-                            </a>
                         </nav>
                     </div>
+
+                    <!--
+                        Daftar semua tiket berdiri sendiri sebagai menu level
+                        atas, di luar grup APP, karena bukan data master: ini
+                        daftar pekerjaan yang sedang berjalan, sifatnya sama
+                        dengan menu E-Tiket di atas.
+
+                        Tombol "Buat Tiket Manual" untuk admin ada di halaman
+                        ini sendiri, jadi tidak perlu menu kedua di sini.
+
+                        PAKAI sb-nav-link-icon (bukan me-2 seperti isi grup APP)
+                        supaya ikonnya rata kiri dengan menu atas lainnya.
+                        Kalau tidak, link ini terlihat menjulur seperti anak
+                        grup padahal posisinya di luar collapse.
+                    -->
+                    <a class="nav-link<?= $activeLink('allticket') ? ' active' : '' ?>"
+                        href="<?= base_url('allticket') ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-list-check"></i></div>
+                        Semua Tiket
+                    </a>
                 <?php endif; ?>
 
             </div>

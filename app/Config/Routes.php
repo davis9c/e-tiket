@@ -86,12 +86,28 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('pelaksana', 'ETicket2::pelaksana');
     $routes->get('pelaksana/(:any)', 'ETicket2::pelaksana/$1');
 
-    $routes->get('manual', 'ETicket2::manual'); //halaman untuk input manual, hanya bisa diakses oleh admin
-    $routes->get('manual/(:any)', 'ETicket2::manual/$1'); //halaman untuk input manual, hanya bisa diakses oleh admin
-    $routes->get('manual-baru', 'ETicket2::manual_baru'); //halaman untuk input manual, hanya bisa diakses oleh admin
-    $routes->post('manual-submit', 'ETicket2::manual_submit'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
-
-    $routes->post('manual-final', 'ETicket2::manual_final'); //fungsi untuk submit tiket manual, hanya bisa diakses oleh admin
+    /*
+    |--------------------------------------------------------------------------
+    | Input Tiket Manual
+    |--------------------------------------------------------------------------
+    | Tombol "Buat Tiket Manual" ada di /allticket, tapi formnya perlu
+    | halaman sendiri supaya tidak menimpa daftar yang sedang dibaca.
+    |
+    | /manual (daftar tiket) SUDAH gabung ke /allticket -- isinya sama
+    | persis, cuma beda tombol. Route lamanya tetap ada sebagai redirect
+    | supaya bookmark lama tidak mati, lihat ETicket2::manual().
+    |
+    | Ketiganya dibungkus roleadmin: ini endpoint yang membuat tiket atas
+    | nama orang lain, jadi harusnya tidak bisa dipakai user biasa --
+    | sebelumnya tidak dipfilter sama sekali meski komentarnya bilang
+    | "hanya bisa diakses oleh admin".
+    */
+    $routes->group('', ['filter' => 'roleadmin'], function ($routes) {
+        $routes->get('manual', 'ETicket2::manual'); //URL lama -> /allticket
+        $routes->get('manual/(:any)', 'ETicket2::manual/$1'); //URL lama -> /allticket/{hashid}
+        $routes->get('manual-baru', 'ETicket2::manual_baru'); //form input tiket manual
+        $routes->post('manual-submit', 'ETicket2::manual_submit'); //simpan tiket manual
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -117,6 +133,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     |--------------------------------------------------------------------------
     | Ticket Manajemen
     |--------------------------------------------------------------------------
+    | SATU-SATUNYA halaman daftar tiket untuk admin: melihat semua tiket
+    | sekaligus membuat tiket manual lewat tombol "Buat Tiket Manual".
+    | Dulu dua halaman (/allticket dan /manual) dengan isi yang sama persis;
+    | keduanya sudah digabung ke sini.
     */
     $routes->group('allticket', ['filter' => 'roleadmin'], function ($routes) {
         $routes->get('', 'ETicket2::allticket');

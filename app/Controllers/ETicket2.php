@@ -140,7 +140,19 @@ class ETicket2 extends BaseController
         }
         return view('baru', $data);
     }
-public function allticket($hashid = null)
+
+    /**
+     * Halaman admin: daftar seluruh tiket + tombol "Buat Tiket".
+     *
+     * Ini SATU-SATUNYA halaman daftar tiket untuk admin. Dulu ada dua
+     * halaman (/allticket dan /manual) yang isinya sama persis, dan itu
+     * yang bikin navigasi bingung: dua menu, satu data. Perbedaannya cuma
+     * tombol "Buat Tiket", jadi tombolnya dipindah ke sini.
+     *
+     * Cakupannya 'all' dan route-nya dibungkus filter roleadmin, jadi user
+     * biasa tidak bisa melihat seluruh tiket.
+     */
+    public function allticket($hashid = null)
     {
         if ($redirect = $this->guard()) return $redirect;
         $userData = $this->userData;
@@ -152,8 +164,7 @@ public function allticket($hashid = null)
         return $this->renderTicketList(
             'allticket',
             function ($filters, $userData, $id) {
-                // 'all' = tanpa filter cakupan. Halaman ini khusus admin
-                // (route-nya dibungkus filter roleadmin).
+                // 'all' = tanpa filter cakupan.
                 return $this->eticketModel->getTickets(['all'], null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
             },
             $hashid,
@@ -229,6 +240,32 @@ public function allticket($hashid = null)
         $url = $hashid
             ? base_url('etiket/' . $hashid)
             : base_url('etiket');
+
+        return redirect()->to($url . '?' . http_build_query($query));
+    }
+
+    /**
+     * Teruskan URL lama ke /allticket sambil mempertahankan query string.
+     *
+     * Dipakai /manual. Waktu /manual masih halaman sendiri, daftar tiketnya
+     * sama persis dengan /allticket -- hanya ada tombol "Buat Tiket"
+     * tambahan. Sekarang tombol itu ada di /allticket, jadi /manual cukup
+     * meneruskan ke sana.
+     *
+     * Query string ikut dibawa supaya filter yang sedang aktif (?selesai,
+     * ?status, ?kategori) tidak hilang setelah bookmark lama dibuka.
+     */
+    private function redirectKeAllticket(?string $hashid = null)
+    {
+        $query = $this->request->getGet();
+
+        $url = $hashid
+            ? base_url('allticket/' . $hashid)
+            : base_url('allticket');
+
+        if ($query === []) {
+            return redirect()->to($url);
+        }
 
         return redirect()->to($url . '?' . http_build_query($query));
     }
@@ -365,8 +402,8 @@ public function allticket($hashid = null)
      * - $fetcher: callable(fn($filters, $userData, $id): array $tickets)
      * - $kategoriUnit: unit id passed to findByUnitPengajuan (null for global)
      * - $withSumberFilter: tampilkan dropdown ?sumber=. Hanya /etiket yang
-     *   boleh: di /allticket dan /manual cakupannya sudah 'all', jadi
-     *   memilih sumber tidak akan mengubah hasil.
+     *   boleh: di /allticket cakupannya sudah 'all', jadi memilih sumber
+     *   tidak akan mengubah hasil.
      */
     private function renderTicketList(string $view, callable $fetcher, ?string $hashid = null, $kategoriUnit = null, ?string $title = null, bool $withSumberFilter = false)
     {
@@ -1827,88 +1864,26 @@ public function allticket($hashid = null)
             ->setHeader('Content-Type', mime_content_type($path))
             ->setBody(file_get_contents($path));
     }
+
+    /**
+     * URL lama /manual -> /allticket
+     *
+     * Waktu halaman ini masih hidup, daftar tiketnya sama persis dengan
+     * /allticket (keduanya getTickets(['all'])) dan view-nya nyaris
+     * identik. Satu-satunya beda: ada tombol "Buat Tiket" untuk admin yang
+     * membuatkan tiket atas nama user yang kesulitan input sendiri.
+     *
+     * Mempertahankan keduanya sebagai halaman terpisah hanya menambah
+     * tempat yang harus dirawat tanpa menambah kemampuan baru, jadi tombol
+     * itu dipindah ke /allticket dan halaman ini tinggal meneruskan.
+     * URL lamanya tetap jalan supaya bookmark dan tautan yang sudah dibagikan
+     * tidak mati -- pola yang sama seperti /pelaksana -> /etiket.
+     */
     public function manual($hashid = null)
     {
-        if ($redirect = $this->guard()) return $redirect;
-        $userData = $this->userData;
-        $kdJbtn = $userData['kd_jabatan'];
-        if (!$kdJbtn) {
-            return redirect()->to('/login')->with('error', 'Session expired');
-        }
-        $id = $this->decodeHashId($hashid);
-        // filter GET
-        $filters = $this->parseTicketFilters();
-        $tickets = $this->eticketModel->getTickets(['all'], null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
-        //$tickets = $this->attachNamaJabatanToTickets($tickets);
-        //$tickets = $this->attachNamaJabatanToTicketsProsesUnit($tickets);
-        $detail = null;
-        $tindakan = null;
-        $timeline = [];
-        if ($id) {
-            $detail = $this->eticketModel->findOneLengkap($id);
-            if ($detail) {
-                if ($detail['valid_nama'] != null) {
-                    // jika sudah valid,
-                    // cek apakah sudah ada
-                    if (
-                        $this->eticketUPJModel
-                        ->where('etiket_id', $detail['id'])
-                        ->findAll() == null
-                    ) {
-                        if ($detail['headsection'] == 1) { // jika memerlukan validasi
-                            if ($detail['teruskan'] == 1) {
-                                $this->simpanUnitPenanggungJawab(
-                                    $detail['id'],
-                                    $detail['unit_penanggung_jawab'][0]['kd_jbtn']
-                                );
-                            } else {
-                                $this->simpanUnitPenanggungJawab(
-                                    $detail['id'],
-                                    $detail['unit_penanggung_jawab']
-                                );
-                            }
-                        } else {
-                            if ($detail['teruskan'] == 1) {
-                                $this->simpanUnitPenanggungJawab(
-                                    $detail['id'],
-                                    $detail['unit_penanggung_jawab'][0]['kd_jbtn']
-                                );
-                            } else {
-                                $this->simpanUnitPenanggungJawab(
-                                    $detail['id'],
-                                    $detail['unit_penanggung_jawab']
-                                );
-                            }
-                        }
-                    }
-                }
-                $timeline = $this->buildStatusTimeline($detail['id']);
-                $jabatanMap = $this->getJabatanMap();
-                $detail['nm_jbtn'] = $jabatanMap[$detail['kd_jbtn']] ?? null;
-                $detail['proses_unit_nama'] = $jabatanMap[$detail['proses_unit']] ?? null;
-                $detail = $this->attachNamaJabatanToUnits($detail);
-                $detail = $this->attachNamaJabatanToProses($detail);
-                $detail = $this->mapUnitWithJabatan($detail);
-                $detail['hashid'] = $this->hashIdService->encode($detail['id']);
-                $tindakan = $this->tindakan($detail);
-            }
-        }
-        $tickets = $this->addHashIds($tickets);
-        return view('manual', [
-            'title' => 'Manual E-Ticket',
-            'data'  => [
-                'kategori'      => $this->attachNamaJabatanToKategori($this->kategoriModel->findByUnitPengajuan(null)),
-                'tindakan'      =>  $tindakan,
-                'eticket'       => $tickets,
-                'detailTicket'  => $detail,
-                'user'          => $userData,
-                'timeline_status' => $timeline,
-                // Halaman ini selalu menampilkan seluruh tiket (?sumber= tidak
-                // berlaku), tapi list.php butuh key ini agar tidak error.
-                'filters'       => $filters,
-            ]
-        ]);
+        return $this->redirectKeAllticket($hashid);
     }
+
     public function manual_baru()
     {
         $userData = $this->userData;
@@ -2050,7 +2025,10 @@ public function allticket($hashid = null)
                     'diproses'
                 );
             }
-            return redirect()->to(base_url('manual/' . $this->hashIdService->encode($ticketId)))
+            // Balik ke /allticket, bukan /manual: input tiket manual dipanggil dari
+            // tombol "Buat Tiket" di halaman itu, jadi admin langsung melihat
+            // tiket yang baru dibuatnya di daftar.
+            return redirect()->to(base_url('allticket/' . $this->hashIdService->encode($ticketId)))
                 ->with('success', 'E-Ticket anda terkirim ke atasan untuk mendapat persetujuan.');
         } catch (\Exception $e) {
             if (!empty($lampiran)) {
