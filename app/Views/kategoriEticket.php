@@ -108,6 +108,9 @@
                                 Unit Pengajuan
                             </div>
                             <ul class="list-group list-group-flush" id="ktPengajuanList"></ul>
+                            <div class="card-footer bg-transparent small text-muted">
+                                Kosong berarti kategori ini umum: bisa dipakai semua unit.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -122,23 +125,6 @@
 
 <!-- Toast Container -->
 <div class="toast-container position-fixed top-0 end-0 p-3" id="ktToast" style="z-index: 1090"></div>
-
-<!-- Modal Konfirmasi -->
-<div class="modal fade" id="ktConfirmModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h6 class="modal-title" id="ktConfirmTitle">Konfirmasi</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            </div>
-            <div class="modal-body" id="ktConfirmBody"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-primary" id="ktConfirmBtn">Ya, Lanjutkan</button>
-            </div>
-        </div>
-    </div>
-</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('pageScripts') ?>

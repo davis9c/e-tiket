@@ -5,7 +5,10 @@
  * daftar. Semua aksi lain lewat modal:
  *   - ktFormModal : tambah & ubah kategori
  *   - ktUnitModal : kelola unit penanggung jawab & pengajuan
- *   - ktConfirmModal : konfirmasi sebelum aksi
+ *
+ * Tidak ada modal konfirmasi. Aksi berjalan langsung dan hasilnya
+ * dilaporkan lewat toast, jadi user tidak perlu klik dua kali untuk
+ * setiap tambah/hapus unit atau aktivasi kategori.
  *
  * Bergaya sama dengan public/js/dataTables.js (vanilla JS, tanpa jQuery).
  */
@@ -120,57 +123,6 @@
             el.remove();
         });
         instance.show();
-    }
-
-    /* =====================================================
-     * MODAL KONFIRMASI
-     * ===================================================== */
-
-    function confirmDialog(options) {
-        const modalEl = document.getElementById('ktConfirmModal');
-        if (!modalEl) {
-            return Promise.resolve(window.confirm(options.body || 'Lanjutkan?'));
-        }
-
-        const title = document.getElementById('ktConfirmTitle');
-        const body = document.getElementById('ktConfirmBody');
-        const btn = document.getElementById('ktConfirmBtn');
-        const header = modalEl.querySelector('.modal-header');
-
-        title.textContent = options.title || 'Konfirmasi';
-        body.textContent = options.body || '';
-
-        btn.className = 'btn ' + (options.buttonClass || 'btn-primary');
-        btn.textContent = options.buttonText || 'Ya, Lanjutkan';
-
-        header.className = options.danger
-            ? 'modal-header bg-danger text-white'
-            : 'modal-header bg-primary text-white';
-
-        return new Promise(function (resolve) {
-            const modal = new bootstrap.Modal(modalEl);
-
-            function cleanup() {
-                btn.removeEventListener('click', onClick);
-                modalEl.removeEventListener('hidden.bs.modal', onHidden);
-            }
-
-            function onClick() {
-                cleanup();
-                modal.hide();
-                resolve(true);
-            }
-
-            function onHidden() {
-                cleanup();
-                resolve(false);
-            }
-
-            btn.addEventListener('click', onClick);
-            modalEl.addEventListener('hidden.bs.modal', onHidden);
-
-            modal.show();
-        });
     }
 
     /* =====================================================
@@ -289,7 +241,7 @@
         function render(payload) {
             renderJabatan(payload.jabatan);
             renderUnitList(pjList, payload.unit_penanggung_jawab, 1, 'Belum ada Unit Penanggung Jawab');
-            renderUnitList(pengajuanList, payload.unit_pengajuan, 0, 'Belum ada Unit Pengajuan');
+            renderUnitList(pengajuanList, payload.unit_pengajuan, 0, 'Kategori ini umum: bisa dipakai semua unit');
         }
 
         function loading() {
@@ -320,22 +272,7 @@
             const nama = btn.dataset.ktNama;
             const isPJ = btn.dataset.ktType === '1';
             const action = btn.dataset.ktAction;
-
-            const ok = await confirmDialog(action === 'add' ? {
-                title: 'Tambah Unit',
-                body: 'Tambahkan "' + nama + '" sebagai ' +
-                    (isPJ ? 'Unit Penanggung Jawab' : 'Unit Pengajuan') + '?',
-                buttonText: 'Ya, Tambahkan',
-                buttonClass: 'btn-success'
-            } : {
-                title: 'Hapus Unit',
-                body: 'Hapus "' + nama + '" dari ' +
-                    (isPJ ? 'Unit Penanggung Jawab' : 'Unit Pengajuan') + '?',
-                buttonText: 'Ya, Hapus',
-                danger: true
-            });
-
-            if (!ok) return;
+            const daftar = isPJ ? 'Unit Penanggung Jawab' : 'Unit Pengajuan';
 
             btn.disabled = true;
 
@@ -353,7 +290,17 @@
 
                 render(res);
                 refreshTable();
-                toast(res.message || 'Unit berhasil diperbarui.', 'success');
+
+                // Toast menyebut nama jabatan yang disentuh. Pesan dari
+                // server ("Unit berhasil ditambahkan.") tidak menyebut apa
+                // pun yang berubah, padahal daftar unit yang baru saja
+                // dirender ulang adalah tempat user melihat hasilnya.
+                toast(
+                    nama + (action === 'add'
+                        ? ' ditambahkan sebagai ' + daftar + '.'
+                        : ' dihapus dari ' + daftar + '.'),
+                    'success'
+                );
             } catch (err) {
                 toast(err.message, 'error');
             } finally {
@@ -388,9 +335,11 @@
 
         let rows = [];
 
-        function unitBadges(units, className) {
+        // emptyHtml bisa customized karena unit pengajuan kosong berarti
+        // kategori umum, bukan berarti datanya belum lengkap.
+        function unitBadges(units, className, emptyHtml) {
             if (!units || !units.length) {
-                return '<span class="text-muted">-</span>';
+                return emptyHtml || '<span class="text-muted">-</span>';
             }
 
             const shown = units.slice(0, 2).map(function (u) {
@@ -444,7 +393,12 @@
                         : '') +
                     '</td>' +
                     '<td>' + unitBadges(row.unit_penanggung_jawab, 'bg-primary') + '</td>' +
-                    '<td>' + unitBadges(row.unit_pengajuan, 'bg-info text-dark') + '</td>' +
+                    '<td>' + unitBadges(
+                        row.unit_pengajuan,
+                        'bg-info text-dark',
+                        '<span class="badge bg-light text-dark">' +
+                            '<i class="fas fa-globe me-1"></i>Umum</span>'
+                    ) + '</td>' +
                     '<td class="text-center">' +
                     (aktif
                         ? '<span class="badge bg-success">Aktif</span>'
@@ -460,6 +414,7 @@
                     '<i class="fas fa-diagram-project"></i></button> ' +
                     '<button type="button" class="btn btn-sm btn-outline-warning" ' +
                     'data-kt-toggle="' + row.id + '" data-kt-aktif="' + (aktif ? 1 : 0) + '" ' +
+                    'data-kt-nama="' + nama + '" ' +
                     'title="' + (aktif ? 'Nonaktifkan' : 'Aktifkan') + ' kategori">' +
                     '<i class="fas ' + (aktif ? 'fa-toggle-on' : 'fa-toggle-off') + '"></i>' +
                     '</button>' +
@@ -732,26 +687,25 @@
             if (toggleBtn) {
                 const id = toggleBtn.dataset.ktToggle;
                 const aktif = Number(toggleBtn.dataset.ktAktif) === 1;
-
-                const ok = await confirmDialog({
-                    title: aktif ? 'Nonaktifkan Kategori' : 'Aktifkan Kategori',
-                    body: aktif
-                        ? 'Kategori ini akan dinonaktifkan. Tiket lama tidak ikut terhapus.'
-                        : 'Kategori ini akan diaktifkan kembali.',
-                    buttonText: aktif ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan',
-                    buttonClass: aktif ? 'btn-warning' : 'btn-success'
-                });
-
-                if (!ok) return;
+                const nama = toggleBtn.dataset.ktNama || 'Kategori ini';
 
                 toggleBtn.disabled = true;
 
                 try {
-                    const res = await request(BASE + 'kategori/toggle-status/' + id, {
+                    await request(BASE + 'kategori/toggle-status/' + id, {
                         method: 'POST'
                     });
 
-                    toast(res.message || 'Status berhasil diubah.', 'success');
+                    // Nama kategori ikut disebut supaya toast tidak cuma
+                    // "berhasil" tanpa konteks: dari daftar beberapa
+                    // kategori, user perlu tahu yang berubah yang mana.
+                    // Nonaktifkan diberi 'info' karena biasanya itu
+                    // keputusan sementara, bukan pencapaian.
+                    toast(
+                        nama + (aktif ? ' dinonaktifkan.' : ' diaktifkan kembali.'),
+                        aktif ? 'info' : 'success'
+                    );
+
                     await refreshTable();
                 } catch (err) {
                     toggleBtn.disabled = false;

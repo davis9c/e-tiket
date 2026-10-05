@@ -22,6 +22,11 @@
                     </div>
                     <!-- Footer -->
                     <div class="card-footer d-flex align-items-center justify-content-between">
+                        <?php if (empty($p['unit_pengajuan'])): ?>
+                            <span class="small text-white-50">
+                                <i class="fas fa-globe me-1"></i>Umum
+                            </span>
+                        <?php endif; ?>
                         <a class="small text-white stretched-link"
                             href="<?= base_url('baru?kategori=' . $p['id']) ?>">
                             Buat Tiket

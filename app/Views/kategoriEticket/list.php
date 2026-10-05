@@ -64,6 +64,7 @@
                                     <span class="text-muted">-</span>
                                 <?php endif; ?>
                             </td>
+                            <?php // Unit pengajuan kosong = kategori umum, bisa dipakai semua unit. ?>
                             <td data-col="pengajuan">
                                 <?php if (! empty($p['unit_pengajuan'])): ?>
                                     <?php $upgCount = count($p['unit_pengajuan']); ?>
@@ -78,7 +79,9 @@
                                         </span>
                                     <?php endif; ?>
                                 <?php else: ?>
-                                    <span class="text-muted">-</span>
+                                    <span class="badge bg-light text-dark">
+                                        <i class="fas fa-globe me-1"></i>Umum
+                                    </span>
                                 <?php endif; ?>
                             </td>
                             <td class="text-center">
@@ -105,6 +108,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-warning"
                                     data-kt-toggle="<?= (int) $p['id'] ?>"
                                     data-kt-aktif="<?= (int) $p['aktif'] ?>"
+                                    data-kt-nama="<?= esc($p['nama_kategori']) ?>"
                                     title="Aktif / non aktif">
                                     <i class="fas fa-toggle-on"></i>
                                 </button>

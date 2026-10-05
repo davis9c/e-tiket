@@ -117,19 +117,26 @@ class ETicket2 extends BaseController
         if (!$kdJbtn) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
+        // Kategori diambil sekali lalu dipakai untuk guard dan form,
+        // supaya id yang dicek guard selalu sama dengan yang dirender.
+        $kategori = $this->kategoriGet($kategoriId);
+
+        if ($redirect = $this->guardKategoriBolehDipakai($kategori, $kategoriId, $kdJbtn, 'baru')) {
+            return $redirect;
+        }
+
         $data = [
             'title' => 'Pengajuan E-Ticket',
             'data'  => [
                 'kategori' => $this->attachNamaJabatanToKategori(
-                    $this->kategoriModel->findByUnitPengajuan($userData['kd_jabatan'])
+                    $this->kategoriModel->findByUnitPengajuan($kdJbtn)
                 ),
-                'kategoriData' => $this->kategoriGet($kategoriId),
+                'kategoriData' => $kategori,
                 'user' => $userData,
             ],
         ];
 
         if ($kategoriId) {
-            $kategori = $this->kategoriGet($kategoriId);
             $data['form'] = $this->buildFormData(base_url('etiket/submit'), [
                 'petugas_id' => $userData['nip'],
                 'petugas_id_nama' => $userData['nama'],
@@ -273,25 +280,76 @@ class ETicket2 extends BaseController
     /* =========================================================
      * Kategori GET
      * ========================================================= */
-    private function kategoriGet($kategoriId)
-    {
-        // ambil kategori
 
-        $kategoriData = null;
-        if ($kategoriId) {
-            $kategori = $this->kategoriModel->findDetail($kategoriId);
-            if (!$kategori) {
-                return redirect()
-                    ->to(base_url('baru'))
-                    ->with('error', 'Kategori tidak ditemukan');
-            }
-            $kategori = $this->attachNamaJabatanToUnits($kategori);
-            if (!empty($kategori['headsection']) && $kategori['headsection'] == 1) {
-                $kategori['headsection_users'] = $this->getHeadsectionUsers();
-            }
-            $kategoriData = $kategori;
+    /**
+     * Satu kategori + data pendukungnya, atau null bila id tidak diisi /
+     * kategorinya tidak ada.
+     *
+     * Dulu method ini mengembalikan objek RedirectResponse saat kategori
+     * tidak ditemukan. Objek itu langsung ditaruh ke data view lalu dibaca
+     * sebagai array ($kategori['template']), jadi /baru?kategori=<id
+     * ngawur> berakhir fatal error. Sekarang cukup null; pemanggil yang
+     * mengarahkan ke halaman daftar.
+     */
+    private function kategoriGet($kategoriId): ?array
+    {
+        if (! $kategoriId) {
+            return null;
         }
-        return $kategoriData;
+
+        $kategori = $this->kategoriModel->findDetail((int) $kategoriId);
+        if (! $kategori) {
+            return null;
+        }
+
+        $kategori = $this->attachNamaJabatanToUnits($kategori);
+        if (! empty($kategori['headsection']) && $kategori['headsection'] == 1) {
+            $kategori['headsection_users'] = $this->getHeadsectionUsers();
+        }
+
+        return $kategori;
+    }
+
+    /**
+     * Pastikan kategori boleh dibuka unit yang sedang login.
+     *
+     * Kategori harus terdaftar pada unit pengajuannya, atau kategori
+     * umum (tanpa unit pengajuan). Tanpa cek ini, /baru?kategori=<id>
+     * bisa membuka form kategori milik unit lain walau kartunya tidak
+     * pernah tampil.
+     *
+     * Kategori non-aktif juga ditolak. Daftar kategori di semua halaman
+     * memakai findByUnitPengajuan() yang menyaring k.aktif = 1, jadi
+     * kategori non-aktif tidak pernah bisa dipilih lewat UI.
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse|null redirect bila
+     *         kategori tidak boleh dipakai, null bila boleh.
+     */
+    private function guardKategoriBolehDipakai(?array $kategori, int $kategoriId, ?string $kdJbtn, string $fallbackUrl): ?\CodeIgniter\HTTP\RedirectResponse
+    {
+        if (! $kategoriId) {
+            return null;
+        }
+
+        if (! $kategori) {
+            return redirect()
+                ->to(base_url($fallbackUrl))
+                ->with('error', 'Kategori tidak ditemukan');
+        }
+
+        if ((int) ($kategori['aktif'] ?? 0) !== 1) {
+            return redirect()
+                ->to(base_url($fallbackUrl))
+                ->with('error', 'Kategori tidak tersedia.');
+        }
+
+        if (! $this->kategoriModel->bolehDipakaiUnit((int) $kategori['id'], $kdJbtn)) {
+            return redirect()
+                ->to(base_url($fallbackUrl))
+                ->with('error', 'Kategori tidak tersedia untuk unit Anda.');
+        }
+
+        return null;
     }
     private function getQueryInt(string $key): ?int
     {
@@ -1051,6 +1109,14 @@ class ETicket2 extends BaseController
             return redirect()->back()->with('error', 'Kategori tidak ditemukan.');
         }
 
+        // Opsi select dibuat dari findByUnitPengajuan($tiket['kd_jbtn']), jadi
+        // id yang dikirim harus sesuai aturan yang sama. Tanpa cek ini, POST
+        // dengan id kategori milik unit lain akan mengganti kategori tiket
+        // beserta unit tanggung jawabnya.
+        if (! $this->kategoriModel->bolehDipakaiUnit((int) $kategori['id'], $detailSebelum['kd_jbtn'] ?? null)) {
+            return redirect()->back()->with('error', 'Kategori tidak tersedia untuk unit Anda.');
+        }
+
         $db = \Config\Database::connect();
         $db->transStart();
 
@@ -1422,6 +1488,15 @@ class ETicket2 extends BaseController
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Kategori tidak ditemukan.');
+        }
+
+        //kategori_id datang dari POST, jadi harus dicocokkan dengan unit
+        //user. Tanpa ini request yang mengirim id kategori milik unit lain
+        //bisa lolos walau tidak pernah bisa dibuka lewat /baru.
+        if (! $this->kategoriModel->bolehDipakaiUnit((int) $kategori['id'], $userData['kd_jabatan'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Kategori tidak tersedia untuk unit Anda.');
         }
 
         $flow = $this->determineFlow($kategori, $userData['headsection']);
@@ -1891,15 +1966,28 @@ class ETicket2 extends BaseController
         if (!$kdJbtn) {
             return redirect()->to('/login')->with('error', 'Session expired');
         }
-        $petugas = [];
         $jabatan = $this->getJabatan();
-        $kategoriId = null;
-        if ($kdJbtn) {
-            $kategoriId = (int) $this->request->getGet('kategori');
-            $unitPengajuan = $this->kategoriGet($kategoriId)['unit_pengajuan'] ?? [];
+        $kategoriId = (int) $this->request->getGet('kategori');
+        $kategori = $this->kategoriGet($kategoriId);
+
+        if ($redirect = $this->guardKategoriBolehDipakai($kategori, $kategoriId, $kdJbtn, 'allticket')) {
+            return $redirect;
+        }
+
+        $petugas = [];
+        if ($kategoriId) {
+            $unitPengajuan = $kategori['unit_pengajuan'] ?? [];
             $kdJabatan = array_column($unitPengajuan, 'kd_jbtn');
-            //---
-            $petugas = $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJabatan]);
+
+            // Kategori umum tidak punya unit pengajuan sama sekali. Kalau
+            // jbtn dikirim kosong, API mengembalikan kosong juga dan select
+            // petugas tidak punya satu pun opsi padahal form wajib diisi.
+            // Untuk kasus itu ambil seluruh petugas supaya admin tetap bisa
+            // membuat tiket.
+            $petugas = empty($kdJabatan)
+                ? $this->getPetugas()
+                : $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJabatan]);
+
             $dataHS = $this->usersModel
                 ->select('nip')
                 ->where('headsection', true)
@@ -1908,17 +1996,18 @@ class ETicket2 extends BaseController
             foreach ($petugas as &$p) {
                 $p['headsection'] = isset($mapHS[$p['nip']]);
             }
+            unset($p);
         }
         $petugas = array_values($petugas);
         $data = [
             'title' => 'Buat Etiket Manual',
             'data'  => [
                 'kategori'      => $this->attachNamaJabatanToKategori(
-                    $this->kategoriModel->findByUnitPengajuan($userData['kd_jabatan'])
+                    $this->kategoriModel->findByUnitPengajuan($kdJbtn)
                 ),
                 'petugas'       => $petugas,
                 'jabatan'       => $jabatan,
-                'kategoriData'  => $this->kategoriGet($kategoriId), // ✅ sekarang ikut dikirim
+                'kategoriData'  => $kategori,
                 'user'          => $userData,
             ]
         ];
@@ -1961,6 +2050,17 @@ class ETicket2 extends BaseController
                 ->withInput()
                 ->with('error', 'Kategori tidak ditemukan.');
         }
+
+        // Dicek terhadap unit admin, bukan unit petugas tujuan: daftar
+        // kategori di /manual-baru disaring dengan unit admin
+        // (findByUnitPengajuan($userData['kd_jabatan'])), jadi guard harus
+        // memakai unit yang sama supaya opsi di form dan POST tidak berbeda.
+        if (! $this->kategoriModel->bolehDipakaiUnit((int) $kategori['id'], $userData['kd_jabatan'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Kategori tidak tersedia untuk unit Anda.');
+        }
+
         $flow = $this->determineFlow($kategori, $userData['headsection']);
         //dd($flow);
         $db = \Config\Database::connect();

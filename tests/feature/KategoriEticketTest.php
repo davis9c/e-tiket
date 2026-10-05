@@ -429,12 +429,11 @@ public function testNoRouteCanDeleteKategori(): void
 
         $this->assertStringContainsString('id="ktTableBody"', $html);
         $this->assertStringContainsString('id="ktToast"', $html);
-        $this->assertStringContainsString('id="ktConfirmModal"', $html);
         $this->assertStringContainsString('js/kategori.js', $html);
         $this->assertStringContainsString('id="ktSearch"', $html);
         $this->assertStringContainsString('id="ktStatusFilter"', $html);
 
-        // Tiga modal harus ada di halaman daftar.
+        // Dua modal harus ada di halaman daftar.
         $this->assertStringContainsString('id="ktFormModal"', $html);
         $this->assertStringContainsString('id="ktUnitModal"', $html);
         $this->assertStringContainsString('id="ktForm"', $html);
@@ -473,6 +472,35 @@ public function testNoRouteCanDeleteKategori(): void
         // Form unit tidak lagi POST ke updateUnit, dan tidak ada confirm() bawaan.
         $this->assertStringNotContainsString('kategori/updateUnit', $html);
         $this->assertStringNotContainsString('return confirm(', $html);
+
+        // Modal konfirmasi dihapus: aksi tambah/hapus unit dan aktif/nonaktif
+        // kategori berjalan langsung, hasilnya dilaporkan lewat toast.
+        $this->assertStringNotContainsString('ktConfirmModal', $html);
+        $this->assertStringNotContainsString('ktConfirmBtn', $html);
+    }
+
+    /**
+     * Toast adalah satu-satunya umpan balik aksi setelah modal konfirmasi
+     * dihapus. Tombol toggle juga perlu data-kt-nama supaya pesan toast
+     * menyebut kategori yang berubah, bukan sekadar "berhasil".
+     */
+    public function testToggleButtonCarriesKategoriName(): void
+    {
+        $result = $this->asAdmin()->get('kategori');
+
+        $result->assertStatus(200);
+
+        $html = $result->getBody();
+
+        $this->assertStringContainsString('id="ktToast"', $html);
+
+        // List dirender PHP saat halaman pertama dimuat, jadi atribut ini
+        // harus ada di markup server-side, bukan cuma di string JS.
+        $this->assertMatchesRegularExpression(
+            '/data-kt-toggle="\d+"[^>]*data-kt-nama="[^"]+"/',
+            $html,
+            'Tombol toggle harus membawa nama kategori untuk pesan toast'
+        );
     }
 
     /**

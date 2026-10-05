@@ -90,6 +90,21 @@ class KategoriETiketModel extends Model
         return $this->findByUnit($kdJbtn, 0, $onlyActive);
     }
 
+    /**
+     * Kategori yang boleh dipakai unit tertentu.
+     *
+     * JOIN memakai 'left' karena kategori yang TIDAK punya baris unit
+     * pengajuan sama sekali ikut terbawa (baris kuj-nya NULL). Kategori
+     * semacam itu dianggap kategori umum: boleh dipakai unit mana pun.
+     *
+     * Syarat kategori umum: tidak ada satu pun baris
+     * tb_e_ticket_kategori_unit_jabatan dengan is_penanggung_jawab = 0
+     * untuk kategori tersebut.
+     *
+     * Aturan "umum" ini HANYA berlaku untuk unit pengajuan. Unit
+     * penanggung jawab adalah tujuan pengerjaan, bukan pembatas akses,
+     * jadi tetap wajib terdaftar.
+     */
     private function findByUnit(
         ?string $kdJbtn,
         int $isPenanggungJawab,
@@ -102,12 +117,20 @@ class KategoriETiketModel extends Model
                 'tb_e_ticket_kategori_unit_jabatan kuj',
             'kuj.kategori_id = k.id 
             AND kuj.is_penanggung_jawab = ' . $isPenanggungJawab,
-                'inner'
+                'left'
             );
 
         // filter unit jika ada
         if ($kdJbtn !== null) {
-            $builder->where('kuj.kd_jbtn', $kdJbtn);
+            if ($isPenanggungJawab === 0) {
+                // Terdaftar untuk unit ini, ATAU kategori umum.
+                $builder->groupStart()
+                    ->where('kuj.kd_jbtn', $kdJbtn)
+                    ->orWhere('kuj.kategori_id', null)
+                    ->groupEnd();
+            } else {
+                $builder->where('kuj.kd_jbtn', $kdJbtn);
+            }
         }
 
         // filter aktif
@@ -139,6 +162,42 @@ class KategoriETiketModel extends Model
     public function isJabatanPengajuan(int $kategoriId, string $kdJbtn): bool
     {
         return $this->existsInUnit($kategoriId, $kdJbtn, 0);
+    }
+
+    /**
+     * True kalau kategori tidak punya satu pun unit pengajuan, jadi
+     * terbuka untuk semua unit.
+     */
+    public function isUmum(int $kategoriId): bool
+    {
+        $ada = $this->db->table('tb_e_ticket_kategori_unit_jabatan')
+            ->where('kategori_id', $kategoriId)
+            ->where('is_penanggung_jawab', 0)
+            ->countAllResults();
+
+        return $ada === 0;
+    }
+
+    /**
+     * Penaga yang dipakai controller sebelum membuka form dan sebelum
+     * menyimpan tiket: kategori harus terdaftar untuk unit tersebut,
+     * atau kategori umum (tanpa unit pengajuan sama sekali).
+     *
+     * Tanpa method ini daftar kategori yang ditampilkan dan form yang
+     * bisa dikirim bisa berbeda, karena /baru?kategori=<id> dan
+     * POST /etiket/submit menerima id kategori apa pun.
+     */
+    public function bolehDipakaiUnit(int $kategoriId, ?string $kdJbtn): bool
+    {
+        if (! $kdJbtn) {
+            return false;
+        }
+
+        if ($this->isUmum($kategoriId)) {
+            return true;
+        }
+
+        return $this->isJabatanPengajuan($kategoriId, $kdJbtn);
     }
 
     private function existsInUnit(int $kategoriId, string $kdJbtn, int $type): bool
