@@ -23,16 +23,7 @@ class Auth extends BaseController
 
     public function login()
     {
-        $data = [];
-
-        // Dropdown user hanya untuk development. Di environment lain
-        // user mengetik User ID sendiri, jadi jangan sampai query
-        // daftar user ikut jalan.
-        if (ENVIRONMENT === 'development') {
-            $data['devUsers'] = $this->userModel->devLoginList();
-        }
-
-        return view('auth/login2', $data);
+        return view('auth/login2');
     }
 
     public function attempt()

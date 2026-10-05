@@ -44,29 +44,41 @@
                                         <!-- USER ID -->
                                         <div class="form-floating mb-3">
                                             <?php if (ENVIRONMENT === 'development'): ?>
-
-                                                <?php
-                                                // SULIONO - satu-satunya user headsection,
-                                                // dipakai default supaya halaman
-                                                // persetujuan bisa langsung diuji.
-                                                $defaultUser = '197005091995031002';
-                                                ?>
+                                                
                                                 <select class="form-select" id="user_id" name="user_id" required>
-                                                    <?php foreach (($devUsers ?? []) as $group): ?>
-                                                        <optgroup label="<?= esc($group['label']) ?>">
-                                                            <?php foreach ($group['users'] as $u): ?>
-                                                                <?php
-                                                                $selected = old('user_id')
-                                                                    ? old('user_id') == $u['nip']
-                                                                    : $defaultUser == $u['nip'];
-                                                                ?>
-                                                                <option value="<?= esc($u['nip']) ?>" <?= $selected ? 'selected' : '' ?>>
-                                                                    <?= esc($u['nama']) ?><?= $u['headsection'] ? ' (Headsection)' : '' ?>
-                                                                </option>
-                                                            <?php endforeach; ?>
-                                                        </optgroup>
-                                                    <?php endforeach; ?>
-                                                </select>
+    <option value="">-- Pilih User --</option>
+    
+    <optgroup label="GRUP IT">
+        <option value="198511072009031002" selected>IRFAN FAUZI, A.Md.</option>
+    </optgroup>
+
+    <optgroup label="GRUP TENAGA INFORMATIKA">
+        <option value="199303242025211020">NUR FITRA FAJAR DWITAMA</option>
+        <option value="357408005260043">DAVIS PURWO AJI</option>
+        <option value="357408005260044">SATRIA DWI WAHYU NOVRIYANTO</option>
+    </optgroup>
+
+    <optgroup label="GRUP AROFAH">
+        <option value="197005091995031002">SULIONO (Headsection)</option>
+        <option value="197206252006042014">ASTUTI MUJIANI, A.Md.Kep.</option>
+        <option value="199102102019022006">SEJUK KARISMA, A.Md.Kep.</option>
+    </optgroup>
+
+    <optgroup label="GRUP AQSO">
+        <option value="196807161989022002">SUSI KRISTIANI, S.Kep.Ns.</option>
+        <option value="197105081996032006">NINIK KARTINI, A.MK.</option>
+        <option value="198010012009032005">ESTI RAHAYUNINGSIH, A.Md.</option>
+    </optgroup>
+
+    <optgroup label="GRUP BENDAHARA">
+        <option value="198310292010011001">BAGUS IRAWAN OKTORIYANTO</option>
+    </optgroup>
+
+    <optgroup label="GRUP PEREKAM MEDIS">
+        <option value="198509192010011015">ARIF RAKHMAD ANDRIANTO, A.Md.</option>
+    </optgroup>
+</select>
+
                                                 <label for="user_id">Pilih User (Development Mode)</label>
                                             <?php else: ?>
                                                 <input type="text"
@@ -87,7 +99,7 @@
                                                 name="password"
                                                 placeholder="Password"
                                                 <?php if (ENVIRONMENT === 'development'): ?>
-                                                value="123"
+                                                value="11"
                                                 <?php endif; ?>
                                                 required>
                                             <label for="password">Password</label>
