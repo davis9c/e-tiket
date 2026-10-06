@@ -606,7 +606,7 @@ final class AdminTabTest extends CIUnitTestCase
             'nip'        => '199004232019022005',
             'nama'       => 'User Biasa',
             'jabatan'    => 'User Biasa',
-        ])->get('dashboard-saya');
+        ])->get('index');
 
         $result->assertStatus(200);
 
@@ -635,7 +635,7 @@ final class AdminTabTest extends CIUnitTestCase
             'nip'        => '199004232019022005',
             'nama'       => 'User Biasa',
             'jabatan'    => 'User Biasa',
-        ])->get('dashboard-saya');
+        ])->get('index');
 
         $result->assertStatus(200);
 

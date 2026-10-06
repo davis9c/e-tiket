@@ -26,29 +26,37 @@ $routes->get('dashboard', 'Dashboard::index');
 $routes->group('', ['filter' => 'auth'], function ($routes) {
 
     // Dashboard & Home
-    $routes->get('/', 'ETicket2::index');
-    $routes->get('dashboard-saya', 'ETicket2::dashboard');
+    //
+    // /index adalah SATU-SATUNYA route yang merender dashboard. Dulu ada
+    // empat URL yang memanggil dashboard() yang sama persis: /, /index,
+    // /dashboard-saya, dan /dashboard/user. Dua terakhir dihapus, dan /
+//    sekarang redirect ke /index lewat ETicket2::akar() -- URL-nya tetap
+    // hidup karena brand di navbar-top menautkan ke base_url() (= /).
+    $routes->get('/', 'ETicket2::akar');
+    $routes->get('index', 'ETicket2::index');
 
     // URL lama per role (tetap dipertahankan)
     $routes->get('dashboard/pelaksana', 'Dashboard::pelaksana');
-    $routes->get('dashboard/user', 'Dashboard::user');
-    // /dashboard/tugas dihapus: isinya sudah ada di /dashboard-saya.
+    // /dashboard/tugas dihapus: isinya sudah ada di /index.
 
     /*
     |--------------------------------------------------------------------------
     | Halaman Persetujuan Headsection
     |--------------------------------------------------------------------------
-    | Daftar tiket /headsection dan /pelaksana sudah digabung ke /etiket
-    | (lihat ETicketModel::getTickets()). Route GET di bawah sengaja
-    | DIPERTAHANKAN untuk redirect, supaya bookmark dan tautan lama
-    | yang sudah dibagikan tidak mati.
+    | /headsection adalah SATU-SATUNYA halaman yang boleh menampilkan
+    | tiket milik orang lain, jadi route-nya -- GET dan POST alike --
+    | dikunci dalam satu group filter 'roleheadsection'. Kalau hanya POST
+    | yang digate, daftar tiketnya tetap terbuka untuk semua orang.
+    |
+    | Dulu route GET ini cuma redirect ke /etiket?sumber=headsection,
+    | dan scope 'headsection' ikut jadi default /etiket. Akibatnya semua
+    | anggota unit melihat tiket yang sama persis. Sekarang keduanya
+    | dipisah: /etiket hanya milik sendiri + tugas, /headsection milik
+    | user yang berhak menyetujui.
     */
-    $routes->get('headsection', 'ETicket2::headsection');          // -> /etiket?sumber=headsection
-    $routes->get('headsection/(:any)', 'ETicket2::headsection/$1'); // -> /etiket/{hashid}?sumber=headsection
-
-    // Aksi menyetujui TETAP dikunci hanya untuk headsection. Inilah satu-satunya
-    // bagian alur headsection yang tidak ikut digabung ke /etiket.
     $routes->group('', ['filter' => 'roleheadsection'], function ($routes) {
+        $routes->get('headsection', 'ETicket2::headsection');
+        $routes->get('headsection/(:any)', 'ETicket2::headsection/$1');
         $routes->post('headsection/headsection_approve', 'ETicket2::submit_approve'); //untuk validasi headsection
     });
 
@@ -56,8 +64,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     |--------------------------------------------------------------------------
     | E-Ticket
     |--------------------------------------------------------------------------
-    | /etiket adalah SATU-SATUNYA halaman daftar tiket. Halaman /pelaksana
-    | dan /headsection hanya redirect ke sini dengan ?sumber= yang sesuai.
+    | /etiket adalah SATU-SATUNYA halaman daftar tiket untuk tiket milik
+    | sendiri dan tiket yang ditugaskan ke unit user. Halaman /pelaksana
+    | hanya redirect ke sini dengan ?sumber=pelaksana.
     |
     | Filter ?sumber, ?valid, ?selesai, ?status, ?kategori didefinisikan
     | di ETicketModel::getTickets() dan ETicket2::parseSumber().

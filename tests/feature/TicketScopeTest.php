@@ -133,6 +133,78 @@ final class TicketScopeTest extends CIUnitTestCase
         return $id;
     }
 
+    /**
+     * Satu baris proses dari sebuah unit.
+     *
+     * Dipakai untuk membuktikan status 'selesai' TIDAK lagi dihitung
+     * dari "semua unit sudah punya proses", melainkan dari message_akhir.
+     */
+    private function seedProses(int $tiketId, string $kdJbtn): int
+    {
+        $now = date('Y-m-d H:i:s');
+
+        $this->db->table('tb_e_ticket_proses')->insert([
+            'id_eticket'      => $tiketId,
+            'kd_jbtn'         => $kdJbtn,
+            'id_petugas'      => self::NIP_LOGIN,
+            'nm_jbtn'         => 'Unit Uji',
+            'id_petugas_nama' => 'Petugas Uji',
+            'catatan'         => 'Catatan proses',
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
+
+        return (int) $this->db->insertID();
+    }
+
+    /**
+     * Status tiap tiket hasil getTickets(), dipetakan id => status.
+     */
+    private function statusOf(array $rows): array
+    {
+        $status = [];
+
+        foreach ($rows as $row) {
+            $status[(int) $row['id']] = $row['status'] ?? null;
+        }
+
+        return $status;
+    }
+
+    /**
+     * Tiket milik orang yang kd_pegawai-nya = $kdPegawai, tapi
+     * petugas_id-nya sengaja dibuat TIDAK sama dengan NIP Login.
+     *
+     * $kdPegawai dikirim ke kolom kd_pegawai (id_pegawai pengaju),
+     * $petugasId ke kolom petugas_id -- sengaja dibuat berbeda dari
+     * NIP Login untuk meniru keadaan NIK vs NIP.
+     *
+     * Menggambarkan keadaan nyata: Auth::setUserSession() mengisi session
+     * 'nip' dari API yang mengembalikan NIK, sedangkan tiket menyimpan NIP
+     * di petugas_id. Kalau keduanya berbeda, scope 'saya' lama tidak akan
+     * pernah cocok.
+     */
+    private function seedTiketMilikOrangLain(string $kdPegawai = '1803', string $petugasId = '357408005260043'): int
+    {
+        $now = date('Y-m-d H:i:s');
+
+        $this->db->table('tb_e_ticket')->insert([
+            'judul'           => 'Tiket NIK Beda NIP',
+            'message_awal'    => 'Pesan uji',
+            'kategori_id'     => $this->kategoriMilikLogin,
+            'kd_pegawai'      => $kdPegawai,
+            'petugas_id'      => $petugasId,
+            'petugas_id_nama' => 'Pengaju NIK Beda NIP',
+            'kd_jbtn'         => $this->kdJbtn,
+            'headsection'     => 0,
+            'valid_nama'      => 'Atasan',
+            'created_at'      => $now,
+            'updated_at'      => $now,
+        ]);
+
+        return (int) $this->db->insertID();
+    }
+
     private function model(): \App\Models\ETicketModel
     {
         return new \App\Models\ETicketModel();
@@ -185,11 +257,153 @@ final class TicketScopeTest extends CIUnitTestCase
 
         $this->seedTiket(self::NIP_LAIN, $this->kdJbtnLain, $this->kdJbtn, true);
 
-        // Tanpa NIP, filter dilewati -> risks seluruh tabel terekspos.
+        // Tanpa identitas, filter dilewati -> risks seluruh tabel terekspos.
         // Karena itu model harus mengembalikan nol baris, bukan semuanya.
         $rows = $this->model()->getTickets(['saya'], $this->kdJbtn, null, null, null, $this->kategoriMilikLogin);
 
-        $this->assertSame([], $rows, 'Scope saya tanpa NIP harus kosong');
+        $this->assertSame([], $rows, 'Scope saya tanpa identitas harus kosong');
+    }
+
+    /* =====================================================
+     | SCOPE 'saya' SAWAH NIK (kd_pegawai)
+     |===================================================== */
+
+    /**
+     * Session 'nip' diisi dari API yang mengembalikan NIK, sedangkan
+     * tb_e_ticket.petugas_id berisi NIP. Kalau user login pakai NIK dan
+     * keduanya berbeda, tiket yang dibuatnya TIDAK akan muncul kalau
+     * scope 'saya' hanya cocokkan petugas_id.
+     *
+     * kd_pegawai berisi id_pegawai yang nilainya tidak bergantung cara
+     * login, jadi itulah yang menutup celah ini.
+     */
+    public function testSayaMencocokkanKdPegawaiKetikaNikBedaNip(): void
+    {
+        $this->seedDuaUnit();
+
+        // Ticket dibuat saat login dengan NIP.
+        $petugasId = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true);
+
+        // Sekarang session 'nip' berisi NIK (tidak sama dengan NIP).
+        $nik = '357408005260043';
+
+        $tanpaIdPegawai = $this->model()->getTickets(
+            ['saya'],
+            $this->kdJbtn,
+            $nik,
+            null,
+            null,
+            $this->kategoriMilikLogin
+        );
+
+        $this->assertNotContains(
+            $petugasId,
+            array_map(static fn ($r) => (int) $r['id'], $tanpaIdPegawai),
+            'Tanpa id_pegawai, tiket tidak akan cocok -- inilah bug aslinya'
+        );
+
+        // Session yang sama, tapi id_pegawai ikut diteruskan.
+        $this->db->table('tb_e_ticket')
+            ->where('id', $petugasId)
+            ->update(['kd_pegawai' => '2112']);
+
+        $denganIdPegawai = $this->model()->getTickets(
+            ['saya'],
+            $this->kdJbtn,
+            $nik,
+            null,
+            null,
+            $this->kategoriMilikLogin,
+            null,
+            '2112'
+        );
+
+        $this->assertContains(
+            $petugasId,
+            array_map(static fn ($r) => (int) $r['id'], $denganIdPegawai),
+            'Tiket harus ditemukan lewat kd_pegawai walau session nip berisi NIK'
+        );
+
+        // Badge "Saya" di tabel juga harus ikut nyala, kalau tidak user
+        // melihat tiketnya sendiri tanpa penanda.
+        $row = $denganIdPegawai[0];
+        $this->assertTrue((bool) $row['is_creator'], 'is_creator harus ikut benar lewat kd_pegawai');
+    }
+
+    /**
+     * Tiket milik orang lain tidak boleh ikut terbawa karena OR-nya
+     * longgar: kedua identitas dicocokkan, bukan salah satu.
+     */
+    public function testSayaDenganKdPegawaiTidakMembawaTiketOrangLain(): void
+    {
+        $this->seedDuaUnit();
+
+        $milikSaya   = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true);
+        $milikOrang  = $this->seedTiket(self::NIP_LAIN, $this->kdJbtnLain, null, true);
+
+        $this->db->table('tb_e_ticket')->where('id', $milikSaya)->update(['kd_pegawai' => '2112']);
+        $this->db->table('tb_e_ticket')->where('id', $milikOrang)->update(['kd_pegawai' => '9999']);
+
+        $rows = $this->model()->getTickets(
+            ['saya'],
+            $this->kdJbtn,
+            '357408005260043', // NIK, berbeda dari NIP_LOGIN
+            null,
+            null,
+            $this->kategoriMilikLogin,
+            null,
+            '2112'
+        );
+
+        $ids = array_map(static fn ($r) => (int) $r['id'], $rows);
+
+        $this->assertContains($milikSaya, $ids);
+        $this->assertNotContains(
+            $milikOrang,
+            $ids,
+            'Tiket dengan kd_pegawai berbeda tidak boleh ikut'
+        );
+    }
+
+    /**
+     * Scope 'headsection' mengeluarkan tiket milik sendiri supaya orang
+     * tidak menyetujui tiketnya sendiri. Kalau hanya petugas_id yang
+     * dicek, tiket yang dibuat saat login via NIK tidak dikeluarkan --
+     * dan user itu akan melihat tiketnya sendiri di antrean validasi.
+     */
+    public function testHeadsectionJugaMengKelompokkanMilikSendiri(): void
+    {
+        $this->seedDuaUnit();
+
+        // Diajukan oleh unit login, dibuat oleh orang lain.
+        $milikRekan = $this->seedTiket(self::NIP_LAIN, $this->kdJbtn, null, true);
+
+        // Diajukan oleh unit login, TAPI dibuat oleh user login --
+        // dengan petugas_id berisi NIP dan session berisi NIK.
+        $milikSendiri = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $milikSendiri)
+            ->update(['kd_pegawai' => '2112']);
+
+        $rows = $this->model()->getTickets(
+            ['headsection'],
+            $this->kdJbtn,
+            '357408005260043', // NIK
+            null,
+            null,
+            $this->kategoriMilikLogin,
+            null,
+            '2112'
+        );
+
+        $ids = array_map(static fn ($r) => (int) $r['id'], $rows);
+
+        $this->assertContains($milikRekan, $ids);
+        $this->assertNotContains(
+            $milikSendiri,
+            $ids,
+            'Tiket milik sendiri harus dikeluarkan walau login pakai NIK'
+        );
     }
 
     /* =====================================================
@@ -307,7 +521,15 @@ final class TicketScopeTest extends CIUnitTestCase
      | GABUNGAN
      | ===================================================== */
 
-    public function testDefaultIsUnionOfAllThreeScopes(): void
+    /**
+     * Default /etiket = milik sendiri + tugas pelaksana.
+     *
+     * 'headsection' sengaja TIDAK ikut lagi. Dulu ikut, sehingga semua
+     * anggota unit melihat tiket yang sama persis -- termasuk milik
+     * tetangganya. Scope itu sekarang hanya hidup di route /headsection
+     * yang digate filter 'roleheadsection'.
+     */
+    public function testDefaultHanyaMilikSendiriDanPelaksana(): void
     {
         $this->seedDuaUnit();
 
@@ -317,9 +539,27 @@ final class TicketScopeTest extends CIUnitTestCase
 
         $default = $this->ids(\App\Models\ETicketModel::SUMBER_DEFAULT);
 
-        $this->assertContains($saya, $default);
-        $this->assertContains($pelaksana, $default);
-        $this->assertContains($headsect, $default);
+        $this->assertContains($saya, $default, 'Tiket milik sendiri harus ikut');
+        $this->assertContains($pelaksana, $default, 'Tugas pelaksana harus ikut');
+        $this->assertNotContains(
+            $headsect,
+            $default,
+            'Tiket yang diajukan unit login tidak boleh ikut default /etiket'
+        );
+
+        $this->assertNotContains(
+            'headsection',
+            \App\Models\ETicketModel::SUMBER_DEFAULT,
+            'Scope headsection tidak boleh sah sebagai default /etiket'
+        );
+
+        // Tapi scope itu MASIH harus bisa dipakai langsung -- dashboard
+        // memakainya untuk menghitung kelompok validasi.
+        $this->assertContains(
+            'headsection',
+            \App\Models\ETicketModel::SUMBER_LIST,
+            'Scope headsection harus tetap sah untuk DashboardService'
+        );
     }
 
     public function testDefaultHasNoDuplicateRows(): void
@@ -366,7 +606,7 @@ final class TicketScopeTest extends CIUnitTestCase
         $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, $this->kdJbtn, true);
 
         // Scope kosong harus nol baris (bukan "semua tiket").
-        // Kalau tidak,Nfmn бош kosong berarti filter diabaikan.
+        // Kalau tidak, filter kosong berarti filter diabaikan.
         $this->assertSame([], $this->ids([]));
     }
 
@@ -432,20 +672,165 @@ final class TicketScopeTest extends CIUnitTestCase
         $this->seedDuaUnit();
 
         // belum_valid: valid_nama kosong
-        $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, false);
-        // belum disetujui tapi sudah ditolak
-        $ditolak = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, false);
-        $this->db->table('tb_e_ticket')->where('id', $ditolak)->update(['reject_nama' => 'Atasan']);
+        $pertama = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, false);
+        // valid_nama ada, tapi belum ada yang mengambil tiket
+        $kedua  = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
 
         $rows = $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin);
 
-        $status = [];
-        foreach ($rows as $r) {
-            $status[(int) $r['id']] = $r['status'];
-        }
+        $status = $this->statusOf($rows);
 
-        $this->assertSame('belum_valid', $status[$ditolak - 1] ?? $status[$ditolak] ?? null, 'sanity: ada status belum_valid');
-        $this->assertSame('reject', $status[$ditolak], 'reject_nama harus menang dari valid_nama kosong');
+        $this->assertSame('belum_valid', $status[$pertama], 'valid_nama kosong -> belum_valid');
+        $this->assertSame('dalam_antrian', $status[$kedua], 'valid tapi handler kosong -> dalam_antrian');
+    }
+
+    /* =====================================================
+     | STATUS 'dikerjakan' DARI handler
+     |===================================================== */
+
+    /**
+     * handler menandai tiket yang sedang dikerjakan: dipakai sebagai
+     * status 'dikerjakan', dan hanya dibaca kalau tiket belum selesai.
+     */
+    public function testDikerjakanDiambilDariHandler(): void
+    {
+        $this->seedDuaUnit();
+
+        $antrian   = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $dikerjakan = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+
+        $this->db->table('tb_e_ticket')
+            ->where('id', $dikerjakan)
+            ->update(['handler' => self::NIP_LOGIN]);
+
+        // handler terisi tapi message_akhir juga terisi -> selesai yang
+        // menang, bukan dikerjakan.
+        $selesaiDenganHandler = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $selesaiDenganHandler)
+            ->update([
+                'handler'       => self::NIP_LOGIN,
+                'message_akhir' => $this->seedProses($selesaiDenganHandler, $this->kdJbtn),
+            ]);
+
+        $status = $this->statusOf(
+            $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin)
+        );
+
+        $this->assertSame('dalam_antrian', $status[$antrian], 'handler kosong -> dalam_antrian');
+        $this->assertSame('dikerjakan', $status[$dikerjakan], 'handler terisi -> dikerjakan');
+        $this->assertSame(
+            'selesai',
+            $status[$selesaiDenganHandler],
+            'message_akhir harus menang dari handler'
+        );
+    }
+
+    /**
+     * Status 'belum_valid' menang dari handler: tiket yang belum
+     * disetujui atasan tidak mungkin sudah "sedang dikerjakan", walau
+     * datanya tidak konsisten.
+     */
+    public function testBelumValidMenangDariHandler(): void
+    {
+        $this->seedDuaUnit();
+
+        $tiket = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, false, false);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $tiket)
+            ->update(['handler' => self::NIP_LOGIN]);
+
+        $status = $this->statusOf(
+            $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin)
+        );
+
+        $this->assertSame('belum_valid', $status[$tiket]);
+    }
+
+    /* =====================================================
+     | STATUS DIAMBIL DARI message_akhir
+     |===================================================== */
+
+    public function testSelesaiDiambilDariMessageAkhir(): void
+    {
+        $this->seedDuaUnit();
+
+        // Sudah dijawab kedua unit PJ, tapi tidak pernah dicentang
+        // Selesai -> message_akhir NULL -> belum selesai.
+        $semuaUnitSudahProses = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $this->seedProses($semuaUnitSudahProses, $this->kdJbtn);
+        $this->seedProses($semuaUnitSudahProses, $this->kdJbtnLain);
+
+        // message_akhir terisi walau unit kedua belum ikut proses.
+        $selesaiDulu = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $prosesId = $this->seedProses($selesaiDulu, $this->kdJbtn);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $selesaiDulu)
+            ->update(['message_akhir' => $prosesId]);
+
+        $status = $this->statusOf(
+            $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin)
+        );
+
+        $this->assertSame(
+            'dalam_antrian',
+            $status[$semuaUnitSudahProses],
+            'Semua unit sudah punya proses, tapi message_akhir NULL -> bukan selesai'
+        );
+        $this->assertSame(
+            'selesai',
+            $status[$selesaiDulu],
+            'message_akhir terisi -> selesai, walau unit lain belum proses'
+        );
+    }
+
+    public function testMessageAkhirMenangDariValidNamaKosong(): void
+    {
+        $this->seedDuaUnit();
+
+        // Data tidak normal: sudah dijawab unit (message_akhir terisi)
+        // tapi valid_nama masih kosong. Status harus 'selesai', bukan
+        // 'belum_valid'.
+        $tiket = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, false, false);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $tiket)
+            ->update(['message_akhir' => $this->seedProses($tiket, $this->kdJbtn)]);
+
+        $status = $this->statusOf(
+            $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin)
+        );
+
+        $this->assertSame('selesai', $status[$tiket]);
+    }
+
+    /**
+     * Status di detail harus sama dengan status di daftar. Keduanya
+     * lewat ETicketModel::hitungStatus() yang sama.
+     */
+    public function testDetailStatusSamaDenganDaftar(): void
+    {
+        $this->seedDuaUnit();
+
+        $dikerjakan = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $dikerjakan)
+            ->update(['handler' => self::NIP_LOGIN]);
+
+        $selesai = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $selesai)
+            ->update(['message_akhir' => $this->seedProses($selesai, $this->kdJbtn)]);
+
+        $rows = $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin);
+        $status = $this->statusOf($rows);
+
+        // Sanity: kedua tiket benar-benar beda status, jadi perbandingan
+        // di bawah tidak bisa lulus karena keduanya kebetulan sama.
+        $this->assertSame('dikerjakan', $status[$dikerjakan]);
+        $this->assertSame('selesai', $status[$selesai]);
+
+        $this->assertSame($status[$dikerjakan], $this->model()->findOneLengkap($dikerjakan)['status']);
+        $this->assertSame($status[$selesai], $this->model()->findOneLengkap($selesai)['status']);
     }
 
     public function testOrderIsNewestFirst(): void

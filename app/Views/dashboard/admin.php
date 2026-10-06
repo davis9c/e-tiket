@@ -16,7 +16,8 @@
             $cards = [
                 ['title' => 'Total', 'value' => $total, 'color' => 'primary', 'icon' => 'fa-ticket-alt'],
                 ['title' => 'Belum Valid', 'value' => $belumValid, 'color' => 'secondary', 'icon' => 'fa-clock'],
-                ['title' => 'Proses', 'value' => $proses, 'color' => 'warning', 'icon' => 'fa-spinner'],
+                ['title' => 'Dalam Antrian', 'value' => $dalamAntrian, 'color' => 'info', 'icon' => 'fa-hourglass-half'],
+                ['title' => 'Dikerjakan', 'value' => $dikerjakan, 'color' => 'warning', 'icon' => 'fa-spinner'],
                 ['title' => 'Selesai', 'value' => $selesai, 'color' => 'success', 'icon' => 'fa-check-circle'],
             ];
             foreach ($cards as $c):

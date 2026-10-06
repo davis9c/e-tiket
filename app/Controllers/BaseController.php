@@ -2,12 +2,12 @@
 
 namespace App\Controllers;
 
+use App\Traits\HakValidasi;
 use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Config\Services;
-
 
 abstract class BaseController extends Controller
 {
@@ -44,6 +44,16 @@ abstract class BaseController extends Controller
     {
         return [
             'id_pegawai'  => $this->session('id_pegawai'),
+            // Alias id_pegawai untuk pembacaan kolom kd_pegawai.
+            //
+            // 'nip' TIDAK boleh dipakai untuk hal ini: Auth::setUserSession()
+            // mengisinya dari API yang mengembalikan 'nik', dan API itu
+            // menerima login baik dengan NIP maupun NIK. Jadi nilai 'nip'
+            // bisa NIK, sedangkan tb_e_ticket.petugas_id berisi NIP --
+            // keduanya tidak selalu sama. id_pegawai (kode pegawai) tidak
+            // dipengaruhi cara user login, jadi inilah yang aman untuk
+            // mencocokkan tiket milik sendiri.
+            'kd_pegawai'  => $this->session('id_pegawai'),
             'kd_jabatan'  => $this->session('kd_jabatan'),
             'jabatan'     => $this->session('jabatan'),
             'nip'         => $this->session('nip'),
@@ -51,6 +61,16 @@ abstract class BaseController extends Controller
             'headsection' => $this->session('headsection'),
         ];
     }
+
+    /**
+     * Apakah user ini berhak menyetujui tiket (antrean persetujuan
+     * headsection)?
+     *
+     * Aturannya ada di App\Traits\HakValidasi, bukan di sini: filter
+     * Filters\Headsection juga memakainya, dan filter tidak bisa
+     * mewarisi BaseController.
+     */
+    use HakValidasi;
 
     protected function extractUserSession(): array
     {

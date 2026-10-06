@@ -17,6 +17,19 @@ defined('APP_NAMESPACE') || define('APP_NAMESPACE', 'App');
 
 /*
  | --------------------------------------------------------------------------
+ | Application Version
+ | --------------------------------------------------------------------------
+ |
+ | Versi aplikasi yang ditampilkan di footer sidebar
+ | (app/Views/layout-dashboard/sidenav.php).
+ |
+ | Naikkan HANYA di sini setiap rilis baru, supaya angka versi tidak
+ | ditulis ulang di beberapa view dan riskannya melenceng.
+ */
+defined('APP_VERSION') || define('APP_VERSION', '1.0');
+
+/*
+ | --------------------------------------------------------------------------
  | Composer Path
  | --------------------------------------------------------------------------
  |

@@ -27,33 +27,22 @@ class Dashboard extends BaseController
     }
 
     /**
-     * Dashboard user biasa: Tiket Saya + ringkasan Executor.
+     * Dihapus: dashboard user biasa (Tiket Saya + Executor + Tiket Unit).
+     *
+     * Tiga kelompok itu sekarang dirender ETicket2::index(), satu-satunya
+     * route dashboard. Isinya persis sama -- perbedaan semanticsnya
+     * hilang: controller ini TIDAK memanggil checkToken() di constructor-nya,
+     * jadi halaman yang dulu di sini (/dashboard/user) tetap terbuka untuk
+     * sesi yang tokennya sudah kedaluwarsa. checkToken() sekarang berjalan
+     * di satu tempat saja, untuk semua role.
      */
-    public function user()
-    {
-        $data = $this->dashboardService->userData(
-            $this->userData['kd_jabatan'],
-            $this->userData['nip']
-        );
-
-        $data['executor'] = $this->dashboardService
-            ->tugasData($this->userData['kd_jabatan']);
-
-        $data['perluValidasi'] = $this->dashboardService->perluValidasiData(
-            $this->userData['kd_jabatan'],
-            $this->userData['nip']
-        );
-
-        return view('dashboard/user', $data);
-    }
 
     /**
-     * Dashboard tiket yang harus dikerjakan unit login.
+     * Dashboard publik: angka agregat seluruh organisasi.
      *
-     * Dihapus: bagian Executor sudah ada di /dashboard-saya sebagai
-     * kartu "Perlu Dikerjakan" / "Sedang Diproses" / "Selesai (Unit)" /
-     * "Total Tiket Unit". DashboardService::tugasData() masih dipakai
-     * ETicket2::dashboard() dan Dashboard::user().
+     * Sengaja TIDAK diberi filter auth di Routes.php -- lihat catatan di
+     * sana. Rendersnya memakai view 'dashboard', yang berbeda dari
+     * dashboard/user.
      */
     public function index()
     {

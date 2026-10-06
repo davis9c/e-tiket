@@ -59,16 +59,14 @@ $openApp = preg_match('#^(kategori|admin)(/|$)#', $currentPath);
             <div class="nav">
                 <!-- DASHBOARD -->
                 <?php
-                // Satu link untuk semua role. Halaman /dashboard-saya
-                // yang menentukan dashboard mana yang ditampilkan.
-                // $isDash juga true di URL lama (/dashboard/pelaksana dll)
-                // supaya menu ini tetap ter-highlight.
-                // /dashboard/tugas tidak lagi ada (merged ke /dashboard-saya).
-                $isDash = $activeLink('dashboard-saya')
-                    || $activeLink('dashboard/pelaksana')
-                    || $activeLink('dashboard/user');
+                // Satu link untuk semua role. /index adalah satu-satunya
+                // route dashboard; /dashboard-saya dan /dashboard/user
+                // sudah dihapus, jadi tidak ada lagi URL lama yang perlu
+                // ikut dicek di sini.
+                // /dashboard/tugas juga tidak ada (merged ke /index).
+                $isDash = $activeLink('index');
                 ?>
-                <a class="nav-link<?= $isDash ? ' active' : '' ?>" href="<?= base_url('dashboard-saya') ?>">
+                <a class="nav-link<?= $isDash ? ' active' : '' ?>" href="<?= base_url('index') ?>">
                     <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
                     Dashboard
                 </a>
@@ -180,10 +178,19 @@ $openApp = preg_match('#^(kategori|admin)(/|$)#', $currentPath);
         </div>
 
         <!-- FOOTER -->
+        <!--
+            Dulu blok ini menampilkan identitas user di footer sidebar
+            ("Logged in" + nama + jabatan). Sekarang nama sudah tampil di
+            topbar (navbar-top.php), jadi footer ini diganti versi
+            aplikasi supaya identitas user tidak muncul dua kali di layar
+            yang sama.
+
+            Wrapper .sb-sidenav-footer TIDAK boleh dihapus: string itu
+            dipakai sebagai penanda akhir saat test memotong markup sidebar
+            (tests/feature/AdminTabTest.php::sidebarOnly()).
+        -->
         <div class="sb-sidenav-footer">
-            <div class="small">Logged in as</div>
-            <strong><?= esc($user['nama'] ?? '') ?></strong><br>
-            <small><?= esc($user['jabatan'] ?? '') ?></small>
+            <div class="small">E-Tiket v<?= esc(APP_VERSION) ?></div>
         </div>
     </nav>
 </div>

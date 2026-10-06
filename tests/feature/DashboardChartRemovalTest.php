@@ -80,7 +80,8 @@ final class DashboardChartRemovalTest extends CIUnitTestCase
             );
         }
 
-        foreach (['title', 'total', 'belumValid', 'proses', 'selesai', 'reject', 'kategoriList', 'range'] as $key) {
+        // Status sudah empat: belum_valid, dalam_antrian, dikerjakan, selesai.
+        foreach (['title', 'total', 'belumValid', 'dalamAntrian', 'dikerjakan', 'selesai', 'kategoriList', 'range'] as $key) {
             $this->assertArrayHasKey($key, $data, "Kunci '{$key}' harus tetap ada");
         }
     }
@@ -143,7 +144,7 @@ final class DashboardChartRemovalTest extends CIUnitTestCase
 
     public function testDashboardSayaHasNoChart(): void
     {
-        $result = $this->asUser()->get('dashboard-saya');
+        $result = $this->asUser()->get('index');
 
         $result->assertStatus(200);
 
@@ -155,9 +156,11 @@ final class DashboardChartRemovalTest extends CIUnitTestCase
         $this->assertStringNotContainsString('chartSaya', $html);
         $this->assertStringNotContainsString('chartUnit', $html);
 
-        // Kartu Executor (dari tugasData) harus tetap ada.
-        $this->assertStringContainsString('Perlu Dikerjakan', $html);
-        $this->assertStringContainsString('Total Tiket Unit', $html);
+        // Tiga kelompok kartu harus tetap ada (semanya dihitung dari
+        // getTickets(), tanpa grafik).
+        $this->assertStringContainsString('Tiket yang dibuat saya', $html);
+        $this->assertStringContainsString('Tiket yang harus saya kerjakan', $html);
+        $this->assertStringContainsString('Tiket unit saya yang harus saya validasi', $html);
     }
 
     public function testPublicDashboardHasNoChartButKeepsRangeSelector(): void
@@ -196,19 +199,19 @@ final class DashboardChartRemovalTest extends CIUnitTestCase
 
         $this->assertTrue(
             $notFound,
-            '/dashboard/tugas harus tidak ditemukan — fiturnya sudah pindah ke /dashboard-saya'
+            '/dashboard/tugas harus tidak ditemukan — fiturnya sudah pindah ke /index'
         );
     }
 
     /**
-     * Bagian Executor pindah ke /dashboard-saya, jadi tugasData() harus
+     * Bagian Executor pindah ke /index, jadi tugasData() harus
      * tetap tersedia untuk controller itu.
      */
     public function testTugasDataStillAvailableForDashboardSaya(): void
     {
         $data = (new DashboardService())->tugasData(env('ROLE_ADMIN'));
 
-        foreach (['title', 'total', 'tugas', 'proses', 'selesai', 'reject'] as $key) {
+        foreach (['title', 'total', 'tugas', 'dikerjakan', 'dalamAntrian', 'selesai'] as $key) {
             $this->assertArrayHasKey($key, $data, "Kunci '{$key}' dari tugasData() harus tetap ada");
         }
 

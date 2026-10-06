@@ -10918,6 +10918,34 @@ body {
 .sb-nav-fixed .sb-topnav {
   z-index: 1039;
 }
+
+/*
+ * Baris tindakan tiket.
+ *
+ * Di_e-tiket.php dan allticket.php baris ini dibuat sticky supaya tombol
+ * aksi utama (Validasi / Kerjakan / Teruskan) tetap terjangkau tanpa harus
+ * menggulir ke atas -- terutama di halaman yang memuat daftar tiket lengkap
+ * untuk navigasi Before/After. Topnav SB Admin Fix 56px (lihat .sb-topnav),
+ * jadi 3.5rem = 56px tepat di bawahnya; z-index di bawah .sb-topnav (1039)
+ * supaya baris ini tidak menutupi topbar saat halaman digulir.
+ */
+.baris-tindakan {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 1030;
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0;
+}
+
+/* Thumbnail lampiran di riwayat proses. Tanpa ini gambar memakai
+ * .img-fluid sehingga setinggi mungkin isinya dan tiap entri riwayat
+ * membentang jauh melewati modal. */
+.riwayat-lampiran {
+  max-height: 120px;
+  max-width: 100%;
+  object-fit: cover;
+}
 .sb-nav-fixed #layoutSidenav #layoutSidenav_nav {
   width: 225px;
   height: 100vh;
@@ -10961,6 +10989,123 @@ body {
   height: 56px;
   z-index: 1039;
 }
+
+/*
+ * Nama + jabatan pada toggle user di topbar.
+ *
+ * .sb-topnav dikunci 56px, jadi dua baris teks harus muat di dalamnya --
+ * karena itu lh-sm pada pembungkus dan ukuran kecil untuk baris jabatan.
+ * Batas lebar mencegah nama panjang mendorong tombol notif dan ikon audio
+ * ke luar layar; teks penuhnya tetap ada di dalam dropdown.
+ */
+
+/*
+ * Toggle user di topbar: avatar + nama + jabatan.
+ *
+ * Semua aturan di bawah memakai prefiks .sb-topnav .navbar-user* dan TIDAK
+ * menyentuh .nav-link, .dropdown-toggle, atau .nav-item. Aturan-aturan itu
+ * dipakai bersama dengan sidenav dan halaman lain, jadi mengubahnya akan
+ * efek samping ke seluruh aplikasi.
+ *
+ * .navbar-user-inner itu wajib, bukan hiasan: .nav-link adalah display:block,
+ * sehingga isinya tadinya avatar inline-flex bersebelahan dengan span d-block.
+ * Inline di samping block membuat avatar melayang di baris pertama dan teks
+ * terdorong ke baris bawah -- bukan dua kolom yang sejajar.
+ *
+ * align-items:center pada wrapper itulah yang menempatkan avatar di tengah
+ * antara nama dan jabatan.
+ *
+ * Jarak avatar-ke-teks diambil dari gap, bukan utility ms-2, supaya avatar
+ * ikut ter-center vertikal (utility margin akan menggesernya ke bawah
+ * setengah line-height). Karena itu ms-2 dan lh-sm dihapus dari markup.
+ *
+ * Aturan display:flex TIDAK diberi flex-direction:row-reverse. Urutan
+ * nama-kiri / avatar-kanan ditulis di markup, bukan dibalik lewat CSS, agar
+ * urutan DOM sama dengan urutan visual untuk screen reader.
+ */
+.sb-topnav .navbar-user-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sb-topnav .navbar-user-teks {
+  /* min-width:0 WAJIB di dalam flex: tanpa itu flex item punya
+     min-width:auto sehingga menolak menyusut, dan text-overflow pun tidak
+     pernah aktif -- nama panjang akan tetap mendorong layout. */
+  min-width: 0;
+  line-height: 1.2;
+}
+
+/*
+ * Panah dropdown.
+ *
+ * disembunyikan, bukan diperbaiki posisinya. Karena avatar ada di kanan,
+ * panah ::after -- yang selalu dirender sebagai anak terakhir <a> -- akan
+ * mendarat DI LUAR avatar, paling kanan, dan terlihat seperti elemen ketiga
+ * yang tidak sengaja muncul. Lingkaran 32px plus cursor:pointer sudah cukup
+ * menandakan bahwa ini kontrol dropdown.
+ *
+ * Selector diturunkan ke .navbar-user, jadi .dropdown-toggle global tetap
+ * utuh untuk dropdown lain di sidenav dan form.
+ *
+ * display:none -- bukan visibility:hidden atau opacity:0 -- supaya panah
+ * benar-benar hilang dari flow, tidak menyisakan ruang kosong 0.3em di
+ * kanan toggle.
+ */
+.sb-topnav .navbar-user.dropdown-toggle::after {
+  display: none;
+}
+
+/*
+ * Avatar inisial.
+ *
+ * 32px dipilih supaya muat di topbar 56px tanpa meluber -- tidak seperti
+ * nama/jabatan yang harus disembunyikan di layar kecil. Kalau 32px terasa
+ * besar, turunkan ke 28px; jangan perkecil nama, itu informasi utamanya.
+ *
+ * Teks di dalam avatar dikecilkan karena dua huruf harus muat di lingkaran
+ * tanpa menyentuh tepi.
+ */
+.sb-topnav .navbar-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+  user-select: none;
+  /* Garis tipis di sekeliling lingkaran supaya avatar berwarna tetap terlihat
+   * terpisah dari topbar gelap, termasuk untuk warna bg-secondary yang paling
+   * mirip dengan latar. */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.sb-topnav .navbar-user-nama {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-topnav .navbar-user-jabatan {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  opacity: 0.75;
+}
+
 .sb-topnav .navbar-brand {
   width: 225px;
   margin: 0;

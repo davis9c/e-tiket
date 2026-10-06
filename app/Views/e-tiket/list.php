@@ -14,11 +14,26 @@ if (! is_array($sumberAktif)) {
 // Hanya /etiket yang punya filter sumber. Di /allticket cakupannya sudah
 // 'all', jadi dropdown-nya tidak akan mengubah hasil.
 $adaFilterSumber = ! empty($data['sumberFilter']);
+
+/*
+ * DAFTAR TETAP TERBUKA
+ *
+ * Tabel dibiarkan terbuka juga di halaman per-tiket, bukan disembunyikan di
+ * balik toggle: justru di situ navigasi antar tiket dilakukan, dan baris yang
+ * sedang dibaca ditandai dengan table-active. Menutup-tutup tabel hanya
+ * menambah satu klik sebelum hal yang paling sering dipakai.
+ *
+ * Konsekuensinya simple-datatables mengukur lebar tabelnya dengan benar --
+ * tidak perlu pemicu resize seperti ketika tabelnya berawanan display:none.
+ */
+
+$jumlahTiket = count($data['eticket'] ?? []);
 ?>
 <div class="card shadow-sm mb-4">
     <div class="card-header">
         <i class="fas fa-table me-1"></i>
         Daftar E-Tiket
+        <span class="badge bg-secondary ms-1"><?= $jumlahTiket ?></span>
     </div>
     <div class="card-body">
         <form id="formCariKategori" class="d-flex flex-wrap gap-2 align-items-center mb-4">
@@ -42,14 +57,22 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
             <?php if ($adaFilterSumber): ?>
                 <?php
                 // SUMBER tiket. Default (kosong) = semua sumber, yaitu gabungan
-                // tiket milik sendiri, tiket yang ditugaskan ke unit saya, dan
-                // tiket yang diajukan unit saya. Ini yang dulu terpisah jadi
-                // tiga halaman /etiket, /pelaksana, dan /headsection.
+                // tiket milik sendiri dan tiket yang ditugaskan ke unit saya.
+                // Ini yang dulu terpisah jadi tiga halaman /etiket,
+                // /pelaksana, dan /headsection.
                 //
-                // Di /allticket dropdown ini sengaja tidak dirender: halaman itu
-                // cakupannya sudah 'all', jadi memilih sumber tidak akan
-                // mengubah hasil. Tombol "Buat Tiket" yang jadi pembeda dua
-                // halaman itu dipindah ke sana (lihat allticket.php).
+                // Opsi "Persetujuan Unit" DIHAPUS dari sini. Tiket yang
+                // diajukan unit user hanya boleh dilihat user yang berhak
+                // menyetujui, lewat route /headsection yang digate filter
+                // 'roleheadsection'. Mempertahankannya di dropdown hanya
+                // memberi jalan untuk melewati gating itu -- dan user biasa
+                // yang mengetik ?sumber=headsection akan melihat tiket
+                // tetangganya lagi, persis seperti keluhan yang sudah
+                // dilaporkan.
+                //
+                // Di /allticket dan /headsection dropdown ini sengaja tidak
+                // dirender: cakupannya sudah ditentukan, jadi memilih sumber
+                // tidak akan mengubah hasil.
                 //
                 // Whitelist + default-nya di ETicket2::parseSumber(); daftar
                 // nilai sahnya di ETicketModel::SUMBER_DEFAULT.
@@ -59,8 +82,14 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                     ''             => 'Semua Sumber',
                     'saya'         => 'Tiket Saya',
                     'pelaksana'    => 'Pelaksana',
-                    'headsection'  => 'Persetujuan Unit',
                 ];
+
+                // ?headsection=1 mempersempit ke kategori yang WAJIB
+                // disetujui. Opsi ini dipakai kartu dashboard kelompok 3
+                // supaya angka kartu sama dengan isi halaman tujuan --
+                // tanpa filter itu, kartu menghitung antrean approval
+                // sementara halamannya menampilkan semua tiket unit.
+                $headsectionSelected = service('request')->getGet('headsection');
                 ?>
                 <select name="sumber" id="selectSumber" class="form-select w-auto mw-100"
                     title="Sumber tiket. Kosong = gabungan semua sumber.">
@@ -71,6 +100,9 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <?php if ($headsectionSelected === '1'): ?>
+                    <input type="hidden" name="headsection" value="1">
+                <?php endif; ?>
             <?php endif; ?>
             <?php
             $validSelected = service('request')->getGet('valid');
@@ -90,9 +122,12 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                 </option>
             </select>
             <?php
-            // Status dihitung di PHP dari valid_nama / reject_nama / proses
-            // per unit, jadi tidak bisa difilter lewat kolom message_akhir
-            // seperti ?selesai. Nilainya divalidasi di parseTicketFilters().
+            // Status dihitung di PHP dari message_akhir / valid_nama / handler
+            // (lihat ETicketModel::hitungStatus), jadi tidak bisa jadi
+            // WHERE clause. Nilai 'proses' yang lama tetap diterima
+            // sebagai alias gabungan "Dalam Antrian" + "Dikerjakan",
+            // tapi tidak ditawarkan di dropdown karena bukan satu
+            // kondisi tunggal. Semuanya divalidasi di parseTicketFilters().
             $statusSelected = service('request')->getGet('status');
             ?>
             <select name="status" id="selectStatus" class="form-select w-auto mw-100">
@@ -102,19 +137,19 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                 </option>
                 <option value="belum_valid"
                     <?= ($statusSelected === 'belum_valid') ? 'selected' : '' ?>>
-                    Menunggu Persetujuan
+                    Menunggu Validasi
                 </option>
-                <option value="proses"
-                    <?= ($statusSelected === 'proses') ? 'selected' : '' ?>>
-                    Proses
+                <option value="dalam_antrian"
+                    <?= ($statusSelected === 'dalam_antrian') ? 'selected' : '' ?>>
+                    Dalam Antrian
+                </option>
+                <option value="dikerjakan"
+                    <?= ($statusSelected === 'dikerjakan') ? 'selected' : '' ?>>
+                    Dikerjakan
                 </option>
                 <option value="selesai"
                     <?= ($statusSelected === 'selesai') ? 'selected' : '' ?>>
                     Selesai
-                </option>
-                <option value="reject"
-                    <?= ($statusSelected === 'reject') ? 'selected' : '' ?>>
-                    Ditolak
                 </option>
             </select>
             <select class="form-select w-auto mw-100" id="selectKategori" name="kategori">
@@ -132,22 +167,23 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                 <?php endif; ?>
             </select>
             <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-1"></i>
                 Cari
             </button>
         </form>
-        <table class="table table-bordered table-striped datatable" style="min-width: 900px">
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Kategori</th>
-                    <th>Petugas</th>
-                    <th>Deskripsi</th>
-                    <th>Dibuat</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped datatable align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 48px;">No</th>
+                        <th style="width: 20%;">Kategori</th>
+                        <th style="width: 16%;">Petugas</th>
+                        <th>Deskripsi</th>
+                        <th style="width: 140px;">Dibuat</th>
+                        <th style="width: 22%;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
                 <?php
     // Satu tiket bisa masuk dari lebih dari satu sumber (mis. saya yang
     // mengajukan sekaligus unit saya yang ditugaskan), jadi badge
@@ -169,14 +205,20 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
 
         return $badge;
     };
+
+    // Baris yang sedang dibuka ditandai, bukan hanya dengan badge kategori:
+    // dari daftar sajaticket mana yang aktif tidak selalu jelas, apalagi
+    // kalau kategorinya sama dengan beberapa baris lain.
+    $idDetail = (int) ($data['detailTicket']['id'] ?? 0);
     ?>
     <?php foreach ($data['eticket'] as $index => $p): ?>
-                    <tr>
-                        <td><?= $index + 1 ?></td>
+                    <?php $iniDetail = $idDetail === (int) $p['id']; ?>
+                    <tr class="<?= $iniDetail ? 'table-active' : '' ?>">
+                        <td class="text-muted"><?= $index + 1 ?></td>
                         <td>
-                            <?php if (((int)($data['detailTicket']['id'] ?? 0) === (int)$p['id'])): ?>
+                            <?php if ($iniDetail): ?>
                                 <span class="badge bg-primary">
-                                    <?= esc($p['nama_kategori']) ?>
+                                    <i class="fas fa-eye me-1"></i><?= esc($p['nama_kategori']) ?>
                                 </span>
                             <?php else: ?>
                                 <a href="<?= site_url(service('uri')->getSegment(1) . '/' . $p['hashid']) . ($queryString ? '?' . $queryString : '') ?>">
@@ -206,42 +248,48 @@ $adaFilterSumber = ! empty($data['sumberFilter']);
                         </td>
                         <!-- STATUS -->
                         <td>
-                            <?php if (($p['status'] ?? '') === 'reject'): ?>
+                            <?php
+                            // Badge dibaca dari kolom status yang sudah
+                            // dinormalisasi model, bukan dari urutan
+                            // if-else atas kolom mentah. Kalau join ke
+                            // tb_e_ticket_proses tidak menghasilkan baris,
+                            // message_akhir tetap terisi dan tiketnya
+                            // memang selesai -- dulu kondisi itu salah
+                            // tampil sebagai "Dalam antrian".
+                            switch ($p['status'] ?? null) {
+                                case 'selesai':
+                                    $badgeClass = 'bg-primary';
+                                    $badgeText  = 'Diselesaikan'
+                                        . (! empty($p['respon_message_id_petugas_nama'])
+                                            ? ' ' . $p['respon_message_id_petugas_nama']
+                                            : '');
+                                    break;
 
-                                <span class="badge bg-danger">
-                                    Ditolak<?= ! empty($p['reject_nama']) ? ' ' . esc($p['reject_nama']) : '' ?>
-                                </span>
+                                case 'dikerjakan':
+                                    $badgeClass = 'bg-warning';
+                                    $badgeText  = 'Dikerjakan'
+                                        . (! empty($p['handler_nama']) ? ' ' . $p['handler_nama'] : '');
+                                    break;
 
-                            <?php elseif ($p['valid_nama'] == null): ?>
+                                case 'dalam_antrian':
+                                    $badgeClass = 'bg-secondary';
+                                    $badgeText  = 'Dalam antrian';
+                                    break;
 
-                                <span class="badge bg-secondary">
-                                    Menunggu Persetujuan
-                                </span>
-
-                            <?php elseif ($p['respon_message_id_petugas_nama'] != null): ?>
-
-                                <span class="badge bg-primary">
-                                    Diselesaikan <?= esc($p['respon_message_id_petugas_nama']) ?>
-                                </span>
-
-                            <?php elseif ($p['handler_nama'] != null): ?>
-
-                                <span class="badge bg-warning">
-                                    Dikerjakan <?= esc($p['handler_nama']) ?>
-                                </span>
-
-                            <?php else: ?>
-
-                                <span class="badge bg-secondary">
-                                    Dalam antrian
-                                </span>
-
-                            <?php endif; ?>
-
+                                default: // belum_valid
+                                    $badgeClass = 'bg-secondary';
+                                    $badgeText  = 'Menunggu Validasi';
+                                    break;
+                            }
+                            ?>
+                            <span class="badge <?= esc($badgeClass) ?>">
+                                <?= esc($badgeText) ?>
+                            </span>
                         </td>
                     </tr>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

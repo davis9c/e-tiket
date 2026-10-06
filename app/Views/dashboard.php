@@ -124,7 +124,8 @@
             $cards = [
                 ['title' => 'Total', 'value' => $total, 'color' => 'primary'],
                 ['title' => 'Belum Valid', 'value' => $belumValid, 'color' => 'secondary'],
-                ['title' => 'Proses', 'value' => $proses, 'color' => 'warning'],
+                ['title' => 'Dalam Antrian', 'value' => $dalamAntrian, 'color' => 'info'],
+                ['title' => 'Dikerjakan', 'value' => $dikerjakan, 'color' => 'warning'],
                 ['title' => 'Selesai', 'value' => $selesai, 'color' => 'success'],
             ];
             foreach ($cards as $c):

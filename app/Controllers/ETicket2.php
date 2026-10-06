@@ -69,45 +69,66 @@ class ETicket2 extends BaseController
      * Satu method untuk semua role, jadi tidak ada lagi logika
      * penentuan role yang tersebar di banyak tempat.
      */
-    public function dashboard()
+    /**
+ * Halaman dashboard -- SATU-SATUNYA route yang merendernya.
+ *
+ * Dulu ada empat URL yang semuanya memanggil dashboard(): /, /index,
+ * /dashboard-saya, dan /dashboard/user. Dua terakhir sekarang dihapus, dan
+ * akar situs / diarahkan ke /index lewat akar().
+ *
+ * /dashboard/user punya satu perbedaan yang tidak disengaja: controller
+ * Dashboard tidak memanggil checkToken() di constructor-nya, jadi halaman
+ * itu tetap terbuka untuk sesi yang tokennya sudah kedaluwarsa. Di sini
+ * checkToken() tetap berjalan (dipanggil di constructor), jadi jalur
+ * tersebut ikut tertutup.
+ */
+public function index()
     {
         $userData = $this->userData;
 
-        // Headsection
-        // Cek session dulu (murah). Kalau kosong, tanya DB supaya
-        // perubahan status headsection langsung tercermin tanpa login ulang.
-        $isHeadsection = ! empty($userData['headsection']);
+        // Antrean persetujuan hanya relevan -- dan hanya bisa dikerjakan
+        // -- oleh headsection atau admin. Aturannya di trait HakValidasi,
+        // sama yang dipakai filter Headsection dan tangible(), supaya
+        // tiga tempat ini tidak bisa berbeda.
+        $isValidasi = $this->bolehValidasi();
 
-        if (! $isHeadsection && ! empty($userData['nip'])) {
-            $isHeadsection = (bool) $this->usersModel
-                ->getHeadSectionByNip($userData['nip']);
-        }
-
-        // Semua role memakai dashboard yang sama. Yang berperan headsection
-        // mendapat dua section tambahan di bawah.
+        // Tiga kelompok kartu, masing-masing satu query. Kunci di luar diberi
+        // nama eksplisit supaya tidak bentrok dengan isi tiap kelompok.
         //
-        // Data executor disimpan di key 'executor' supaya tidak
-        // bentrok dengan key milik "Tiket Saya" (total, proses, selesai).
-        $data = $this->dashboardService
-            ->userData($userData['kd_jabatan'], $userData['nip']);
+        // 'title' wajib diisi: layout-dashboard memakainya untuk <title>
+        // dan tidak punya nilai bawaan.
+        $data = ['title' => 'Dashboard Saya', 'isValidasi' => $isValidasi];
+
+        $data['milikSaya'] = $this->dashboardService
+            ->tiketMilikSayaData($userData['kd_jabatan'], $userData['nip'], $userData['kd_pegawai']);
 
         $data['executor'] = $this->dashboardService
             ->tugasData($userData['kd_jabatan']);
 
-        $data['perluValidasi'] = $this->dashboardService
-            ->perluValidasiData($userData['kd_jabatan'], $userData['nip']);
-
-        if ($isHeadsection) {
-            $data['sedangDisetujui'] = $this->dashboardService
-                ->sedangDisetujuiData($userData['kd_jabatan'], $userData['nip']);
-        }
+        // Query antrean persetujuan HANYA untuk yang berhak. User biasa
+        // tidak akan melihat kelompok ini, jadi tidak perlu query.
+        $data['validasi'] = $isValidasi
+            ? $this->dashboardService->validasiData(
+                $userData['kd_jabatan'],
+                $userData['nip'],
+                $userData['kd_pegawai']
+            )
+            : null;
 
         return view('dashboard/user', $data);
     }
 
-    public function index()
+    /**
+     * / (akar situs) -> /index.
+     *
+     * Dipisah dari index() supaya akar situs tidak punya handler dashboard
+     * sendiri, tapi URL-nya tetap hidup: brand "E-Tiket" di navbar-top
+     * menautkan ke base_url() yang berarti /, dan orang biasanya mengetik
+     * domain saja. Redirect, bukan 404.
+     */
+    public function akar()
     {
-        return $this->dashboard();
+        return redirect()->to(base_url('index'));
     }
     public function baru()
     {
@@ -200,7 +221,7 @@ class ETicket2 extends BaseController
         return $this->renderTicketList(
             'e-tiket',
             function ($filters, $userData, $id) use ($kdJbtn, $nip) {
-                return $this->eticketModel->getTickets($filters['sumber'], $kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori']);
+                return $this->eticketModel->getTickets($filters['sumber'], $kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori'], $filters['headsection'], $userData['kd_pegawai'] ?? null);
             },
             $hashid,
             $userData['kd_jabatan'],
@@ -218,18 +239,59 @@ class ETicket2 extends BaseController
     }
 
     /**
-     * URL lama /headsection -> /etiket?sumber=headsection
+     * Halaman persetujuan headsection.
      *
-     * Catatan: filter 'roleheadsection' tidak lagi dipakai untuk halaman
-     * daftar. Data sumber 'headsection' hanyalah "tiket yang diajukan
-     * oleh unit saya", jadi memang wajar dilihat anggota unit mana pun --
-     * dan sudah ikut terlihat di /etiket tanpa filter sumber.
-     * Yang tetap dilindungi adalah aksi menyetujui, yaitu route POST
-     * headsection/headsection_approve (lihat Config/Routes.php).
+     * Ini satu-satunya pintu ke tiket milik orang lain, jadi route-nya
+     * digate di Config/Routes.php dengan filter 'roleheadsection' --
+     * yang aturannya diambil dari trait HakValidasi, sama dengan filter
+     * POST headsection/headsection_approve dan dengan dashboard.
+     *
+     * Scope-nya DIPAKSA di dalam fetcher, bukan diambil dari ?sumber=.
+     * Dua alasannya:
+     *   - halaman ini cakupannya memang sudah pasti, jadi query string
+     *     tidak boleh bisa melebarinya (?sumber= saya,dsb.);
+     *   - detailTerlihat() memanggil fetcher yang sama untuk mengecek
+     *     otorisasi detail, jadi keduanya tidak mungkin berbeda.
+     *
+     * Tanpa filter ?headsection=1, halaman ini menampilkan SEMUA tiket
+     * yang diajukan unit user (kecuali miliknya sendiri). Kartu
+     * kelompok 3 di dashboard memakai filter tersebut, jadi link kartunya
+     * selalu membawa ?headsection=1 -- supaya angka di kartu selalu
+     * sama dengan isi halaman tujuan.
      */
     public function headsection($hashid = null)
     {
-        return $this->redirectKeEticket('headsection', $hashid);
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $userData = $this->userData;
+        $nip      = $userData['nip'];
+        if (!$nip) {
+            return redirect()->to('/login')->with('error', 'Session expired');
+        }
+
+        $kdJbtn = $userData['kd_jabatan'];
+
+        return $this->renderTicketList(
+            'e-tiket',
+            function ($filters, $u, $id) use ($kdJbtn, $nip, $userData) {
+                return $this->eticketModel->getTickets(
+                    ['headsection'],
+                    $kdJbtn,
+                    $nip,
+                    $filters['valid'],
+                    $filters['selesai'],
+                    $filters['kategori'],
+                    $filters['headsection'],
+                    $userData['kd_pegawai'] ?? null
+                );
+            },
+            $hashid,
+            $kdJbtn,
+            'Persetujuan Headsection',
+            false
+        );
     }
 
     /**
@@ -367,6 +429,7 @@ class ETicket2 extends BaseController
             'valid' => $this->getQueryInt('valid'),
             'status' => $this->getQueryStatus(),
             'sumber' => $this->parseSumber(),
+            'headsection' => $this->getQueryInt('headsection'),
         ];
     }
 
@@ -406,11 +469,21 @@ class ETicket2 extends BaseController
 
     /**
      * Nilai status yang sah. Status tiket dihitung di PHP dari
-     * valid_nama / reject_nama / proses per unit, jadi whitelist ini
+     * message_akhir / valid_nama / handler, jadi whitelist ini
      * sekaligus menjadi penjaga: query string bebas tidak boleh
      * diteruskan mentah ke filter.
      */
-    private const STATUS_LIST = ['belum_valid', 'proses', 'selesai', 'reject'];
+    private const STATUS_LIST = ['belum_valid', 'dalam_antrian', 'dikerjakan', 'selesai'];
+
+    /**
+     * Nilai lama 'proses' dipecah jadi dua status. Tetap diterima supaya
+     * bookmark dan tautan lama yang memakai ?status=proses tetap
+     * menampilkan tiket yang sebelumnya (yaitu yang sedang dikerjakan
+     * DAN yang masih dalam antrian).
+     */
+    private const STATUS_ALIAS = [
+        'proses' => ['dikerjakan', 'dalam_antrian'],
+    ];
 
     private function getQueryStatus(): ?string
     {
@@ -422,28 +495,54 @@ class ETicket2 extends BaseController
 
         $value = trim($value);
 
-        return in_array($value, self::STATUS_LIST, true) ? $value : null;
+        if (in_array($value, self::STATUS_LIST, true)) {
+            return $value;
+        }
+
+        // Alias: nilai string-nya diteruskan apa adanya supaya query
+        // string tidak berubah bentuk saat filter dirender ulang.
+        return isset(self::STATUS_ALIAS[$value]) ? $value : null;
+    }
+
+    /**
+     * Terjemahkan ?status= menjadi daftar status yang harus lolos.
+     *
+     * Alias dipecah di sini, bukan di getQueryStatus(), supaya nilainya
+     * yang dikembalikan tetap satu string untuk dipakai ulang di query
+     * string dan dropdown.
+     *
+     * @return string[] kosong = tidak ada filter status
+     */
+    private function expandStatus(?string $status): array
+    {
+        if ($status === null) {
+            return [];
+        }
+
+        return self::STATUS_ALIAS[$status] ?? [$status];
     }
 
     /**
      * Filter status tidak bisa jadi WHERE clause karena status dihitung
-     * setelah query (lihat attachProsesToRows). Jadi disaring di PHP.
+     * setelah query (lihat hitungStatus). Jadi disaring di PHP.
      *
      * Aman karena halaman daftar mengambil seluruh baris lalu paginasi di
      * sisi klien — tidak ada LIMIT yang terpotong sebelum filter ini.
      *
      * Dipakai juga oleh card dashboard supaya angka pada card sama dengan
      * jumlah baris di halaman tujuan.
+     *
+     * @param string[] $status daftar status hasil expandStatus()
      */
-    private function filterByStatus(array $tickets, ?string $status): array
+    private function filterByStatus(array $tickets, array $status): array
     {
-        if ($status === null) {
+        if ($status === []) {
             return $tickets;
         }
 
         return array_values(array_filter(
             $tickets,
-            static fn ($row) => ($row['status'] ?? null) === $status
+            static fn ($row) => in_array($row['status'] ?? null, $status, true)
         ));
     }
 
@@ -471,8 +570,20 @@ class ETicket2 extends BaseController
 
         $tickets = $fetcher($filters, $userData, $id);
 
+        // OTORISASI DETAIL.
+        //
+        // Diletakkan sebelum filterByStatus dan sebelum detailnya
+        // dimuat: tanpa ini, siapa pun yang sudah login bisa mengetik
+        // /etiket/<hashid> tiket orang lain dan membaca detail lengkapnya
+        // (isi, proses, lampiran, form tindakan) -- daftar yang dibatasi
+        // scope jadi tidak berguna: cukup satu hashid untuk membukanya.
+        if ($id !== null && ! $this->detailTerlihat($id, $tickets, $fetcher, $filters, $userData)) {
+            return redirect()->to(base_url('etiket'))
+                ->with('error', 'Tiket tidak ditemukan.');
+        }
+
         // Diletakkan setelah query karena status bukan kolom di database.
-        $tickets = $this->filterByStatus($tickets, $filters['status']);
+        $tickets = $this->filterByStatus($tickets, $this->expandStatus($filters['status']));
 
         $detail = null;
         $tindakan = null;
@@ -511,10 +622,22 @@ class ETicket2 extends BaseController
         ]);
     }
 
+    /**
+     * Report printable dari satu tiket.
+     *
+     * Otentikasi sama seperti halaman daftar: tiket harus ada di daftar
+     * yang scope user ini boleh lihat. Kalau tidak, report akan jadi
+     * pintu masuk kedua untuk membuka detail yang sudah ditutup di
+     * /etiket.
+     */
     public function report($hashid = null)
     {
         $id = $this->decodeHashId($hashid);
         if (!$id) {
+            return redirect()->to('/etiket')->with('error', 'Tiket tidak ditemukan.');
+        }
+
+        if (! $this->detailTerlihat($id, [], $this->reportFetcher(), $this->parseTicketFilters(), $this->userData)) {
             return redirect()->to('/etiket')->with('error', 'Tiket tidak ditemukan.');
         }
 
@@ -529,6 +652,77 @@ class ETicket2 extends BaseController
             'detailTicket' => $detail,
             'timeline_status' => $detailData['timeline'],
         ]);
+    }
+
+    /**
+     * Scope daftar untuk halaman report.
+     *
+     * Sama seperti /etiket: tiket milik sendiri, yang ditugaskan ke unit
+     * user, dan yang diajukan unit user. Report tidak punya filter
+     * tampilan sendiri, jadi cukup scope.
+     */
+    private function reportFetcher(): callable
+    {
+        $userData = $this->userData;
+
+        return function (array $filters, array $uData, $id) use ($userData) {
+            return $this->eticketModel->getTickets(
+                $filters['sumber'],
+                $userData['kd_jabatan'],
+                $userData['nip'],
+                null,
+                null,
+                null,
+                null,
+                $userData['kd_pegawai'] ?? null
+            );
+        };
+    }
+
+    /**
+     * Apakah tiket $id boleh dibuka user ini?
+     *
+     * Yang menentukan adalah SCOPE, bukan filter tampilan. ?kategori,
+     * ?status, ?valid, ?selesai, ?headsection cuma opsi tampil; kalau ikut
+     * dipakai di sini, bookmark seperti /etiket/abc?status=selesai akan
+     * menggagalkan dibuka begitu status tiketnya berubah.
+     *
+     * Dua tahap supaya halaman daftar tanpa detail tidak menambah query:
+     *
+     *   1. Cepat  -- id ada di hasil query yang sudah dijalankan.
+     *   2. Pelan  -- kalau tidak, query ulang dengan filter scope-only.
+     *                Hanya terjadi pada kasus langka: user membuka URL
+     *                detail sambil filter tampilan aktif yang menyingkirkan
+     *                tiket itu.
+     *
+     * Admin tidak dikecualikan secara khusus: scope-nya sudah 'all',
+     * jadi semua tiket otomatis lolos di tahap 1.
+     *
+     * @param callable $fetcher closure pengambil daftar, signature-nya
+     *                          sama dengan yang dipakai renderTicketList()
+     */
+    private function detailTerlihat(int $id, array $tickets, callable $fetcher, array $filters, array $userData): bool
+    {
+        // Tahap 1: sudah ada di daftar yang fetched.
+        foreach ($tickets as $t) {
+            if ((int) ($t['id'] ?? 0) === $id) {
+                return true;
+            }
+        }
+
+        // Tahap 2: cek ulang dengan SCOPE saja.
+        $scopeOnly = $filters;
+        foreach (['valid', 'selesai', 'kategori', 'headsection', 'status'] as $kunci) {
+            $scopeOnly[$kunci] = null;
+        }
+
+        foreach ($fetcher($scopeOnly, $userData, null) as $t) {
+            if ((int) ($t['id'] ?? 0) === $id) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function prepareTicketDetail(?int $id): array
@@ -580,12 +774,10 @@ class ETicket2 extends BaseController
             'message_catatan' => isset($t['message_catatan']) ? trim(strip_tags($t['message_catatan'])) : (isset($t['message']) ? trim(strip_tags($t['message'])) : null),
             'created_at' => $t['created_at'] ?? null,
             'valid_nama' => $t['valid_nama'] ?? null,
-            'selesai_nama' => $t['selesai_nama'] ?? null,
-            'reject_nama' => $t['reject_nama'] ?? null,
-            // status sudah dinormalisasi model (reject/belum_valid/
-            // proses/selesai) di ETicketModel::attachProsesToRows().
-            // perlu diteruskan supaya view bisa membedakan tiket yang
-            // ditolak dari tiket yang cuma belum diproses.
+            // Kolom status sudah dinormalisasi model (belum_valid /
+            // dalam_antrian / dikerjakan / selesai) di
+            // ETicketModel::hitungStatus(). View membacanya untuk badge
+            // kolom Status, jadi tidak perlu menebak dari kolom mentah.
             'status' => $t['status'] ?? null,
             'handler_nama' => $t['handler_nama'] ?? null,
             'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
@@ -607,7 +799,13 @@ class ETicket2 extends BaseController
             'id' => $t['id'] ?? null,
             'hashid' => $t['hashid'] ?? ($t['id'] ? $this->hashIdService->encode($t['id']) : null),
             'kode_ticket' => $t['kode_ticket'] ?? null,
+            // Judul tiket (kolom e_ticket.judul) dipakai sebagai heading
+            // halaman detail. Sebelumnya tidak pernah dirender, jadi
+            // halaman per-tiket tidak punya judul yang bisa dibaca -- cuma
+            // kata "E-Tiket" dan hashid.
+            'judul' => $t['judul'] ?? null,
             'created_at' => $t['created_at'] ?? null,
+            'updated_at' => $t['updated_at'] ?? null,
             'kode_kategori' => $t['kode_kategori'] ?? null,
             'nama_kategori' => $t['nama_kategori'] ?? null,
             'petugas_id_nama' => $t['petugas_id_nama'] ?? null,
@@ -617,12 +815,50 @@ class ETicket2 extends BaseController
             'valid_nama' => $t['valid_nama'] ?? null,
             'selesai_nama' => $t['selesai_nama'] ?? null,
             'deskripsi' => $t['deskripsi'] ?? null,
-            'message_catatan' => isset($t['message_catatan']) ? $t['message_catatan'] : (isset($t['message']) ? $t['message'] : null),
+            // Status + handler sudah dinormalisasi model (lihat
+            // ETicketModel::hitungStatus), sama seperti pada ringkasan
+            // daftar. View memakai pemetaan badge yang sama persis supaya
+            // badge di header detail tidak berbeda dari baris di tabel.
+            'status' => $t['status'] ?? null,
+            'handler' => $t['handler'] ?? null,
+            'handler_nama' => $t['handler_nama'] ?? null,
+            // Pesan AWAL. Field message_* ini berasal dari join ke baris
+            // tb_e_ticket_proses yang ditunjuk e.message_awal -- SUDAH
+            // dipilih findOneLengkap(), tapi dulu dibuang whitelist ini,
+            // padahal view memakainya. Akibatnya nama pengaju di modal
+            // "Detail" jatuh ke kolom tiket, dan lampiran permintaan tidak
+            // pernah tampil sama sekali.
+            //
+            // message_id = id baris proses itu juga (alias dari join), bukan
+            // teks message_awal. Dipakai view untuk mengenali baris mana di
+            // riwayat proses yang ISINYA permintaan, supaya tidak ikut
+            // ditampilkan dua kali.
             'message' => $t['message'] ?? null,
             'message_awal' => $t['message_awal'] ?? null,
+            'message_id' => $t['message_id'] ?? null,
+            'message_catatan' => isset($t['message_catatan']) ? $t['message_catatan'] : (isset($t['message']) ? $t['message'] : null),
+            'message_lampiran' => $t['message_lampiran'] ?? null,
+            'message_nm_jbtn' => $t['message_nm_jbtn'] ?? null,
+            // Dipakai view untuk menampilkan kode unit di sebelah namanya.
+            // Tanpa ini, view diam-diam tidak menampilkan kode, karena
+            // !empty() selalu salah untuk key yang tidak diteruskan.
+            'message_kd_jbtn' => $t['message_kd_jbtn'] ?? null,
+            'message_id_petugas_nama' => $t['message_id_petugas_nama'] ?? null,
+            'message_created_at' => $t['message_created_at'] ?? null,
+            // Pesan AKHIR / jawaban. Dulu id dan lampirannya ikut terbuang,
+            // jadi modal "Keputusan Final" tidak pernah menampilkan
+            // lampiran jawaban meski datanya sudah ada di query.
+            'respon_message_id' => $t['respon_message_id'] ?? null,
             'respon_message_catatan' => $t['respon_message_catatan'] ?? null,
+            'respon_message_lampiran' => $t['respon_message_lampiran'] ?? null,
+            'respon_message_nm_jbtn' => $t['respon_message_nm_jbtn'] ?? null,
+            'respon_message_kd_jbtn' => $t['respon_message_kd_jbtn'] ?? null,
             'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
+            'respon_message_created_at' => $t['respon_message_created_at'] ?? null,
             'kategori_id' => $t['kategori_id'] ?? null,
+            // is_proses per unit ikut diteruskan oleh
+            // mapUnitWithJabatan() supaya view bisa menandai unit mana
+            // yang sudah memproses tiket ini.
             'unit_penanggung_jawab' => $t['unit_penanggung_jawab'] ?? [],
         ];
     }
@@ -848,7 +1084,11 @@ class ETicket2 extends BaseController
         $nama    = $userData['nama'];
         $kdJbtn  = $userData['kd_jabatan'];
         $jabatan = $userData['jabatan'];
-        $idpegawai = null;
+        // Handler diisi siapa pun yang menyimpan progress, bukan hanya
+        // dari unit penanggung jawab. Kolom ini yang membuat status
+        // 'dikerjakan', jadi membiarkannya kosong untuk petugas lain
+        // membuat tiket yang sedang dikerjakan tetap tampil 'dalam_antrian'.
+        $idpegawai = $userData['id_pegawai'];
         $rules = $this->rulesForKerjakan();
         if (!$this->validate($rules)) {
             return redirect()->back()
@@ -864,12 +1104,6 @@ class ETicket2 extends BaseController
             $file->move(WRITEPATH . 'uploads/proses', $lampiran);
         }
         $ticket = $this->eticketModel->findDetail($ticketId);
-        if (in_array(
-            $userData['kd_jabatan'],
-            array_column($ticket['unit_penanggung_jawab'], 'kd_jbtn')
-        )) {
-            $idpegawai = $userData['id_pegawai'];
-        }
         if ($selesai === '1') {
 
             // LOG 1: catatan selesai
@@ -1722,6 +1956,12 @@ class ETicket2 extends BaseController
                 return [
                     'kd_jbtn' => $kd,
                     'nm_jbtn' => $jabatanMap[$kd] ?? '-',
+                    // findOneLengkap() sudah menandai unit yang punya baris
+                    // di tb_e_ticket_proses. Penandanya ikut disalin di
+                    // sini; sebelumnya hilang karena unit dibangun ulang
+                    // dari nol, padahal view butuh untuk membedakan unit
+                    // yang sudah memproses dari yang belum.
+                    'is_proses' => ! empty($u['is_proses']),
                 ];
             }, $units);
         };
@@ -1829,8 +2069,13 @@ class ETicket2 extends BaseController
         $timeline = [];
         // dd($ticket['handler_nama']);
         $validNama   = $ticket['valid_nama'] ?? null;
+        // Penanda "sudah selesai" diambil dari kolomnya sendiri, bukan
+        // dari hasil join ke tb_e_ticket_proses. Kalau join-nya tidak
+        // menghasilkan baris (mis. proses dihapus), message_akhir tetap
+        // terisi dan tiket ini memang selesai.
+        $selesai     = ! empty($ticket['message_akhir']);
+        // Nama petugas yang menjawab, hanya untuk ditampilkan.
         $messageAkhir = $ticket['respon_message_id_petugas_nama'] ?? null;
-        // $rejectNama  = $ticket['reject_nama'] ?? null;
         $handler  = $ticket['handler'] ?? null;
         $isHead = (int)($ticket['headsection'] ?? 0) === 1;
         // =====================================================
@@ -1873,7 +2118,7 @@ class ETicket2 extends BaseController
             // =============================================
             // SELESAI LANGSUNG
             // =============================================
-            if ($validNama === $messageAkhir) {
+            if ($selesai && $validNama === $messageAkhir) {
                 $timeline[] = [
                     'type'  => 'completed',
                     'color' => 'success',
@@ -1892,14 +2137,14 @@ class ETicket2 extends BaseController
                 'text'  => 'Disetujui ' . $validNama,
             ];
         }
-        if ($handler && !$messageAkhir) {
+        if ($handler && ! $selesai) {
             $timeline[] = [
                 'type'  => 'queue',
                 'color' => 'warning',
                 'icon'  => 'fa-solid fa-hourglass-half',
                 'text'  => 'Sedang Dikerjakan ' . $ticket['handler_nama'],
             ];
-        } elseif (!$messageAkhir) {
+        } elseif (! $selesai) {
             $timeline[] = [
                 'type'  => 'queue',
                 'color' => 'secondary',
@@ -1911,12 +2156,16 @@ class ETicket2 extends BaseController
         // =====================================================
         // STATUS AKHIR
         // =====================================================
-        if ($messageAkhir) {
+        if ($selesai) {
                 $timeline[] = [
                     'type'  => 'completed',
                     'color' => 'success',
                     'icon'  => 'fa-solid fa-circle-check',
-                'text'  => 'Diselesaikan ' . $messageAkhir,
+                // Nama penjawab boleh kosong kalau baris prosesnya
+                // tidak ada lagi -- tiketnya tetap selesai.
+                'text'  => $messageAkhir
+                    ? 'Diselesaikan ' . $messageAkhir
+                    : 'Diselesaikan',
             ];
         }
         return $timeline;

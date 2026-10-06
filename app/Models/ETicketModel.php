@@ -119,25 +119,54 @@ class ETicketModel extends Model
 
             $row['unit_penanggung_jawab'] = $units;
 
-            // STATUS LOGIC
-            // Kolom yang dipakai: valid_nama / reject_nama.
-            // (Kolom 'valid' dan 'reject' tidak ada di tabel tb_e_ticket,
-            //  sehingga pakai kolom itu membuat semua tiket selalu
-            //  berstatus 'belum_valid'.)
-            if (!empty($row['reject_nama'])) {
-                $row['status'] = 'reject';
-            } elseif (empty($row['valid_nama'])) {
-                $row['status'] = 'belum_valid';
-            } elseif (count($prosesKdjbtn) < count($units)) {
-                $row['status'] = 'proses';
-            } else {
-                $row['status'] = 'selesai';
-            }
+            $row['status'] = self::hitungStatus($row);
         }
         unset($row);
 
         return $rows;
     }
+
+    /**
+     * Status tiket, dihitung di PHP karena tidak ada kolom status.
+     *
+     * Empat status, ditentukan dari tiga kolom:
+     *
+     *   selesai       - message_akhir terisi. Kolom itu diisi
+     *                   submit_final() tepat ketika petugas mencentang
+     *                   konfirmasi selesai.
+     *   belum_valid   - valid_nama masih kosong: tiket belum disetujui
+     *                   atasan.
+     *   dikerjakan    - handler terisi: ada petugas yang sudah mengambil
+     *                   tiket dan menyimpan progress.
+     *   dalam_antrian - handler dan message_akhir kosong padahal valid_nama
+     *                   sudah ada: disetujui, tapi belum ada yang mengambil
+     *                   dan mengerjakan tiketnya.
+     *
+     * Urutan selesai -> belum_valid -> dikerjakan penting: handler
+     * sengaja dikosongkan (NULL) oleh submit_final() saat tiket
+     * diselesaikan dan oleh submit_approve() saat baru disetujui, jadi
+     * tidak boleh dibaca lebih dulu dari message_akhir.
+     *
+     * Catatan: Kolom reject_nama dan selesai_nama sudah tidak dipakai
+     * aplikasi, jadi tidak lagi dibaca di sini.
+     */
+    private static function hitungStatus(array $row): string
+    {
+        if (! empty($row['message_akhir'])) {
+            return 'selesai';
+        }
+
+        if (empty($row['valid_nama'])) {
+            return 'belum_valid';
+        }
+
+        if (! empty($row['handler'])) {
+            return 'dikerjakan';
+        }
+
+        return 'dalam_antrian';
+    }
+
     public function findDetailLengkap(int $id): ?array
     {
         $row = $this->findDetail($id);
@@ -267,16 +296,11 @@ class ETicketModel extends Model
             0
         );
         // ================================
-        // STATUS LOGIC (tanpa array loop)
-        // Pakai valid_nama, bukan 'valid' (kolom itu tidak ada).
+        // STATUS LOGIC
+        // Sama persis dengan attachProsesToRows(), lewat helper yang
+        // sama supaya daftar dan detail tidak bisa berbeda.
         // ================================
-        if (empty($row['valid_nama'])) {
-            $row['status'] = 'belum_valid';
-        } elseif (count($prosesKdjbtn) < count($units)) {
-            $row['status'] = 'proses';
-        } else {
-            $row['status'] = 'selesai';
-        }
+        $row['status'] = self::hitungStatus($row);
 
         // ================================
         // Ambil UPJ dari tabel eticketupjs
@@ -325,12 +349,24 @@ class ETicketModel extends Model
     public const SUMBER_LIST = ['saya', 'pelaksana', 'headsection', 'all'];
 
     /**
-     * Sumber yang dipakai halaman /etiket saat ?sumber= tidak diisi.
+     * Sumber yang boleh dipakai halaman /etiket, dan yang dipakai sebagai
+     * default saat ?sumber= tidak diisi.
      *
-     * 'all' sengaja tidak ikut: halaman user biasa tidak boleh melihat
+     * 'headsection' TIDAK ikut di sini. tiket yang diajukan unit user
+     * hanya boleh dilihat oleh user yang berhak menyetujui -- headsession
+     * dan admin -- lewat route /headsection (lihat ETicket2::headsection()).
+     * Dulu scope ini ikut default, sehingga semua anggota unit melihat
+     * tiket yang sama persis: milik sendiri, milik tetangganya, dan yang
+     * sudah selesai. Itu sebabnya page itu dipisah ke route sendiri.
+     *
+     * 'all' juga tidak ikut: halaman user biasa tidak boleh melihat
      * seluruh tiket tanpa batas cakupan.
+     *
+     * Catatan: 'headsection' masih sah di SUMBER_LIST karena
+     * DashboardService memanggilnya langsung untuk menghitung kelompok
+     * "Tiket unit saya yang harus saya validasi".
      */
-    public const SUMBER_DEFAULT = ['saya', 'pelaksana', 'headsection'];
+    public const SUMBER_DEFAULT = ['saya', 'pelaksana'];
 
     /**
      * Satu-satunya query untuk seluruh halaman daftar tiket.
@@ -339,6 +375,15 @@ class ETicketModel extends Model
      *                     'all' = tanpa filter cakupan (admin).
      * @param string|null $kdJbtn unit/jabatan user yang login
      * @param string|null $nip    NIP user yang login
+     * @param int|null $headsection 1 = hanya tiket yang kategorinya wajib
+     *                     persetujuan headsection. Kolomnya sudah disalin
+     *                     ke tb_e_ticket saat tiket dibuat, jadi nilainya
+     *                     tetap benar walau konfigurasi kategori berubah
+     *                     di kemudian hari. null = tanpa filter.
+     * @param string|null $kdPegawai id_pegawai user login. Dicocokkan
+     *                     bersama $nip pada scope 'saya' karena session
+     *                     'nip' bisa berisi NIK (API menerima login NIP
+     *                     maupun NIK) sedangkan petugas_id berisi NIP.
      */
     public function getTickets(
         array $sumber = [],
@@ -346,7 +391,9 @@ class ETicketModel extends Model
         ?string $nip = null,
         ?int $valid = null,
         ?int $selesai = null,
-        ?int $kategori = null
+        ?int $kategori = null,
+        ?int $headsection = null,
+        ?string $kdPegawai = null
     ): array {
         $sumber  = array_values(array_intersect($sumber, self::SUMBER_LIST));
         $semua   = in_array('all', $sumber, true);
@@ -382,7 +429,7 @@ class ETicketModel extends Model
         // CAKUPAN / SUMBER
         // =========================
         if (! $semua) {
-            $this->whereBySumber($builder, $sumber, $kdJbtn, $nip);
+            $this->whereBySumber($builder, $sumber, $kdJbtn, $nip, $kdPegawai);
         }
 
         // =========================
@@ -420,6 +467,18 @@ class ETicketModel extends Model
             $builder->where('e.kategori_id', $kategori);
         }
 
+        // =========================
+        // FILTER WAJIB HEADSECTION
+        // =========================
+        // Hanya 1 yang punya arti: "kategori tiket ini wajib disetujui
+        // headsection". Scope 'headsection' sendiri sudah menyaring
+        // berdasarkan unit pengaju, bukan berdasarkan kategori -- jadi
+        // tanpa filter ini, tiket yang kategorinya tidak butuh
+        // persetujuan ikut terhitung sebagai tiket yang perlu divalidasi.
+        if ($headsection === 1) {
+            $builder->where('e.headsection', 1);
+        }
+
         $rows = $builder
             ->orderBy('e.created_at', 'DESC')
             ->get()
@@ -439,8 +498,18 @@ class ETicketModel extends Model
 
             // Diperlukan view untuk memberi badge sumber pada tiap baris,
             // jadi user bisa lihat kenapa sebuah tiket muncul di daftar.
-            $row['is_creator'] = $nip !== null && $nip !== ''
-                && (string) $row['petugas_id'] === (string) $nip;
+            //
+            // Sama seperti syarat scope 'saya' di atas: petugas_id
+            // dibandingkan dengan session 'nip' (bisa NIK), dan kd_pegawai
+            // dibandingkan dengan id_pegawai. Kalau hanya satu yang
+            // dicek, badge "Saya" hilang padahal tiketnya tampil.
+            $row['is_creator'] = (
+                $nip !== null && $nip !== ''
+                && (string) $row['petugas_id'] === (string) $nip
+            ) || (
+                $kdPegawai !== null && $kdPegawai !== ''
+                && (string) $row['kd_pegawai'] === (string) $kdPegawai
+            );
 
             $row['is_executor'] = $kdJbtn !== null && $kdJbtn !== ''
                 && in_array($kdJbtn, $row['upj']);
@@ -466,10 +535,11 @@ class ETicketModel extends Model
      * (1 = 0) -- bukan "semua tiket". Melewati filter seperti ini pernah
      * membuat seluruh tabel terekspos.
      */
-    private function whereBySumber($builder, array $sumber, ?string $kdJbtn, ?string $nip): void
+    private function whereBySumber($builder, array $sumber, ?string $kdJbtn, ?string $nip, ?string $kdPegawai = null): void
     {
-        $nip    = ($nip === '') ? null : $nip;
-        $kdJbtn = ($kdJbtn === '') ? null : $kdJbtn;
+        $nip       = ($nip === '') ? null : $nip;
+        $kdJbtn    = ($kdJbtn === '') ? null : $kdJbtn;
+        $kdPegawai = ($kdPegawai === '') ? null : $kdPegawai;
 
         $adaCabang = false;
 
@@ -477,11 +547,32 @@ class ETicketModel extends Model
 
         // ---------------------------------------------------------------
         // SAYA: tiket yang dibuat sendiri.
-        // Tidak perlu syarat validasi, jadi tiket yang masih dian's
+        // Tidak perlu syarat validasi, jadi tiket yang belum valid
         // maupun yang sudah selesai sama-sama tampil.
         // ---------------------------------------------------------------
-        if (in_array('saya', $sumber, true) && $nip !== null) {
-            $builder->where('e.petugas_id', $nip);
+        if (in_array('saya', $sumber, true) && ($nip !== null || $kdPegawai !== null)) {
+            // Dua identitas dicocokkan dengan OR, bukan hanya satu.
+            //
+            // petugas_id berisi NIP, sedangkan session 'nip' diisi dari
+            // API yang mengembalikan NIK -- API menerima login dengan NIP
+            // maupun NIK, jadi keduanya tidak selalu sama. kd_pegawai
+            // berisi id_pegawai yang nilainya tidak bergantung cara user
+            // login, jadi inilah yang menutup celah itu.
+            //
+            // Keduanya kode yang unik, jadi tidak ada risiko tiket milik
+            // orang lain ikut terbawa.
+            $builder->groupStart();
+
+            if ($nip !== null) {
+                $builder->orWhere('e.petugas_id', $nip);
+            }
+
+            if ($kdPegawai !== null) {
+                $builder->orWhere('e.kd_pegawai', $kdPegawai);
+            }
+
+            $builder->groupEnd();
+
             $adaCabang = true;
         }
 
@@ -527,12 +618,30 @@ class ETicketModel extends Model
 
             $builder->where('e.kd_jbtn', $kdJbtn);
 
-            // NULL-safe: kolom petugas_id boleh NULL.
+            // Tiket milik sendiri dikeluarkan. Sama seperti scope 'saya',
+            // dua identitas dicek: petugas_id (NIP) dan kd_pegawai
+            // (id_pegawai). Kalau hanya petugas_id yang dicek, tiket
+            // milik sendiri yang dibuat saat login via NIK tidak akan
+            // dikeluarkan -- orang lalu bisa menyetujui tiketnya sendiri.
+            //
+            // NULL-safe: kedua kolom boleh NULL pada baris lama.
+            //
+            // Logikanya: (bukan nip) DAN (bukan id_pegawai) = bukan milik
+            // sendiri. Dua syarat di-AND-kan, bukan di-OR-kan.
             if ($nip !== null) {
-                $builder->groupStart()
-                    ->where('e.petugas_id IS NULL', null, false)
-                    ->orWhere('e.petugas_id <>', $nip)
-                    ->groupEnd();
+                $builder->where(
+                    '(e.petugas_id IS NULL OR e.petugas_id <> ' . $this->db->escape($nip) . ')',
+                    null,
+                    false
+                );
+            }
+
+            if ($kdPegawai !== null) {
+                $builder->where(
+                    '(e.kd_pegawai IS NULL OR e.kd_pegawai <> ' . $this->db->escape($kdPegawai) . ')',
+                    null,
+                    false
+                );
             }
 
             if ($adaCabang) {

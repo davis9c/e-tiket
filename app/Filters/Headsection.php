@@ -2,19 +2,25 @@
 
 namespace App\Filters;
 
-use App\Models\UsersModel;
+use App\Traits\HakValidasi;
+use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Filters\FilterInterface;
 
 /**
  * Membatasi halaman persetujuan headsection hanya untuk user yang
- * berperan headsection.
+ * berhak menyetujui tiket.
  *
- * Pakai dua sumber kebenaran:
- *   - session 'headsection' (diisi Auth::setUserSession dari
- *     UsersModel::getHeadSectionByNip)
- *   - database, kalau session-nya kosong / basi
+ * Aturannya TIDAK ditulis di sini: diambil dari trait HakValidasi,
+ * yang sama dipakai ETicket2::tangible() (penampil form persetujuan)
+ * dan dashboard (penampil antrean persetujuan). Kalau ketiganya punya
+ * versi sendiri, mereka pasti lama-lama beda lagi.
+ *
+ * Dulu filter ini hanya mengecek session 'headsection' + DB,
+ * sedangkan tangible() juga mengizinkan admin. Akibatnya admin
+ * (unit ROLE_ADMIN) melihat form persetujuan tapi POST-nya kena
+ * redirect "Hanya headsection yang dapat diakses" -- formnya ada,
+ * tapi tidak bisa dipakai.
  *
  * Catatan: nilai session 'headsection' itu hasil first() dari model,
  * jadi bentuknya array (atau null kalau bukan headsection) - bukan
@@ -22,34 +28,20 @@ use CodeIgniter\Filters\FilterInterface;
  */
 class Headsection implements FilterInterface
 {
+    use HakValidasi;
+
     public function before(RequestInterface $request, $arguments = null)
     {
-        if ($this->isHeadsection()) {
+        if ($this->bolehValidasi()) {
             return null;
         }
 
-        return redirect()->to(base_url('dashboard-saya'))
+        return redirect()->to(base_url('index'))
             ->with('error', 'Hanya headsection yang dapat mengakses halaman persetujuan.');
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
     {
         //
-    }
-
-    /**
-     * Sama seperti ETicket2::dashboard(): session dulu (murah), lalu
-     * tanya DB supaya perubahan status headsection langsung tercermin
-     * tanpa harus login ulang.
-     */
-    private function isHeadsection(): bool
-    {
-        if (! empty(session('headsection'))) {
-            return true;
-        }
-
-        $nip = session('nip');
-
-        return $nip && (new UsersModel())->getHeadSectionByNip($nip) !== null;
     }
 }
