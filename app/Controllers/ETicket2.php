@@ -620,6 +620,12 @@ public function index()
      * yang scope user ini boleh lihat. Kalau tidak, report akan jadi
      * pintu masuk kedua untuk membuka detail yang sudah ditutup di
      * /etiket.
+     *
+     * Scope saja belum cukup: report adalah cetakan final, jadi hanya
+     * tiket yang sudah selesai yang boleh dicetak. Tanpa gate status di
+     * sini, menyembunyikan tombol Cetak di view hanya memindahkan
+     * masalahnya -- URL-nya masih bisa dibuka langsung, termasuk
+     * untuk tiket yang belum divalidasi.
      */
     public function report($hashid = null)
     {
@@ -636,6 +642,14 @@ public function index()
         $detail = $detailData['detail'];
         if (!$detail) {
             return redirect()->to('/etiket')->with('error', 'Tiket tidak ditemukan.');
+        }
+
+        // Patokan sama dengan tombol Cetak di e-tiket-status.php: 'selesai'
+        // berarti message_akhir terisi (lihat ETicketModel::hitungStatus()).
+        // Kalau status belum diteruskan, perlakukan sebagai belum selesai --
+        // lebih baik menolak daripada mencetak tiket yang belum diputuskan.
+        if (($detail['status'] ?? null) !== 'selesai') {
+            return redirect()->to('/etiket')->with('error', 'Tiket hanya bisa dicetak setelah selesai.');
         }
 
         return view('e-tiket/report', [
@@ -947,6 +961,20 @@ public function index()
                     'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
                 ],
             ],
+            // Field ini opsional by design: tidak dicentang berarti entri
+            // disimpan sebagai riwayat pengerjaan, bukan penyelesaian. Yang
+            // divalidasi hanya nilai saat checkbox benar-benar terkirim,
+            // supaya is-invalid/invalid-feedback di view jadi hidup -- dua
+            // hook itu sebelumnya tidak pernah punya sumber. Diazarkan
+            // kosong karena checkbox yang tidak dicentang tidak terkirim sama
+            // sekali, bukan terkirim dengan nilai kosong.
+            'konfirmasiSelesai' => [
+                'label' => 'Konfirmasi selesai',
+                'rules' => 'permit_empty|in_list[1]',
+                'errors' => [
+                    'in_list' => '{field} tidak valid.',
+                ],
+            ],
         ];
     }
 
@@ -1060,6 +1088,21 @@ public function index()
     /* =========================================================
      * SUBMIT Fungsi
      * ========================================================= */
+    /**
+     * Menyimpan satu entri pengerjaan untuk tiket.
+     *
+     * Dua mode, ditentukan konfirmasiSelesai:
+     *   - tidak dicentang -> entri riwayat biasa; tiket tetap terbuka,
+     *     hanya handler yang diisi.
+     *   - dicentang       -> tiket ditutup: message_akhir menunjuk
+     *     entri ini dan handler dikosongkan.
+     *
+     * Otorisasi tidak diambil dari POST. Tiket dibaca ulang dari database
+     * lalu UAE-nya dihitung ulang lewat tindakan(), yang juga jadi
+     * sumber kebenaran untuk tombol di e-tiket-tindakan.php. Kalau
+     * bentuknya berbeda dari view, satu orang bisa menyimpan atau
+     * menutup tiket yang tombolnya sendiri tidak pernah aktif.
+     */
     public function submit_final()
     {
         if (!$this->request->is('post')) {
@@ -1067,7 +1110,9 @@ public function index()
         }
 
         $ticketId = $this->decodePostIdValue('ticket_id');
-        $catatan  = trim($this->request->getPost('catatan'));
+        // (string) supaya trim() tidak menerima null -- field ini boleh
+        // kosong di POST crafted, dan trim(null) deprecated di PHP 8.1.
+        $catatan  = trim((string) $this->request->getPost('catatan'));
         $selesai  = $this->request->getPost('konfirmasiSelesai');
 
         $userData = $this->userData;
@@ -1080,6 +1125,7 @@ public function index()
         // 'dikerjakan', jadi membiarkannya kosong untuk petugas lain
         // membuat tiket yang sedang dikerjakan tetap tampil 'dalam_antrian'.
         $idpegawai = $userData['id_pegawai'];
+
         $rules = $this->rulesForKerjakan();
         if (!$this->validate($rules)) {
             return redirect()->back()
@@ -1087,14 +1133,44 @@ public function index()
                 ->with('errors', $this->validator->getErrors())
                 ->with('modal', 'kerjakan');
         }
-        // upload lampiran
+
+        // --------------------------------------------------
+        // Otorisasi, sebelum file apa pun ditulis ke disk
+        // --------------------------------------------------
+        // Tiket dibaca lewat findOneLengkap(), bukan findDetail(), karena
+        // tindakan() butuh unit_penanggung_jawab, proses, dan kd_pegawai --
+        // field yang hanya berasal dari join findOneLengkap().
+        $ticket = $ticketId
+            ? $this->eticketModel->findOneLengkap($ticketId)
+            : null;
+
+        if (!$ticket) {
+            return redirect()->back()->with('error', 'Tiket tidak ditemukan.');
+        }
+
+        $ticket['hashid'] = $this->hashIdService->encode($ticket['id']);
+
+        // Tiket yang sudah punya message_akhir sudah ditutup. Menjalankan
+        // ulang aksi ini akan menimpa message_akhir, menambah baris proses
+        // kedua, dan mengirim notifikasi "selesai" lagi ke pengaju.
+        if (!empty($ticket['message_akhir'])) {
+            return redirect()->back()->with('error', 'Tiket sudah selesai dan tidak bisa dikerjakan lagi.');
+        }
+
+        if (empty($this->tindakan($ticket)['kerjakan'])) {
+            return redirect()->back()->with('error', 'Anda tidak punya hak untuk mengerjakan tiket ini.');
+        }
+
+        // --------------------------------------------------
+        // Upload, setelah semua penolakan di atas
+        // --------------------------------------------------
         $lampiran = null;
         $file = $this->request->getFile('bukti');
         if ($file && $file->isValid() && !$file->hasMoved()) {
             $lampiran = $file->getRandomName();
             $file->move(WRITEPATH . 'uploads/proses', $lampiran);
         }
-        $ticket = $this->eticketModel->findDetail($ticketId);
+
         if ($selesai === '1') {
 
             // LOG 1: catatan selesai

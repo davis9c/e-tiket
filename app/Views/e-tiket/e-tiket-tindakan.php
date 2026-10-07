@@ -207,17 +207,35 @@ $atribut = static function (bool $boleh, string $modal): string {
                 <div class="modal-header">
                     <h5 class="modal-title">
                         <i class="fas fa-screwdriver-wrench me-1"></i>
-                        Kerjakan Ticket
+                        <span id="kerjakanJudulTeks">Simpan Riwayat Pengerjaan</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
 
                 <div class="modal-body">
+                    <!--
+                        Form ini punya dua mode, ditentukan checkbox di bawah:
+
+                          tidak dicentang -> disimpan sebagai riwayat pengerjaan
+                                             (submit_final(), cabang else)
+                          dicentang       -> tiket ditutup sebagai selesai
+                                             (submit_final(), $selesai === '1')
+
+                        Judul modal, label, penjelasan, dan teks tombol ikut
+                        berganti mengikuti mode -- lihat script di bawah form.
+                        Sebelumnya semuanya berbunyi "penyelesaian" walau yang
+                        disimpan cuma riwayat, jadi tidak ada cara untuk tahu
+                        mode mana yang berlaku sebelum tombol ditekan.
+                    -->
+                    <p class="small text-muted" id="kerjakanPenjelasan">
+                        Isi form ini untuk menambahkan riwayat pengerjaan. Tiket tetap terbuka dan belum dianggap selesai.
+                    </p>
+
                     <div class="mb-3">
-                        <label for="catatanKerjakan" class="form-label fw-semibold">Tindakan Penyelesaian</label>
+                        <label for="catatanKerjakan" class="form-label fw-semibold" id="kerjakanLabelCatatan">Catatan Pengerjaan</label>
                         <textarea id="catatanKerjakan" name="catatan" rows="3"
                             class="form-control editor <?= session('errors.catatan') ? 'is-invalid' : '' ?>"
-                            placeholder="Masukkan tindakan penyelesaian..."><?= old('catatan') ?></textarea>
+                            placeholder="Tuliskan catatan pengerjaan..."><?= old('catatan') ?></textarea>
                         <div class="invalid-feedback"><?= session('errors.catatan') ?></div>
                     </div>
 
@@ -229,9 +247,18 @@ $atribut = static function (bool $boleh, string $modal): string {
                     </div>
 
                     <div class="form-check">
+                        <!--
+                            SENGAJA TIDAK memakai `required`.
+
+                            Atribut itu memaksa browser menahan submit sampai
+                            checkbox dicentang, sehingga cabang "riwayat
+                            pengerjaan" di submit_final() tidak pernah bisa
+                            dipakai dari UI: setiap penyimpanan lewat form ini
+                            otomatis menjadi penyelesaian tiket.
+                        -->
                         <input class="form-check-input <?= session('errors.konfirmasiSelesai') ? 'is-invalid' : '' ?>"
                             type="checkbox" name="konfirmasiSelesai" value="1" id="konfirmasiSelesai"
-                            <?= old('konfirmasiSelesai') ? 'checked' : '' ?> required>
+                            <?= old('konfirmasiSelesai') ? 'checked' : '' ?>>
                         <label class="form-check-label" for="konfirmasiSelesai">
                             Saya menyatakan pekerjaan telah selesai dan data yang saya input sudah benar.
                         </label>
@@ -241,11 +268,64 @@ $atribut = static function (bool $boleh, string $modal): string {
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Pengerjaan</button>
+                    <button type="submit" class="btn btn-outline-primary" id="kerjakanTombol">
+                        Simpan Riwayat Pengerjaan
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+    <script>
+        /*
+         * Dua mode form "Kerjakan Ticket", lihat catatan di markup body.
+         *
+         * Script ini diletakkan setelah modalnya, jadi semua elemen yang
+         * dibaca di sini sudah ada dan bisa langsung dipakai. State
+         * checkbox hasil old() sudah tercermin di atribut `checked`, jadi
+         * terapkan() cukup dipanggil sekali di awal -- label dan tombol
+         * sudah sesuai mode sejak modal dibuka, tanpa perlu user menyentuh
+         * checkbox lebih dulu.
+         */
+        (function terapkanModeKerjakan() {
+            var cb = document.getElementById('konfirmasiSelesai');
+            var tombol = document.getElementById('kerjakanTombol');
+            var judul = document.getElementById('kerjakanJudulTeks');
+            var label = document.getElementById('kerjakanLabelCatatan');
+            var penjelasan = document.getElementById('kerjakanPenjelasan');
+
+            if (! cb || ! tombol || ! judul || ! label || ! penjelasan) {
+                return;
+            }
+
+            var RIWAYAT = {
+                judul: 'Simpan Riwayat Pengerjaan',
+                label: 'Catatan Pengerjaan',
+                penjelasan: 'Isi form ini untuk menambahkan riwayat pengerjaan. Tiket tetap terbuka dan belum dianggap selesai.',
+                tombol: 'Simpan Riwayat Pengerjaan'
+            };
+            var SELESAI = {
+                judul: 'Selesaikan Tiket',
+                label: 'Tindakan Penyelesaian',
+                penjelasan: 'Tiket akan langsung ditandai selesai. Unit tujuan dan pengaju menerima pemberitahuan, dan tiket tidak bisa dikerjakan lagi.',
+                tombol: 'Selesaikan Tiket'
+            };
+
+            var terapkan = function () {
+                var mode = cb.checked ? SELESAI : RIWAYAT;
+
+                judul.textContent = mode.judul;
+                label.textContent = mode.label;
+                penjelasan.textContent = mode.penjelasan;
+                tombol.textContent = mode.tombol;
+
+                tombol.classList.toggle('btn-success', cb.checked);
+                tombol.classList.toggle('btn-outline-primary', ! cb.checked);
+            };
+
+            cb.addEventListener('change', terapkan);
+            terapkan();
+        })();
+    </script>
     <?php if (session('modal') === 'kerjakan'): ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {

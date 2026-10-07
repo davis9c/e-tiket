@@ -1351,20 +1351,63 @@ public function testDuaTahapOtorisasiDetailTepatSatuQuery(): void
  *
  * Kalau tidak, ia jadi pintu masuk kedua untuk detail yang sudah
  * ditutup di /etiket.
+ *
+ * Tiket yang dipakai harus 'selesai': report adalah cetakan final, jadi
+ * tiket yang belum selesai memang tidak boleh dicetak -- lihat test
+ * di bawahnya.
  */
 public function testReportTiketOrangLainTidakBisaDibuka(): void
 {
     $setup    = $this->seedKategoriDenganSatuUnitPj();
     $kategori = $setup['kategori_id'];
 
-    $milikSaya  = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Report Sendiri', 'dalam_antrian');
-    $orangLain  = $this->seedTiket($kategori, 'J003', 'Tiket Report Orang Lain', 'dalam_antrian', '198001012010011234');
+    $milikSaya  = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Report Sendiri', 'selesai');
+    $orangLain  = $this->seedTiket($kategori, 'J003', 'Tiket Report Orang Lain', 'selesai', '198001012010011234');
 
     $this->asUser()->get('report/' . (new \App\Services\HashIdService())->encode($milikSaya))->assertStatus(200);
 
     $tolak = $this->asUser()->get('report/' . (new \App\Services\HashIdService())->encode($orangLain));
     $tolak->assertRedirect();
     $this->assertSame('Tiket tidak ditemukan.', session('error'));
+}
+
+/**
+ * Report hanya berlaku untuk tiket yang sudah selesai.
+ *
+ * Tombol Cetak di e-tiket-status.php sudah disembunyikan untuk tiket
+ * yang belum selesai, tapi URL /report/<hashid> tetap bisa dibuka
+ * langsung. Kalau gate status hanya ada di view, cetakan final bisa
+ * diambil dari tiket yang belum diputuskan -- termasuk tiket yang belum
+ * pernah divalidasi.
+ */
+public function testReportMenolakTiketBelumSelesai(): void
+{
+    $setup    = $this->seedKategoriDenganSatuUnitPj();
+    $kategori = $setup['kategori_id'];
+
+    $svc = new \App\Services\HashIdService();
+
+    // Kasus dasar: tiket milik sendiri, jadi scope sudah lolos dan yang
+    // menolak benar-benar hanya gate status.
+    $dalamAntrian = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Dalam Antrean', 'dalam_antrian');
+    $dikerjakan   = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Dikerjakan', 'dikerjakan');
+    $belumValid   = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Belum Valid', 'belum_valid');
+
+    foreach ([$dalamAntrian, $dikerjakan, $belumValid] as $tiketId) {
+        $resp = $this->asUser()->get('report/' . $svc->encode($tiketId));
+
+        $resp->assertRedirect();
+        $this->assertSame(
+            'Tiket hanya bisa dicetak setelah selesai.',
+            session('error'),
+            'Tiket yang belum selesai tidak boleh bisa dicetak'
+        );
+    }
+
+    // Tiket selesai pada cakupan yang sama tetap boleh dicetak, jadi
+    // penolakan di atas bukan karena scope.
+    $selesai = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Selesai', 'selesai');
+    $this->asUser()->get('report/' . $svc->encode($selesai))->assertStatus(200);
 }
 
 /**
@@ -1818,5 +1861,188 @@ public function testSemuaKartuPunyaLinkLihat(): void
             $html,
             'Catatan fallback tidak boleh muncul kalau memang tidak ada tiket'
         );
+    }
+
+    /* =====================================================
+     | SUBMIT FINAL: GUARD + DUA MODE
+     |===================================================== */
+
+    private function jumlahProses(int $tiketId): int
+    {
+        return (int) $this->db->table('tb_e_ticket_proses')
+            ->where('id_eticket', $tiketId)
+            ->countAllResults();
+    }
+
+    private function tiket(int $id): ?array
+    {
+        $row = $this->db->table('tb_e_ticket')->where('id', $id)->get()->getRowArray();
+
+        return $row ?: null;
+    }
+
+    /**
+     * Dua mode checkbox konfirmasi harus tetap bisa dipakai.
+     *
+     * Mode "riwayat pengerjaan" (checkbox tidak dicentang) dulu
+     * tidak bisa dipakai dari UI karena checkbox-nya `required` -- setiap
+     * penyimpanan jadi penyelesaian. Test ini menjaga kedua cabang tetap
+     * hidup setelah required dilepas.
+     */
+    public function testSubmitFinalDuaModeMasihBisaDipakai(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+        $svc      = new \App\Services\HashIdService();
+
+        // ------------------------------------------------------
+        // Mode 1: tidak dicentang -> riwayat pengerjaan saja
+        // ------------------------------------------------------
+        $riwayat = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Riwayat', 'dalam_antrian');
+        $sebelum = $this->jumlahProses($riwayat);
+
+        $this->asUser()->post('etiket/submit_final', [
+            'ticket_id' => $svc->encode($riwayat),
+            'catatan'   => 'Sudah ada progresses pekerjaan',
+        ])->assertRedirect();
+
+        $tiket = $this->tiket($riwayat);
+        $this->assertNull($tiket['message_akhir'], 'Riwayat pengerjaan tidak boleh menutup tiket');
+        $this->assertNotNull($tiket['handler'], 'Riwayat pengerjaan harus mengisi handler');
+        $this->assertSame(
+            $sebelum + 1,
+            $this->jumlahProses($riwayat),
+            'Harus ada satu baris riwayat baru'
+        );
+
+        // ------------------------------------------------------
+        // Mode 2: dicentang -> tiket diselesaikan
+        // ------------------------------------------------------
+        $final = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Final', 'dalam_antrian');
+        $sebelum = $this->jumlahProses($final);
+
+        $this->asUser()->post('etiket/submit_final', [
+            'ticket_id'          => $svc->encode($final),
+            'catatan'            => 'Pekerjaan sudah selesai',
+            'konfirmasiSelesai'  => '1',
+        ])->assertRedirect();
+
+        $tiket = $this->tiket($final);
+        $this->assertNotNull($tiket['message_akhir'], 'Checkbox dicentang harus menutup tiket');
+        $this->assertNull($tiket['handler'], 'Tiket yang selesai harus mengosongkan handler');
+        $this->assertSame($sebelum + 1, $this->jumlahProses($final));
+
+        // message_akhir harus menunjuk baris proses yang benar-benar baru.
+        // Kedua sisi dip-cast ke int: driver MySQL mengembalikan kolom
+        // numerik sebagai string, jadi assertSame tanpa cast membandingkan
+        // '2045' dengan 2045.
+        $this->assertSame(
+            (int) $tiket['message_akhir'],
+            (int) $this->db->table('tb_e_ticket_proses')
+                ->where('id_eticket', $final)
+                ->orderBy('id', 'DESC')
+                ->get()
+                ->getRow('id')
+        );
+    }
+
+    /**
+     * Tiket yang sudah selesai tidak boleh diselesaikan ulang.
+     *
+     * Tanpa guard ini, POST kedua akan menimpa message_akhir, menambah
+     * baris proses kedua, dan mengirim notifikasi "selesai" ke pengaju
+     * untuk pekerjaan yang tidak pernah dikerjakan lagi.
+     *
+     * Dipakai user admin, yang lolos semua cek scope dan otorisasi, supaya
+     * satu-satunya alasan penolakannya memang status tiket.
+     */
+    public function testSubmitFinalMenolakTiketYangSudahSelesai(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+        $svc      = new \App\Services\HashIdService();
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Sudah Selesai', 'selesai');
+
+        $sebelum          = $this->tiket($tiketId);
+        $prosesSebelum    = $this->jumlahProses($tiketId);
+
+        $this->asUser()->post('etiket/submit_final', [
+            'ticket_id'         => $svc->encode($tiketId),
+            'catatan'           => 'Mencoba menyelesaikan lagi',
+            'konfirmasiSelesai' => '1',
+        ])->assertRedirect();
+
+        $this->assertSame(
+            'Tiket sudah selesai dan tidak bisa dikerjakan lagi.',
+            session('error')
+        );
+
+        $sesudah = $this->tiket($tiketId);
+        $this->assertSame(
+            $sebelum['message_akhir'],
+            $sesudah['message_akhir'],
+            'message_akhir tidak boleh ditimpa'
+        );
+        $this->assertSame(
+            $prosesSebelum,
+            $this->jumlahProses($tiketId),
+            'Tiket yang sudah selesai tidak boleh menambah baris proses'
+        );
+    }
+
+    /**
+     * Tiket milik orang lain tidak boleh bisa ditutup lewat POST langsung.
+     *
+     * Otorisasi dihitung ulang dari database lewat tindakan(), bukan
+     * dipercaya dari form. User biasa ini bukan pengaju tiket, bukan unit
+     * tujuan, dan bukan headsection -- jadi tidak punya tindakan apa pun.
+     */
+    public function testSubmitFinalMenolakUserTanpaHak(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+        $svc      = new \App\Services\HashIdService();
+
+        // belum_valid supaya unit ini tidak masuk sebagai unit tujuan.
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Milik Orang Lain', 'belum_valid', '198001012010011234');
+
+        $prosesSebelum = $this->jumlahProses($tiketId);
+
+        $this->asUserBiasa()->post('etiket/submit_final', [
+            'ticket_id'         => $svc->encode($tiketId),
+            'catatan'           => 'Mencoba menutup tiket orang',
+            'konfirmasiSelesai' => '1',
+        ])->assertRedirect();
+
+        $this->assertSame(
+            'Anda tidak punya hak untuk mengerjakan tiket ini.',
+            session('error')
+        );
+
+        $tiket = $this->tiket($tiketId);
+        $this->assertNull($tiket['message_akhir'], 'Tiket orang lain tidak boleh ditutup');
+        $this->assertSame(
+            $prosesSebelum,
+            $this->jumlahProses($tiketId),
+            'Penolakan tidak boleh menulis baris proses'
+        );
+    }
+
+    /**
+     * ticket_id yang tidak menunjuk tiket manapun harus ditolak, bukan
+     * membuat baris proses yatim.
+     */
+    public function testSubmitFinalMenolakTiketTidakAda(): void
+    {
+        $svc = new \App\Services\HashIdService();
+
+        $this->asUser()->post('etiket/submit_final', [
+            'ticket_id'         => $svc->encode(99999999),
+            'catatan'           => 'Mencoba memakai tiket hantu',
+            'konfirmasiSelesai' => '1',
+        ])->assertRedirect();
+
+        $this->assertSame('Tiket tidak ditemukan.', session('error'));
     }
 }

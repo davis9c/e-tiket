@@ -27,6 +27,22 @@ $adaTombolBuat = ! $adaDetail;
                 </div>
             <?php endif; ?>
 
+            <!--
+                Penolakan dari guard server (tiket sudah selesai, tidak punya
+                hak, tiket hilang) dialihkan ke sini dengan flash 'error'.
+
+                Alert ini wajib: pesan itu tidak bisa dititipkan di dalam
+                modal tindakan, karena justru ketika hak ditolak tombol
+                Kerjakan nonaktif dan modalnya tidak dirender. Tanpa baris
+                ini penolakan hanya terjadi diam-diam.
+            -->
+            <?php if ($msg = session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-exclamation-triangle me-1"></i><?= esc($msg) ?></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+                </div>
+            <?php endif; ?>
+
             <?= $this->include('e-tiket/e-tiket-status') ?>
 
             <?= $this->include('e-tiket/e-tiket-tindakan') ?>

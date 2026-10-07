@@ -876,4 +876,213 @@ final class TicketDetailViewTest extends CIUnitTestCase
         $this->assertFalse($out['unit_penanggung_jawab'][1]['is_proses']);
         $this->assertSame('Unit Sarana', $out['unit_penanggung_jawab'][0]['nm_jbtn']);
     }
+
+    /* =====================================================
+     | CETAK: HANYA UNTUK TIKET SELESAI
+     |===================================================== */
+
+    /**
+     * Tombol Cetak hanya berlaku untuk tiket yang sudah selesai.
+     *
+     * Sebelumnya syaratnya `! empty($t['hashid'])`, yang benar untuk semua
+     * tiket yang ada -- jadi tombolnya ikut muncul di tiket yang belum
+     * divalidasi, masih antre, dan sedang dikerjakan. Cetakan final
+     * harusnya tidak bisa diambil dari tiket yang belum diputuskan.
+     *
+     * Dicocokkan lewat URL report/, bukan kata "Cetak": kata itu bisa
+     * muncul di komentar atau teks lain tanpa tombolnya benar-benar ada.
+     */
+    public function testCetakHanyaSaatTiketSelesai(): void
+    {
+        $ada = $this->render('e-tiket/e-tiket-status', $this->payload([
+            'detail' => ['status' => 'selesai'],
+        ]));
+        $this->assertStringContainsString('report/abc123', $ada, 'Tiket selesai harus bisa dicetak');
+
+        foreach (['belum_valid', 'dalam_antrian', 'dikerjakan'] as $status) {
+            $takAda = $this->render('e-tiket/e-tiket-status', $this->payload([
+                'detail' => ['status' => $status],
+            ]));
+            $this->assertStringNotContainsString(
+                'report/',
+                $takAda,
+                "Tiket berstatus $status tidak boleh punya tombol cetak"
+            );
+        }
+    }
+
+    /**
+     * Status yang tidak diteruskan harus diperlakukan sebagai "belum
+     * selesai", bukan "selesai". Partial ini tidak boleh error, dan tidak
+     * boleh membocorkan tombol cetak hanya karena datanya langka.
+     */
+    public function testCetakTidakMunculKalauStatusHilang(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-status', $this->payload([
+            'detail' => ['status' => null],
+        ]));
+
+        $this->assertStringNotContainsString('report/', $html);
+    }
+
+    /**
+     * Tiga halaman (/etiket, /headsection, /allticket) memakai partial
+     * yang sama, jadi gate cetak ikut berlaku di semuanya -- bukan cuma
+     * di halaman yang dilaporkan.
+     */
+    public function testGateCetakBerlakuDiSeluruhHalamanPemakaiPartial(): void
+    {
+        foreach (['e-tiket', 'allticket'] as $view) {
+            foreach (['etiket/abc123', 'allticket/abc123'] as $path) {
+                $html = $this->halaman($view, true, $path);
+
+                $this->assertStringNotContainsString(
+                    'report/',
+                    $html,
+                    "Tiket 'dikerjakan' tidak boleh punya cetak di $view ($path)"
+                );
+            }
+        }
+    }
+
+    /* =====================================================
+     | MODAL KERJAKAN: DUA MODE
+     |===================================================== */
+
+    /**
+     * Bentuk tindakan() yang mengaktifkan tombol Kerjakan, supaya modal
+     * ikut dirender.
+     */
+    private function tindakanDenganKerjakan(): array
+    {
+        return [
+            'validasi' => null,
+            'kerjakan' => [
+                'form' => [
+                    'url'       => base_url('etiket/submit_final'),
+                    'ticket_id' => ['variable' => 'ticket_id', 'value' => 'abc123'],
+                ],
+            ],
+            'teruskan' => null,
+            'kategoric' => null,
+            'edittiket' => null,
+            'rproses'   => [],
+            'pesan'     => 'Pelaksana dapat mengerjakan',
+        ];
+    }
+
+    /**
+     * Checkbox konfirmasi tidak boleh `required`.
+     *
+     * Ini akar bug-nya: `required` memaksa browser menahan submit sampai
+     * checkbox dicentang, jadi cabang "riwayat pengerjaan" di
+     * submit_final() tidak pernah bisa dipakai dari UI -- setiap
+     * penyimpanan lewat form ini otomatis menjadi penyelesaian tiket.
+     *
+     * Diperiksa pada tag input-nya sendiri, bukan pada seluruh halaman:
+     * kata "required" jelas masih muncul di markup lain.
+     */
+    public function testCheckboxPenyelesaianTidakWajib(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
+            'tindakan' => $this->tindakanDenganKerjakan(),
+        ]));
+
+        $this->assertSame(
+            1,
+            preg_match('/<input[^>]*name="konfirmasiSelesai"[^>]*>/', $html, $m),
+            'Checkbox konfirmasiSelesai tidak ditemukan'
+        );
+
+        $this->assertStringNotContainsString(
+            'required',
+            $m[0],
+            'Checkbox tidak boleh required, atau cabang riwayat pengerjaan tidak bisa dipakai'
+        );
+    }
+
+    /**
+     * Dua mode harus dinyatakan, bukan disiratkan dari teks tombol.
+     *
+     * Dulu judul, label, dan tombol semuanya berbunyi "penyelesaian"
+     * walau yang disimpan cuma riwayat pengerjaan.
+     */
+    public function testModalKerjakanMenjelaskanDuaMode(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
+            'tindakan' => $this->tindakanDenganKerjakan(),
+        ]));
+
+        // Mode riwayat (tidak dicentang) -- nilai awal yang dirender server.
+        $this->assertStringContainsString('Simpan Riwayat Pengerjaan', $html);
+        $this->assertStringContainsString('kerjakanPenjelasan', $html, 'Penjelasan mode harus ada');
+
+        // Mode selesai (dicentang) -- harus ada teks yang sama-sama
+        // dirender supaya perpindahan mode terlihat jelas.
+        $this->assertStringContainsString('Selesaikan Tiket', $html);
+        $this->assertStringContainsString('Catatan Pengerjaan', $html);
+        $this->assertStringContainsString('Tindakan Penyelesaian', $html);
+
+        // Keduanya harus benar-benar ditukar oleh script, bukan hanya
+        // ada sebagai teks mati di markup.
+        $this->assertStringContainsString('kerjakanJudulTeks', $html);
+        $this->assertStringContainsString('kerjakanTombol', $html);
+        $this->assertStringContainsString('addEventListener(\'change\'', $html);
+    }
+
+    /**
+     * Guard di submit_final() bergantung pada tindakan() yang menolak
+     * tiket yang sudah punya message_akhir. Kalau aturan ini berubah,
+     * tombol Kerjakan ikut berubah dan penolakan di server ikut hilang.
+     */
+    public function testTindakanMenolakTiketSelesai(): void
+    {
+        $controller = new \App\Controllers\ETicket2();
+
+        // buildFormData() memanggil helper global build_form_data(), yang
+        // normalnya dimuat BaseController::initController(). Controller di
+        // sini dibuat langsung tanpa dispatch, jadi helper-nya belum ada.
+        helper('formdata');
+
+        // userData dikosongkan di constructor, dan tindakan() membaca
+        // key-nya langsung -- tanpa ini PHP memunculkan warning "Undefined
+        // array key" yang gagal karena failOnWarning.
+        $prop = (new \ReflectionClass($controller))->getProperty('userData');
+        $prop->setAccessible(true);
+        $prop->setValue($controller, [
+            'nip'        => '199004232019022005',
+            'nama'       => 'Petugas Uji',
+            'kd_jabatan' => 'J001',
+            'jabatan'    => 'Unit Sarana',
+            'id_pegawai' => '199004232019022005',
+            'headsection' => null,
+        ]);
+
+        $method = (new \ReflectionClass($controller))->getMethod('tindakan');
+        $method->setAccessible(true);
+
+        $dasar = [
+            'id'                     => 7,
+            'kd_pegawai'             => '198001012010011234',
+            'valid_nama'             => 'Atasan',
+            'handler'                => '199004232019022005',
+            'kategori_id'            => 2,
+            'hashid'                 => 'abc123',
+            'proses'                 => [],
+            'unit_penanggung_jawab'  => [['kd_jbtn' => 'J001', 'nm_jbtn' => 'Unit Sarana', 'is_proses' => false]],
+            'message_akhir'          => null,
+        ];
+
+        $belum = $method->invoke($controller, $dasar);
+        $this->assertNotNull($belum['kerjakan'], 'Unit tujuan harus tetap boleh mengerjakan tiket yang terbuka');
+        $this->assertNull($belum['validasi']);
+
+        // array_merge, bukan operator `+`: `$dasar` sudah punya kunci
+        // message_akhir, dan `+` mempertahankan nilai operand KIRI, jadi
+        // tiket "selesai" di sini diam-diam tetap null -- persis kelas bug
+        // yang sudah beberapa kali muncul di partial ini.
+        $selesai = $method->invoke($controller, array_merge($dasar, ['message_akhir' => 99]));
+        $this->assertNull($selesai['kerjakan'], 'Tiket yang sudah selesai tidak boleh punya tindakan kerjakan');
+        $this->assertSame('Tiket selesai', $selesai['pesan']);
+    }
 }

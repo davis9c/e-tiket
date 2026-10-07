@@ -72,6 +72,24 @@ $unitTujuan = $t['unit_penanggung_jawab'] ?? [];
 // Tombol Detail dan Keputusan hanya dirender kalau modalnya ikut dirender,
 // jadi data-bs-target tidak pernah menunjuk ke modal yang tidak ada.
 $adaKeputusan = ! empty($t['respon_message_id']) || ! empty($t['respon_message_catatan']);
+
+/*
+ * Apakah tiket ini sudah selesai?
+ *
+ * Cetak hanya berlaku untuk tiket yang selesai. Sebelumnya syaratnya
+ * `! empty($t['hashid'])`, yang benar untuk semua tiket yang ada --
+ * jadi tombolnya ikut muncul di tiket yang belum selesai, belum
+ * divalidasi, dan baru dibuat.
+ *
+ * Patokan 'selesai' diambil dari tempat yang sama dengan badge status
+ * di halaman ini: ETicketModel::hitungStatus() mengembalikan 'selesai'
+ * kalau message_akhir terisi, yaitu tiket sudah punya keputusan final.
+ *
+ * status dibaca lewat (?? null), bukan diasumsikan selalu ada: partial
+ * ini dipakai tiga halaman dan tidak boleh error kalau sanitizer
+ * berubah.
+ */
+$tiketSelesai = ($t['status'] ?? null) === 'selesai';
 ?>
 
 <style>
@@ -256,7 +274,7 @@ $adaKeputusan = ! empty($t['respon_message_id']) || ! empty($t['respon_message_c
                         Keputusan
                     </button>
                 <?php endif; ?>
-                <?php if (! empty($t['hashid'])): ?>
+                <?php if (! empty($t['hashid']) && $tiketSelesai): ?>
                     <a href="<?= base_url('report/' . $t['hashid']) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
                         <i class="fas fa-print me-1"></i>
                         Cetak
