@@ -6,12 +6,12 @@ use App\Controllers\BaseController;
 use App\Models\UsersModel;
 use App\Models\KategoriETiketModel;
 use App\Models\KategoriUnitJabatanModel;
-use Config\Services;
+use App\Services\KanzaBridgeClient;
+use App\Services\KanzaBridgeException;
 
 class Admin extends BaseController
 {
-    protected $client;
-    protected $headers;
+    protected KanzaBridgeClient $client;
 
     protected $usersModel;
     protected $kategoriModel;
@@ -19,26 +19,10 @@ class Admin extends BaseController
 
     public function __construct()
     {
-        $this->client        = Services::curlrequest();
+        $this->client        = new KanzaBridgeClient();
         $this->usersModel    = new UsersModel();
         $this->kategoriModel = new KategoriETiketModel();
         $this->unitModel     = new KategoriUnitJabatanModel();
-        $this->checkToken();
-        $this->headers = [
-            'Authorization' => Services::session()->get('token') ?? null,
-            'Accept'        => 'application/json',
-        ];
-    }
-
-    /* =====================================================
-     * AUTH CHECK
-     * ===================================================== */
-    private function auth()
-    {
-        $userData = $this->userData;
-        if (!$userData['token']) {
-            return redirect()->to('/login')->send();
-        }
     }
     /* =====================================================
      * INDEX -- satu-satunya halaman /admin
@@ -56,8 +40,6 @@ class Admin extends BaseController
 
     public function index()
     {
-        $this->auth();
-
         $tab = $this->request->getGet('tab');
         $tab = in_array($tab, self::TAB_LIST, true) ? $tab : 'users';
 
@@ -126,16 +108,7 @@ class Admin extends BaseController
                 return ['list' => [], 'error' => null];
             }
 
-            $response = $this->client->post(
-                env('API_KANZA_BRIDGE') . 'pegawai/by-ids',
-                [
-                    'headers' => $this->headers,
-                    'json'    => ['ids' => $ids],
-                    'timeout' => 10,
-                ]
-            );
-
-            $result = json_decode($response->getBody(), true);
+            $result = $this->client->post('pegawai/by-ids', ['ids' => $ids]);
 
             if (($result['status'] ?? 500) !== 200 || empty($result['data']) || !is_array($result['data'])) {
                 throw new \Exception('Response API pegawai tidak valid');
@@ -158,9 +131,11 @@ class Admin extends BaseController
             }, $users);
 
             return ['list' => $users, 'error' => null];
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
+            return ['list' => [], 'error' => 'Gagal mengambil data'];
         } catch (\Throwable $e) {
             log_message('error', '[ADMIN USERS] ' . $e->getMessage());
-
             return ['list' => [], 'error' => 'Gagal mengambil data'];
         }
     }
@@ -185,7 +160,7 @@ class Admin extends BaseController
         $jabatan = $this->getJabatan();
 
         if ($kdJbtn) {
-            $petugas = $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJbtn]);
+            $petugas = $this->postAPI('petugas/dan-jabatan', ['jbtn' => $kdJbtn]);
 
             // Tandai siapa yang sudah berperan headsection, supaya tombol
             // Set/Unset di view bisa menentukan labelnya.
@@ -209,8 +184,6 @@ class Admin extends BaseController
 
     public function setHeadsectionOri($nip)
     {
-        $this->auth();
-
         $user = $this->usersModel->where('nip', $nip)->first();
 
         if ($user) {
@@ -230,7 +203,17 @@ class Admin extends BaseController
         $user = $this->usersModel
             ->where('nip', $nip)
             ->first();
-        $pegawai = $this->getPegawai($nip);
+        try {
+            $pegawai = $this->getPegawai($nip);
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
+            return $this->redirectKeTab('petugas', $kdJbtn)
+                ->with('error', 'Data pegawai tidak tersedia, coba lagi nanti.');
+        }
+        if (empty($pegawai)) {
+            return $this->redirectKeTab('petugas', $kdJbtn)
+                ->with('error', 'Data pegawai tidak ditemukan.');
+        }
         if ($user) {
             // 🔁 TOGGLE: true → false, false → true
             $newStatus = ! (bool) $user['headsection'];
@@ -269,33 +252,7 @@ class Admin extends BaseController
      * ===================================================== */
     private function getPegawai($nip): array
     {
-        $client = Services::curlrequest();
-        $userData = $this->userData;
-
-        $headers = [
-            'Authorization' => $userData['token'] ?? null,
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/json',
-        ];
-
-        $response = $client->post(
-            env('API_KANZA_BRIDGE') . 'pegawai/by-nik',
-            [
-                'headers'     => $headers,
-                'http_errors' => false,
-                'timeout'     => 10,
-                'json'        => [
-                    'nik' => $nip
-                ]
-            ]
-        );
-
-        if ($response->getStatusCode() !== 200) {
-            throw new \Exception('Gagal mengambil data pegawai');
-        }
-
-        $result = json_decode($response->getBody(), true);
-
+        $result = $this->client->post('pegawai/by-nik', ['nik' => $nip]);
         return $result['data'] ?? [];
     }
     public function pegawai()
@@ -325,9 +282,7 @@ class Admin extends BaseController
      */
     public function dokter()
     {
-        $this->auth();
-
-        $data = $this->postAPI('dokter/danSpesialis');
+        $data = $this->postAPI('dokter/dan-spesialis');
 
         return view('Admin/dokter', [
             'title'  => 'Data Dokter',
@@ -342,26 +297,10 @@ class Admin extends BaseController
     private function getAPI($endpoint): array
     {
         try {
-
-            $response = $this->client->get(
-                env('API_KANZA_BRIDGE') . $endpoint,
-                [
-                    'headers'     => $this->headers,
-                    'timeout'     => 10,
-                    'http_errors' => false, // penting!
-                ]
-            );
-
-            if ($response->getStatusCode() === 401) {
-                $this->forceLogout();
-                exit;
-            }
-
-            $result = json_decode($response->getBody(), true);
+            $result = $this->client->get($endpoint);
             return $result['data'] ?? [];
-        } catch (\Throwable $e) {
-
-            log_message('error', '[API ERROR] ' . $e->getMessage());
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
             return [];
         }
     }
@@ -369,29 +308,19 @@ class Admin extends BaseController
     private function postAPI($endpoint, $payload = []): array
     {
         try {
-
-            $response = $this->client->post(
-                env('API_KANZA_BRIDGE') . $endpoint,
-                [
-                    'headers'     => $this->headers,
-                    'json'        => $payload,
-                    'timeout'     => 10,
-                    'http_errors' => false, // penting!
-                ]
-            );
-
-            if ($response->getStatusCode() === 401) {
-                $this->forceLogout();
-                exit;
-            }
-
-            $result = json_decode($response->getBody(), true);
+            $result = $this->client->post($endpoint, $payload);
             return $result['data'] ?? [];
-        } catch (\Throwable $e) {
-
-            log_message('error', '[API ERROR] ' . $e->getMessage());
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
             return [];
         }
+    }
+
+    private function logApiFailure(KanzaBridgeException $e): void
+    {
+        log_message('error', '[KANZABRIDGE ADMIN] ' . $e->getMessage()
+            . ($e->requiredScope ? ' Scope: ' . $e->requiredScope : '')
+            . ($e->retryAfter !== null ? ' Retry-After: ' . $e->retryAfter : ''));
     }
 
     private function getJabatan(): array
@@ -411,25 +340,5 @@ class Admin extends BaseController
                 'nm_jbtn' => $mapJabatan[$kd] ?? '(Tidak ditemukan)',
             ];
         }, $units);
-    }
-    private function forceLogout()
-    {
-        session()->remove([
-            'token',
-            'expires',
-            'id_pegawai',
-            'nip',
-            'nik',
-            'nama',
-            'kd_jabatan',
-            'jabatan',
-            'headsection',
-            'logged_in',
-        ]);
-
-        return redirect()
-            ->to(base_url('login'))
-            ->with('error', 'Sesi habis, silakan login kembali.')
-            ->send();
     }
 }

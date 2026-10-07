@@ -30,11 +30,8 @@ class Dashboard extends BaseController
      * Dihapus: dashboard user biasa (Tiket Saya + Executor + Tiket Unit).
      *
      * Tiga kelompok itu sekarang dirender ETicket2::index(), satu-satunya
-     * route dashboard. Isinya persis sama -- perbedaan semanticsnya
-     * hilang: controller ini TIDAK memanggil checkToken() di constructor-nya,
-     * jadi halaman yang dulu di sini (/dashboard/user) tetap terbuka untuk
-     * sesi yang tokennya sudah kedaluwarsa. checkToken() sekarang berjalan
-     * di satu tempat saja, untuk semua role.
+     * route dashboard. Auth halaman terlindungi diperiksa oleh AuthFilter
+     * berdasarkan sesi lokal, bukan token dari KanzaBridge.
      */
 
     /**

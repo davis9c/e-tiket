@@ -5,7 +5,8 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\KategoriETiketModel;
 use App\Models\KategoriUnitJabatanModel;
-use Config\Services;
+use App\Services\KanzaBridgeClient;
+use App\Services\KanzaBridgeException;
 
 class KategoriETiket extends BaseController
 {
@@ -21,7 +22,7 @@ class KategoriETiket extends BaseController
 
     public function __construct()
     {
-        $this->client               = Services::curlrequest();
+        $this->client               = new KanzaBridgeClient();
         $this->kategoriEticketModel = new KategoriETiketModel();
         $this->unitModel            = new KategoriUnitJabatanModel();
     }
@@ -127,11 +128,6 @@ class KategoriETiket extends BaseController
 
     public function index()
     {
-        $userData = $this->userData;
-        if (! $userData['token']) {
-            return redirect()->to('/login');
-        }
-
         $kategoriEticket = $this->kategoriEticketModel->findAllWithUnit();
 
         $kategoriEticket = $this->attachNamaJabatanToKategori($kategoriEticket);
@@ -171,38 +167,14 @@ class KategoriETiket extends BaseController
         $this->jabatanMap = [];
 
         try {
-            $response = $this->client->get(
-                env('API_KANZA_BRIDGE') . 'jabatan',
-                [
-                    'headers'     => $this->apiHeaders(),
-                    'http_errors' => false,
-                    'timeout'     => 10,
-                ]
-            );
-
-            if ($response->getStatusCode() !== 200) {
-                return $this->jabatanMap;
-            }
-
-            $result = json_decode($response->getBody(), true);
-            $data   = $result['data'] ?? [];
-
-            $this->jabatanMap = array_column($data, 'nm_jbtn', 'kd_jbtn');
-        } catch (\Throwable $e) {
-            log_message('error', '[GET_JABATAN_MAP] ' . $e->getMessage());
+            $result = $this->client->get('jabatan');
+            $this->jabatanMap = array_column($result['data'] ?? [], 'nm_jbtn', 'kd_jbtn');
+        } catch (KanzaBridgeException $e) {
+            log_message('error', '[GET_JABATAN_MAP] ' . $e->getMessage()
+                . ($e->requiredScope ? ' Scope: ' . $e->requiredScope : ''));
         }
 
         return $this->jabatanMap;
-    }
-
-    private function apiHeaders(): array
-    {
-        $userData = $this->userData;
-
-        return [
-            'Authorization' => $userData['token'] ?? null,
-            'Accept'        => 'application/json',
-        ];
     }
 
     /* ===============================

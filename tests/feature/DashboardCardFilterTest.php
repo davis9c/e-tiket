@@ -74,11 +74,8 @@ final class DashboardCardFilterTest extends CIUnitTestCase
             'Test berjalan pada database yang sama dengan database pengembangan.'
         );
 
-        // Halaman daftar tiket memanggil API Kanza (getJabatanMap /
-        // getPetugas). Tanpa token yang valid, API membalas 401 dan
-        // CURLRequest melempar exception karena http_errors tidak
-        // dimatikan di sana. Stub di sini supaya test tidak bergantung
-        // pada layanan eksternal.
+        // Halaman daftar tiket memanggil KanzaBridge V2 untuk data jabatan
+        // dan petugas. Stub ini mencegah HTTP sungguhan pada test.
         \Config\Services::injectMock('curlrequest', new FakeCurlRequest());
 
         $this->inTransaction = $this->db->transBegin();
@@ -99,13 +96,9 @@ final class DashboardCardFilterTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => env('ROLE_ADMIN'),
-            'token'      => 'test-token',
-            // Wajib. ETicket2::__construct() memanggil checkToken(); kalau
-            // 'expires' kosong, checkToken() me-remove() seluruh session
-            // (termasuk 'nip') lalu mengembalikan redirect yang diabaikan.
-            // Tanpa expires, /etiket dan /pelaksana selalu ikut redirect.
-            'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
+            // AuthFilter memeriksa versi sesi lokal setelah migrasi V2.
             'id_pegawai' => 1,
             'nip'        => '199004232019022005',
             'nama'       => 'Petugas Uji',
@@ -126,9 +119,8 @@ final class DashboardCardFilterTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => env('ROLE_ADMIN'),
-            'token'      => 'test-token',
-            'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
             'id_pegawai' => 2112,
             'nip'        => '357408005260043',
             'nama'       => 'Petugas Uji',
@@ -1038,9 +1030,8 @@ private function asAdmin()
     {
     return $this->withSession([
         'logged_in'   => true,
+        'auth_version' => 2,
         'kd_jabatan'  => env('ROLE_ADMIN'),
-        'token'       => 'test-token',
-        'expires'     => date('Y-m-d H:i:s', strtotime('+1 day')),
         'id_pegawai'  => 1,
         'nip'         => '199004232019022005',
         'nama'        => 'Admin Uji',
@@ -1060,9 +1051,8 @@ private function asUserBiasa()
 {
     return $this->withSession([
         'logged_in'   => true,
+        'auth_version' => 2,
         'kd_jabatan'  => 'J036',
-        'token'       => 'test-token',
-        'expires'     => date('Y-m-d H:i:s', strtotime('+1 day')),
         'id_pegawai'  => 2112,
         'nip'         => '199004232019022005',
         'nama'        => 'Petugas Uji',
@@ -1081,9 +1071,8 @@ private function asHeadsection()
 
     return $this->withSession([
         'logged_in'   => true,
+        'auth_version' => 2,
         'kd_jabatan'  => 'J036',
-        'token'       => 'test-token',
-        'expires'     => date('Y-m-d H:i:s', strtotime('+1 day')),
         'id_pegawai'  => 1754,
         'nip'         => $nip,
         'nama'        => 'Kepala Unit',

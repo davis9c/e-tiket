@@ -10,7 +10,8 @@ class AuthFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
-        if (session()->get('logged_in')) {
+        // V1 login sessions must not survive the switch to application keys.
+        if (session()->get('logged_in') && session()->get('auth_version') === 2) {
             return;
         }
 

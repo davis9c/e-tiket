@@ -44,6 +44,9 @@
     <php>
         <server name="app.baseURL" value="http://example.com/"/>
         <server name="CODEIGNITER_SCREAM_DEPRECATIONS" value="0"/>
+        <!-- Dummy values: tests stub the HTTP transport and never use a real key. -->
+        <env name="KANZABRIDGE_BASE_URL" value="https://kanzabridge.invalid/api/v2/"/>
+        <env name="KANZABRIDGE_API_KEY" value="test-only-not-a-real-key"/>
         <!-- Directory containing phpunit.xml -->
         <const name="HOMEPATH" value="./"/>
         <!-- Directory containing the Paths config file -->

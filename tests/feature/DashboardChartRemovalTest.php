@@ -53,9 +53,8 @@ final class DashboardChartRemovalTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'   => true,
+            'auth_version' => 2,
             'kd_jabatan'  => env('ROLE_ADMIN'),
-            'token'       => 'test-token',
-            'expires'     => date('Y-m-d H:i:s', strtotime('+1 day')),
             'id_pegawai'  => 1,
             'nip'         => '199004232019022005',
             'nama'        => 'Petugas Uji',

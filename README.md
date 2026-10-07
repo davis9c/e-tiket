@@ -65,9 +65,10 @@ database.default.database = e_tiket
 database.default.DBDriver = MySQLi
 database.default.port = 3306
 
-# API Configuration
+# Konfigurasi KanzaBridge V2 (ganti URL dan key sesuai server Anda)
 ROLE_ADMIN = J002
-API_KANZA_BRIDGE = 'http://localhost:8080/api/'
+KANZABRIDGE_BASE_URL = 'https://kanzabridge.example.com/api/v2/'
+KANZABRIDGE_API_KEY = 'YOUR_KANZABRIDGE_V2_API_KEY'
 ```
 
 ### 4. Setup Database
@@ -123,13 +124,30 @@ public array $default = [
 ];
 ```
 
-### API Configuration
+### KanzaBridge V2 API
 
-Edit file `.env` untuk konfigurasi API:
+Atur URL dasar KanzaBridge V2 (akhiri dengan `/api/v2/`) dan API key di `.env`:
 
 ```env
-API_KANZA_BRIDGE = 'http://localhost:8080/api/'
+KANZABRIDGE_BASE_URL = 'https://kanzabridge.example.com/api/v2/'
+KANZABRIDGE_API_KEY = 'YOUR_KANZABRIDGE_V2_API_KEY'
 ```
+
+Gunakan HTTPS untuk URL produksi. API key hanya untuk permintaan dari server CI4; simpan di `.env` pada server, jangan commit key asli atau kirim ke JavaScript/browser. Berikan key hanya scope yang diperlukan:
+
+- `meta.read`
+- `auth.login`
+- `pegawai.read`
+- `pegawai.by-ids`
+- `pegawai.by-nik`
+- `jabatan.read`
+- `jabatan.with-petugas`
+- `petugas.read`
+- `petugas.by-nips`
+
+Tambahkan `dokter.by-spesialis` **hanya jika** endpoint dokter legacy yang tidak terjangkau masih dipertahankan; jika tidak, scope tersebut tidak diperlukan. Periksa akses key dengan `GET /api/v2/me` pada host KanzaBridge V2 menggunakan API key dari sisi server (memerlukan `meta.read`).
+
+Login V2 mengembalikan profil pengguna, bukan JWT atau refresh token. Setelah login, autentikasi browser tetap memakai sesi PHP lokal aplikasi CI4; API key tidak dikirim ke browser.
 
 ### Role Configuration
 

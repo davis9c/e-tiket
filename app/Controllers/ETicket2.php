@@ -6,10 +6,10 @@ use App\Controllers\BaseController;
 use App\Models\ETicketModel;
 use App\Models\KategoriETiketModel;
 use App\Models\UsersModel;
-use Config\Services;
 use App\Models\ETicketProsesModel;
 use App\Models\ETicketUPJModel;
-use CodeIgniter\HTTP\CURLRequest;
+use App\Services\KanzaBridgeClient;
+use App\Services\KanzaBridgeException;
 use App\Services\HashIdService;
 use App\Services\DashboardService;
 
@@ -19,8 +19,7 @@ class ETicket2 extends BaseController
     protected KategoriETiketModel $kategoriModel;
     protected UsersModel $usersModel;
     protected ETicketUPJModel $eticketUPJModel;
-    protected CURLRequest $client;
-    protected array $headers;
+    protected KanzaBridgeClient $client;
     protected ETicketProsesModel $eticketProsesModel;
     protected \Hashids\Hashids $hashids;
     protected HashIdService $hashIdService;
@@ -39,16 +38,11 @@ class ETicket2 extends BaseController
         $this->kategoriModel        = new KategoriETiketModel();
         $this->usersModel           = new UsersModel();
         $this->eticketUPJModel      = new ETicketUPJModel();
-        $this->client               = Services::curlrequest();
+        $this->client               = new KanzaBridgeClient();
         $this->hashids              = \Config\Services::hashids();
         $this->hashIdService        = new HashIdService();
         $this->dashboardService     = new DashboardService();
         $this->db                   = \Config\Database::connect();
-        $this->checkToken();
-        $this->headers = [
-            'Authorization' => Services::session()->get('token') ?? null,
-            'Accept'        => 'application/json',
-        ];
         helper('text');
     }
     /* =========================================================
@@ -76,11 +70,8 @@ class ETicket2 extends BaseController
  * /dashboard-saya, dan /dashboard/user. Dua terakhir sekarang dihapus, dan
  * akar situs / diarahkan ke /index lewat akar().
  *
- * /dashboard/user punya satu perbedaan yang tidak disengaja: controller
- * Dashboard tidak memanggil checkToken() di constructor-nya, jadi halaman
- * itu tetap terbuka untuk sesi yang tokennya sudah kedaluwarsa. Di sini
- * checkToken() tetap berjalan (dipanggil di constructor), jadi jalur
- * tersebut ikut tertutup.
+ * Akses halaman dilindungi AuthFilter dan sesi lokal E-Tiket,
+ * bukan lagi token KanzaBridge.
  */
 public function index()
     {
@@ -136,7 +127,7 @@ public function index()
         $userData = $this->userData;
         $kdJbtn = $userData['kd_jabatan'];
         if (!$kdJbtn) {
-            return redirect()->to('/login')->with('error', 'Session expired');
+            return redirect()->to(base_url('index'))->with('error', 'Akun Anda belum memiliki jabatan untuk fitur ini.');
         }
         // Kategori diambil sekali lalu dipakai untuk guard dan form,
         // supaya id yang dicek guard selalu sama dengan yang dirender.
@@ -186,7 +177,7 @@ public function index()
         $userData = $this->userData;
         $kdJbtn = $userData['kd_jabatan'];
         if (!$kdJbtn) {
-            return redirect()->to('/login')->with('error', 'Session expired');
+            return redirect()->to(base_url('index'))->with('error', 'Akun Anda belum memiliki jabatan untuk fitur ini.');
         }
 
         return $this->renderTicketList(
@@ -215,7 +206,7 @@ public function index()
         $nip = $userData['nip'];
         $kdJbtn = $userData['kd_jabatan'];
         if (!$nip) {
-            return redirect()->to('/login')->with('error', 'Session expired');
+            return redirect()->to(base_url('index'))->with('error', 'Akun Anda belum memiliki jabatan untuk fitur ini.');
         }
 
         return $this->renderTicketList(
@@ -268,7 +259,7 @@ public function index()
         $userData = $this->userData;
         $nip      = $userData['nip'];
         if (!$nip) {
-            return redirect()->to('/login')->with('error', 'Session expired');
+            return redirect()->to(base_url('index'))->with('error', 'Akun Anda belum memiliki jabatan untuk fitur ini.');
         }
 
         $kdJbtn = $userData['kd_jabatan'];
@@ -1872,17 +1863,7 @@ public function index()
     {
         if (empty($nips)) return [];
 
-        $response = $this->client->post(
-            env('API_KANZA_BRIDGE') . 'petugas/by-nips',
-            [
-                'headers' => $this->headers,
-                'json'    => ['nips' => array_values($nips)],
-                'http_errors' => false
-            ]
-        );
-
-        $result = json_decode($response->getBody(), true);
-        $data   = $result['data'] ?? [];
+        $data = $this->postAPI('petugas/by-nips', ['nips' => array_values($nips)]);
 
         $map = [];
         foreach ($data as $p) {
@@ -1906,32 +1887,12 @@ public function index()
     }
     private function getJabatanMap(): array
     {
-        $response = $this->client->get(
-            env('API_KANZA_BRIDGE') . 'jabatan',
-            ['headers' => $this->headers]
-        );
-
-        $result = json_decode($response->getBody(), true);
-        $data   = $result['data'] ?? [];
-
-        return array_column($data, 'nm_jbtn', 'kd_jbtn');
+        return array_column($this->getJabatan(), 'nm_jbtn', 'kd_jbtn');
     }
     private function getPetugas($kdJbtn = null): array
     {
-        $options = ['headers' => $this->headers];
-
-        if ($kdJbtn) {
-            $options['json'] = ['jbtn' => $kdJbtn];
-        }
-
-        $response = $this->client->post(
-            env('API_KANZA_BRIDGE') . 'petugas/DanJabatan',
-            $options
-        );
-
-        $result = json_decode($response->getBody(), true);
-
-        return $result['data'] ?? [];
+        // Tanpa jbtn, jangan kirim body JSON: V2 mengembalikan semua petugas.
+        return $this->postAPI('petugas/dan-jabatan', $kdJbtn ? ['jbtn' => $kdJbtn] : null);
     }
 
     // =====================================================
@@ -1973,13 +1934,13 @@ public function index()
     }
     private function getJabatan(): array
     {
-        $response = $this->client->get(
-            env('API_KANZA_BRIDGE') . 'jabatan',
-            ['headers' => $this->headers]
-        );
-
-        $result = json_decode($response->getBody(), true);
-        return $result['data'] ?? [];
+        try {
+            $result = $this->client->get('jabatan');
+            return $result['data'] ?? [];
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
+            return [];
+        }
     }
 
     /**
@@ -2213,7 +2174,7 @@ public function index()
         $userData = $this->userData;
         $kdJbtn = $userData['kd_jabatan'];
         if (!$kdJbtn) {
-            return redirect()->to('/login')->with('error', 'Session expired');
+            return redirect()->to(base_url('index'))->with('error', 'Akun Anda belum memiliki jabatan untuk fitur ini.');
         }
         $jabatan = $this->getJabatan();
         $kategoriId = (int) $this->request->getGet('kategori');
@@ -2235,7 +2196,7 @@ public function index()
             // membuat tiket.
             $petugas = empty($kdJabatan)
                 ? $this->getPetugas()
-                : $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJabatan]);
+                : $this->postAPI('petugas/dan-jabatan', ['jbtn' => $kdJabatan]);
 
             $dataHS = $this->usersModel
                 ->select('nip')
@@ -2272,7 +2233,6 @@ public function index()
         $nip        = $dataPetugas[0];
         $kdJabatan  = $dataPetugas[1];
         $nmJabatan  = $dataPetugas[2];
-        $kd_pegawai = $this->getPegawai($nip)['id'];
         $petugasId   = $nip;
         $petugasNama = $this->request->getPost('nama_petugas');
         $petugasJabatan = $this->request->getPost('nm_jbtn');
@@ -2309,6 +2269,19 @@ public function index()
                 ->withInput()
                 ->with('error', 'Kategori tidak tersedia untuk unit Anda.');
         }
+
+        try {
+            $pegawai = $this->getPegawai($nip);
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
+            return redirect()->back()->withInput()
+                ->with('error', 'Data pegawai tidak tersedia, coba lagi nanti.');
+        }
+        if (empty($pegawai['id'])) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Data pegawai tidak ditemukan.');
+        }
+        $kd_pegawai = $pegawai['id'];
 
         $flow = $this->determineFlow($kategori, $userData['headsection']);
         //dd($flow);
@@ -2394,59 +2367,27 @@ public function index()
                 ->with('error', 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage());
         }
     }
-    private function postAPI($endpoint, $payload = []): array
+    private function postAPI($endpoint, ?array $payload = null): array
     {
-        $userData = $this->userData;
         try {
-            $headers = [
-                'Authorization' => $userData['token'],
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
-            ];
-            $response = $this->client->post(
-                env('API_KANZA_BRIDGE') . $endpoint,
-                [
-                    'headers'     => $headers,
-                    'json'        => $payload,
-                    'timeout'     => 10,
-                    'http_errors' => false, // penting!
-                ]
-            );
-            if ($response->getStatusCode() === 401) {
-                //$this->forceLogout();
-                exit;
-            }
-            $result = json_decode($response->getBody(), true);
+            $result = $this->client->post($endpoint, $payload);
             return $result['data'] ?? [];
-        } catch (\Throwable $e) {
-            log_message('error', '[API ERROR] ' . $e->getMessage());
+        } catch (KanzaBridgeException $e) {
+            $this->logApiFailure($e);
             return [];
         }
     }
+
     private function getPegawai($nip): array
     {
-        $client = Services::curlrequest();
-        $userData = $this->userData;
-        $headers = [
-            'Authorization' => $userData['token'],
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/json',
-        ];
-        $response = $client->post(
-            env('API_KANZA_BRIDGE') . 'pegawai/by-nik',
-            [
-                'headers'     => $headers,
-                'http_errors' => false,
-                'timeout'     => 10,
-                'json'        => [
-                    'nik' => $nip
-                ]
-            ]
-        );
-        if ($response->getStatusCode() !== 200) {
-            throw new \Exception('Gagal mengambil data pegawai');
-        }
-        $result = json_decode($response->getBody(), true);
+        $result = $this->client->post('pegawai/by-nik', ['nik' => $nip]);
         return $result['data'] ?? [];
+    }
+
+    private function logApiFailure(KanzaBridgeException $e): void
+    {
+        log_message('error', '[KANZABRIDGE TIKET] ' . $e->getMessage()
+            . ($e->requiredScope ? ' Scope: ' . $e->requiredScope : '')
+            . ($e->retryAfter !== null ? ' Retry-After: ' . $e->retryAfter : ''));
     }
 }

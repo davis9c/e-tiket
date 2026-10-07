@@ -72,9 +72,8 @@ final class KategoriUmumTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'   => true,
+            'auth_version' => 2,
             'kd_jabatan'  => (string) env('ROLE_ADMIN'),
-            'token'       => 'test-token',
-            'expires'     => date('Y-m-d H:i:s', strtotime('+1 day')),
             'id_pegawai'  => 1,
             'nip'         => self::NIP_LOGIN,
             'nama'        => 'Admin Uji',
@@ -87,9 +86,8 @@ final class KategoriUmumTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'   => true,
+            'auth_version' => 2,
             'kd_jabatan'  => $kdJbtn,
-            'token'       => 'test-token',
-            'expires'     => date('Y-m-d H:i:s', strtotime('+1 day')),
             'id_pegawai'  => 1,
             'nip'         => self::NIP_LOGIN,
             'nama'        => 'Petugas Uji',
@@ -405,7 +403,7 @@ final class KategoriUmumTest extends CIUnitTestCase
     }
 
     /**
-     * Opsi request yang dikirim ke endpoint petugas/DanJabatan, atau null
+     * Opsi request yang dikirim ke endpoint petugas/dan-jabatan, atau null
      * kalau endpoint itu tidak pernah dipanggil.
      *
      * Yang dikembalikan opsi, bukan body-nya: kategori umum sengaja
@@ -414,7 +412,7 @@ final class KategoriUmumTest extends CIUnitTestCase
     private function opsiPanggilanPetugas(): ?array
     {
         foreach (KategoriUmumFakeCurlRequest::$calls as $call) {
-            if (str_contains($call['url'], 'petugas/DanJabatan')) {
+            if (str_contains($call['url'], 'petugas/dan-jabatan')) {
                 return $call['options'];
             }
         }

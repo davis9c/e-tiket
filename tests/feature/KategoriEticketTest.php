@@ -61,8 +61,8 @@ final class KategoriEticketTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => getenv('ROLE_ADMIN'),
-            'token'      => 'test-token',
             'id_pegawai' => 1,
         ]);
     }
@@ -409,6 +409,7 @@ public function testNoRouteCanDeleteKategori(): void
     {
         $result = $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => 'BUKAN_ADMIN',
         ])->asJson()->get('kategori/list');
 

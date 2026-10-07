@@ -73,9 +73,8 @@ final class AdminTabTest extends CIUnitTestCase
     {
         return $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => env('ROLE_ADMIN'),
-            'token'      => 'test-token',
-            'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
             'id_pegawai' => 1,
             'nip'        => '199004232019022005',
             'nama'       => 'Admin Uji',
@@ -244,9 +243,8 @@ final class AdminTabTest extends CIUnitTestCase
     {
         $result = $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => 'J999',
-            'token'      => 'test-token',
-            'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
             'nip'        => '199004232019022005',
         ])->get('admin');
 
@@ -264,9 +262,8 @@ final class AdminTabTest extends CIUnitTestCase
         foreach (['admin/users', 'admin/pegawai', 'admin/petugas'] as $url) {
             $result = $this->withSession([
                 'logged_in'  => true,
+                'auth_version' => 2,
                 'kd_jabatan' => 'J999',
-                'token'      => 'test-token',
-                'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
                 'nip'        => '199004232019022005',
             ])->get($url);
 
@@ -600,9 +597,8 @@ final class AdminTabTest extends CIUnitTestCase
     {
         $result = $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => 'J999',
-            'token'      => 'test-token',
-            'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
             'nip'        => '199004232019022005',
             'nama'       => 'User Biasa',
             'jabatan'    => 'User Biasa',
@@ -629,9 +625,8 @@ final class AdminTabTest extends CIUnitTestCase
     {
         $result = $this->withSession([
             'logged_in'  => true,
+            'auth_version' => 2,
             'kd_jabatan' => 'J999',
-            'token'      => 'test-token',
-            'expires'    => date('Y-m-d H:i:s', strtotime('+1 day')),
             'nip'        => '199004232019022005',
             'nama'       => 'User Biasa',
             'jabatan'    => 'User Biasa',

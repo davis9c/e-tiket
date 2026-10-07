@@ -15,6 +15,7 @@ use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\AuthFilter;
 use App\Filters\RoleAdmin;
 use App\Filters\Headsection;
+use App\Filters\RequireJabatan;
 
 class Filters extends BaseFilters
 {
@@ -41,6 +42,7 @@ class Filters extends BaseFilters
         'auth'          => AuthFilter::class,
         'roleadmin'     => RoleAdmin::class,
         'roleheadsection' => Headsection::class,
+        'requirejabatan' => RequireJabatan::class,
 
     ];
 

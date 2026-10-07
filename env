@@ -2,18 +2,24 @@
 #--------------------------------------------------------------------
 # ENVIRONMENT
 #--------------------------------------------------------------------
-CI_ENVIRONMENT = production
+CI_ENVIRONMENT = development
 
 
 #--------------------------------------------------------------------
-# Admin IT
+# Khanza Bridge
 #--------------------------------------------------------------------
 ROLE_ADMIN = J002
-API_KANZA_BRIDGE = ''
+API_KANZA_BRIDGE = 'http://localhost:8091/api/'
+KANZABRIDGE_BASE_URL = 'http://localhost:8091/api/v2/'
+KANZABRIDGE_API_KEY = 'kb_live_****'
+
+
+
+
 #--------------------------------------------------------------------
 # APP
 #--------------------------------------------------------------------
-app.baseURL = ''
+app.baseURL = http://localhost:8092
 # If you have trouble with `.`, you could also use `_`.
 # app_baseURL = ''
 # app.forceGlobalSecureRequests = false
@@ -22,10 +28,10 @@ app.baseURL = ''
 #--------------------------------------------------------------------
 # DATABASE
 #--------------------------------------------------------------------
-database.default.hostname = 
-database.default.database = 
-database.default.username = 
-database.default.password = 
+database.default.hostname = 127.0.0.1
+database.default.database = db_ar_eticket
+database.default.username = eticket
+database.default.password = 11
 database.default.DBDriver = MySQLi
 database.default.DBPrefix =
 database.default.port = 3306

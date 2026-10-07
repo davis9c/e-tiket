@@ -113,8 +113,7 @@ final class DashboardRouteTest extends CIUnitTestCase
 
     /**
      * Dashboard::user() dihapus karena tidak ada route lagi. Kalau masih ada,
-     * controller itu tetap bisa dipanggil -- dan tidak memanggil
-     * checkToken(), jadi sesi kedaluwarsa bisa masuk lewat sana.
+     * controller itu tetap bisa dipanggil tanpa route yang dilindungi.
      */
     public function testDashboardUserDihapus(): void
     {

@@ -4,21 +4,18 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\UsersModel;
+use App\Services\KanzaBridgeClient;
+use App\Services\KanzaBridgeException;
 
 class Auth extends BaseController
 {
     protected UsersModel $userModel;
-    protected $client;
-    protected array $headers;
+    protected KanzaBridgeClient $client;
 
     public function __construct()
     {
         $this->userModel = new UsersModel();
-        $this->client    = \Config\Services::curlrequest();
-        $this->headers   = [
-            'Content-Type' => 'application/json',
-            'Accept'       => 'application/json',
-        ];
+        $this->client    = new KanzaBridgeClient();
     }
 
     public function login()
@@ -29,9 +26,9 @@ class Auth extends BaseController
     public function attempt()
     {
         $userId   = trim($this->request->getPost('user_id'));
-        $password = trim($this->request->getPost('password'));
+        $password = (string) $this->request->getPost('password');
 
-        if (!$userId || !$password) {
+        if (!$userId || trim($password) === '') {
             return $this->backWithError('User ID dan password wajib diisi');
         }
 
@@ -41,27 +38,19 @@ class Auth extends BaseController
             return $this->backWithError($result['message']);
         }
 
-        // sukses
-        $this->setUserSession($result['data']);
         $this->syncUser($result['data'], $userId);
+        // Jangan bawa JWT/masa berlaku V1 dari sesi lama saat login ulang.
+        session()->remove(['token', 'expires']);
+        session()->regenerate(true);
+        $this->setUserSession($result['data']);
+
         return redirect()->to(base_url('index'))
-            ->with('success', 'Login berhasil, selamat datang ' . $result['data']['data']['nama']);
+            ->with('success', $result['data']['message'] ?? 'Login berhasil');
     }
     public function logout()
     {
-        session()->remove([
-            'token',
-            'expires',
-            'id_pegawai',
-            'nip',
-            'nik',
-            'nama',
-            'kd_jabatan',
-            'jabatan',
-            'headsection',
-            'logged_in',
-        ]);
-        return redirect()->to(base_url('login'))->with('success', 'Berhasil logout');
+        session()->destroy();
+        return redirect()->to(base_url('login'));
     }
     /* =====================================================
      * PRIVATE METHODS
@@ -70,49 +59,46 @@ class Auth extends BaseController
     private function loginApi(string $userId, string $password): array
     {
         try {
-            $response = $this->client->post(
-                env('API_KANZA_BRIDGE') . 'auth/login/',
-                [
-                    'headers'     => $this->headers,
-                    'json'        => [
-                        'user_id'  => $userId,
-                        'password' => $password,
-                    ],
-                    'http_errors' => false,
-                ]
-            );
-            $result = json_decode($response->getBody(), true);
-            if ($response->getStatusCode() !== 200) {
-                return [
-                    'success' => false,
-                    'message' => $result['message'] ?? 'Login gagal'
-                ];
+            $result = $this->client->post('auth/login', [
+                'user_id'  => $userId,
+                'password' => $password,
+            ]);
+            $user = $result['data'] ?? null;
+            if (!is_array($user) || empty($user['pegawai_id']) || empty($user['nik']) || empty($user['nama'])) {
+                throw new KanzaBridgeException('Profil login KanzaBridge tidak lengkap.');
             }
-            return [
-                'success' => true,
-                'data'    => $result
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'message' => 'Gagal menghubungi server autentikasi'
-            ];
+
+            return ['success' => true, 'data' => $result];
+        } catch (KanzaBridgeException $e) {
+            if ($e->invalidCredentials) {
+                return ['success' => false, 'message' => 'User ID atau password salah'];
+            }
+            if ($e->status === 404) {
+                return ['success' => false, 'message' => 'Data pegawai tidak ditemukan'];
+            }
+            if ($e->status === 429) {
+                $wait = $e->retryAfter !== null ? ' dalam ' . $e->retryAfter . ' detik' : ' nanti';
+                return ['success' => false, 'message' => 'Terlalu banyak percobaan, coba lagi' . $wait . '.'];
+            }
+            log_message('error', '[KANZABRIDGE LOGIN] ' . $e->getMessage()
+                . ($e->requiredScope ? ' Scope: ' . $e->requiredScope : ''));
+            return ['success' => false, 'message' => 'Layanan login sedang bermasalah.'];
         }
     }
     private function setUserSession(array $result): void
     {
         $data = $result['data'];
         session()->set([
-            'token'       => $result['token'],
-            'expires'     => $result['expires'] ?? null,
             'id_pegawai'  => $data['pegawai_id'],
             'nip'         => $data['nik'],
             'nik'         => $data['nik'],
             'nama'        => $data['nama'],
             'kd_jabatan'  => $data['kd_jabatan'] ?? null,
             'jabatan'     => $data['jabatan'] ?? null,
-            'headsection' => $this->userModel->getHeadSectionByNip($data['nik']),
+            'headsection' => !empty($data['kd_jabatan'])
+                ? $this->userModel->getHeadSectionByNip($data['nik']) : null,
             'logged_in'   => true,
+            'auth_version' => 2,
         ]);
     }
 
@@ -130,17 +116,10 @@ class Auth extends BaseController
             'nama' => $result['data']['nama'],
         ];
 
-        // Unit + jabatan ikut disimpan. Halaman login tidak bisa memanggil
-        // API (semua endpoint mewajibkan token), jadi ini satu-satunya
-        // sumber unit yang terbaca sebelum login.
-        // Hanya ditulis kalau API benar-benar mengirimnya, supaya unit
-        // yang sudah tersimpan tidak tertimpa NULL.
-        if (! empty($result['data']['kd_jabatan'])) {
-            $dataUser['kd_jbtn'] = $result['data']['kd_jabatan'];
-        }
-        if (! empty($result['data']['jabatan'])) {
-            $dataUser['nm_jbtn'] = $result['data']['jabatan'];
-        }
+        // V2 tidak memberi fallback jabatan. Hapus nilai lama bila profil
+        // saat ini tidak lagi memiliki jabatan, agar hak akses tidak usang.
+        $dataUser['kd_jbtn'] = $result['data']['kd_jabatan'] ?? null;
+        $dataUser['nm_jbtn'] = $result['data']['jabatan'] ?? null;
 
         if (!$user) {
             $this->userModel->insert(array_merge($dataUser, [
@@ -158,8 +137,7 @@ class Auth extends BaseController
 
     private function backWithError(string $message)
     {
-        return redirect()->back()
-            ->with('error', $message)
-            ->withInput();
+        // Jangan simpan password di old input/flashdata sesi.
+        return redirect()->back()->with('error', $message);
     }
 }

@@ -839,9 +839,7 @@ final class TicketDetailViewTest extends CIUnitTestCase
         $method = (new \ReflectionClass($controller))->getMethod('mapUnitWithJabatan');
         $method->setAccessible(true);
 
-        // getJabatan() memanggil API lewat $this->client yang bertipe
-        // CURLRequest, jadi stub harus subclass-nya dan tanda tangannya
-        // harus sama persis dengan parent (termasuk return type).
+        // KanzaBridgeClient menerima stub CURLRequest agar tidak ada HTTP nyata.
         $client = new class(
             new \Config\App(),
             new \CodeIgniter\HTTP\Uri('http://example.com'),
@@ -863,7 +861,9 @@ final class TicketDetailViewTest extends CIUnitTestCase
 
         $prop = (new \ReflectionClass($controller))->getProperty('client');
         $prop->setAccessible(true);
-        $prop->setValue($controller, $client);
+        $prop->setValue($controller, new \App\Services\KanzaBridgeClient(
+            $client, 'https://kanzabridge.invalid/api/v2/', 'test-key'
+        ));
 
         $out = $method->invoke($controller, [
             'unit_penanggung_jawab' => [

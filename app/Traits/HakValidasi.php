@@ -35,6 +35,11 @@ trait HakValidasi
      */
     protected function bolehValidasi(): bool
     {
+        // Akun tanpa jabatan tetap bisa login, tetapi tidak mendapat hak unit.
+        if (!session('kd_jabatan')) {
+            return false;
+        }
+
         if (session('kd_jabatan') === getenv('ROLE_ADMIN')) {
             return true;
         }

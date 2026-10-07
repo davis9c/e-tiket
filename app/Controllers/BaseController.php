@@ -74,39 +74,6 @@ abstract class BaseController extends Controller
 
     protected function extractUserSession(): array
     {
-        return array_merge($this->getUserSessionData(), [
-            'token' => $this->session('token'),
-        ]);
-    }
-
-    protected function checkToken()
-    {
-        // kalau tidak ada token → ke login
-        if (!$this->session('token')) {
-            return redirect()->to(base_url('login'));
-        }
-
-        $expires = $this->session('expires');
-
-        // kalau expires tidak ada ATAU sudah lewat waktu
-        if (!$expires || strtotime($expires) < time()) {
-
-            session()->remove([
-                'token',
-                'expires',
-                'id_pegawai',
-                'nip',
-                'nik',
-                'nama',
-                'kd_jabatan',
-                'jabatan',
-                'headsection',
-                'logged_in',
-            ]);
-
-            return redirect()
-                ->to(base_url('login'))
-                ->with('error', 'Sesi habis, silakan login kembali.');
-        }
+        return $this->getUserSessionData();
     }
 }

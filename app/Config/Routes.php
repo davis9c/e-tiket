@@ -72,18 +72,18 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     | di ETicketModel::getTickets() dan ETicket2::parseSumber().
     */
     $routes->get('index', 'ETicket2::index');
-    $routes->get('baru', 'ETicket2::baru');
+    $routes->get('baru', 'ETicket2::baru', ['filter' => 'requirejabatan']);
     $routes->get('etiket', 'ETicket2::eticket');
     $routes->get('etiket/(:any)', 'ETicket2::eticket/$1');
-    $routes->post('etiket/submit', 'ETicket2::submit');
+    $routes->post('etiket/submit', 'ETicket2::submit', ['filter' => 'requirejabatan']);
     $routes->get('report/(:any)', 'ETicket2::report/$1');
 
     //Untuk Tindakan
-    $routes->post('ambil-tiket', 'ETicket2::submit_ambil_tiket');
-    $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change');
-    $routes->post('etiket/ticket-edit-permintaan', 'ETicket2::eticket_edit_permintaan');
-    $routes->post('etiket/submit_teruskan', 'ETicket2::submit_teruskan'); //fungsi teruskan
-    $routes->post('etiket/submit_final', 'ETicket2::submit_final');
+    $routes->post('ambil-tiket', 'ETicket2::submit_ambil_tiket', ['filter' => 'requirejabatan']);
+    $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change', ['filter' => 'requirejabatan']);
+    $routes->post('etiket/ticket-edit-permintaan', 'ETicket2::eticket_edit_permintaan', ['filter' => 'requirejabatan']);
+    $routes->post('etiket/submit_teruskan', 'ETicket2::submit_teruskan', ['filter' => 'requirejabatan']); //fungsi teruskan
+    $routes->post('etiket/submit_final', 'ETicket2::submit_final', ['filter' => 'requirejabatan']);
 
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
