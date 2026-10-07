@@ -12,6 +12,7 @@ use App\Models\ETicketUPJModel;
 use CodeIgniter\HTTP\CURLRequest;
 use App\Services\HashIdService;
 use App\Services\DashboardService;
+use App\Services\KanzaBridgeApi;
 
 class ETicket2 extends BaseController
 {
@@ -19,12 +20,11 @@ class ETicket2 extends BaseController
     protected KategoriETiketModel $kategoriModel;
     protected UsersModel $usersModel;
     protected ETicketUPJModel $eticketUPJModel;
-    protected CURLRequest $client;
-    protected array $headers;
     protected ETicketProsesModel $eticketProsesModel;
     protected \Hashids\Hashids $hashids;
     protected HashIdService $hashIdService;
     protected DashboardService $dashboardService;
+    protected KanzaBridgeApi $bridge;
     protected $db;
 
     private const ALLOWED_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'pdf'];
@@ -39,16 +39,17 @@ class ETicket2 extends BaseController
         $this->kategoriModel        = new KategoriETiketModel();
         $this->usersModel           = new UsersModel();
         $this->eticketUPJModel      = new ETicketUPJModel();
-        $this->client               = Services::curlrequest();
         $this->hashids              = \Config\Services::hashids();
         $this->hashIdService        = new HashIdService();
         $this->dashboardService     = new DashboardService();
         $this->db                   = \Config\Database::connect();
         $this->checkToken();
-        $this->headers = [
-            'Authorization' => Services::session()->get('token') ?? null,
-            'Accept'        => 'application/json',
-        ];
+
+        // Semua panggilan KanzaBridge lewat V2 (X-API-Key). Key bukan milik user
+        // dan tidak diambil dari session -- itulah yang membuat route admin
+        // bisa diakses tanpa bergantung pada token JWT user.
+        $this->bridge = new KanzaBridgeApi();
+
         helper('text');
     }
     /* =========================================================
@@ -1872,17 +1873,8 @@ public function index()
     {
         if (empty($nips)) return [];
 
-        $response = $this->client->post(
-            env('API_KANZA_BRIDGE') . 'petugas/by-nips',
-            [
-                'headers' => $this->headers,
-                'json'    => ['nips' => array_values($nips)],
-                'http_errors' => false
-            ]
-        );
-
-        $result = json_decode($response->getBody(), true);
-        $data   = $result['data'] ?? [];
+        $result = $this->bridge->post('petugas/by-nips', ['nips' => array_values($nips)]);
+        $data   = is_array($result['data']) ? $result['data'] : [];
 
         $map = [];
         foreach ($data as $p) {
@@ -1904,34 +1896,47 @@ public function index()
             fn($p) => isset($userNips[(string)$p['nip']])
         ));
     }
+    /**
+     * Peta kd_jbtn => nm_jbtn dari bridge.
+     *
+     * Dikembalikan array kosong kalau bridge gagal. Efeknya semua nm_jbtn
+     * menjadi '-' dan halaman tetap tampil -- lebih baik daripada melempar
+     * exception, tapi kegagalan bridge harus kelihatan di log, dan itu
+     * sudah ditangani KanzaBridgeApi (401/403 dan exception dicatat).
+     */
     private function getJabatanMap(): array
     {
-        $response = $this->client->get(
-            env('API_KANZA_BRIDGE') . 'jabatan',
-            ['headers' => $this->headers]
-        );
+        $result = $this->bridge->get('jabatan');
 
-        $result = json_decode($response->getBody(), true);
-        $data   = $result['data'] ?? [];
-
-        return array_column($data, 'nm_jbtn', 'kd_jbtn');
+        return $this->bridgeIsOk($result) ? array_column($result['data'], 'nm_jbtn', 'kd_jbtn') : [];
     }
+    /**
+     * Petugas untuk satu unit, atau seluruh petugas bila $kdJbtn null.
+     *
+     * jbtn dikirim sebagai query string, bukan body -- itu bentuk yang
+     * dipakai endpoint V2, dan juga bentuk yang dipanggil bridge di V1.
+     */
     private function getPetugas($kdJbtn = null): array
     {
-        $options = ['headers' => $this->headers];
-
-        if ($kdJbtn) {
-            $options['json'] = ['jbtn' => $kdJbtn];
-        }
-
-        $response = $this->client->post(
-            env('API_KANZA_BRIDGE') . 'petugas/DanJabatan',
-            $options
+        $result = $this->bridge->post(
+            'petugas/DanJabatan',
+            $kdJbtn ? ['jbtn' => $kdJbtn] : [],
+            true
         );
 
-        $result = json_decode($response->getBody(), true);
+        return $this->bridgeIsOk($result) ? $result['data'] : [];
+    }
 
-        return $result['data'] ?? [];
+    /**
+     * Apakah respons bridge bisa dipakai?
+     *
+     * Diletakkan di satu tempat supaya setiap pemanggil tidak mengulang
+     * syarat yang sama, dan supaya tidak ada yang lupa -- akibatnya
+     * nm_jbtn diam-diam berubah jadi '-' tanpa ada yang memberitahu.
+     */
+    private function bridgeIsOk(array $result): bool
+    {
+        return $result['status'] === 200 && is_array($result['data']);
     }
 
     // =====================================================
@@ -1973,13 +1978,9 @@ public function index()
     }
     private function getJabatan(): array
     {
-        $response = $this->client->get(
-            env('API_KANZA_BRIDGE') . 'jabatan',
-            ['headers' => $this->headers]
-        );
+        $result = $this->bridge->get('jabatan');
 
-        $result = json_decode($response->getBody(), true);
-        return $result['data'] ?? [];
+        return $this->bridgeIsOk($result) ? $result['data'] : [];
     }
 
     /**
@@ -2235,7 +2236,7 @@ public function index()
             // membuat tiket.
             $petugas = empty($kdJabatan)
                 ? $this->getPetugas()
-                : $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJabatan]);
+                : $this->postAPI('petugas/DanJabatan', ['jbtn' => $kdJabatan], true);
 
             $dataHS = $this->usersModel
                 ->select('nip')
@@ -2394,59 +2395,31 @@ public function index()
                 ->with('error', 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage());
         }
     }
-    private function postAPI($endpoint, $payload = []): array
+    /**
+     * POST ke KanzaBridge V2.
+     *
+     * $asQuery=true untuk endpoint yang filter-nya lewat query string.
+     *
+     * Perhatikan dulunya ada `exit` di cabang 401. Itu berbahaya dan sekarang
+     * dihapus: 401 di V2 berarti API key salah atau dicabut, jadi dengan
+     * exit seluruh request mati tanpa output sama sekali -- user melihat
+     * halaman kosong, dan tidak ada jejak kenapa. Guide §4 juga menyatakan
+     * 401 itu urusan credential, bukan session user, jadi tidak ada alasan
+     * untuk menghentikan request milik user yang sedang memakai aplikasi.
+     */
+    private function postAPI($endpoint, $payload = [], bool $asQuery = false): array
     {
-        $userData = $this->userData;
-        try {
-            $headers = [
-                'Authorization' => $userData['token'],
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
-            ];
-            $response = $this->client->post(
-                env('API_KANZA_BRIDGE') . $endpoint,
-                [
-                    'headers'     => $headers,
-                    'json'        => $payload,
-                    'timeout'     => 10,
-                    'http_errors' => false, // penting!
-                ]
-            );
-            if ($response->getStatusCode() === 401) {
-                //$this->forceLogout();
-                exit;
-            }
-            $result = json_decode($response->getBody(), true);
-            return $result['data'] ?? [];
-        } catch (\Throwable $e) {
-            log_message('error', '[API ERROR] ' . $e->getMessage());
-            return [];
-        }
+        $result = $this->bridge->post($endpoint, $payload, $asQuery);
+
+        return $this->bridgeIsOk($result) ? $result['data'] : [];
     }
     private function getPegawai($nip): array
     {
-        $client = Services::curlrequest();
-        $userData = $this->userData;
-        $headers = [
-            'Authorization' => $userData['token'],
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/json',
-        ];
-        $response = $client->post(
-            env('API_KANZA_BRIDGE') . 'pegawai/by-nik',
-            [
-                'headers'     => $headers,
-                'http_errors' => false,
-                'timeout'     => 10,
-                'json'        => [
-                    'nik' => $nip
-                ]
-            ]
-        );
-        if ($response->getStatusCode() !== 200) {
-            throw new \Exception('Gagal mengambil data pegawai');
+        $result = $this->bridge->post('pegawai/by-nik', ['nik' => $nip]);
+        if ($result['status'] !== 200) {
+            throw new \Exception('Gagal mengambil data pegawai: ' . $result['message']);
         }
-        $result = json_decode($response->getBody(), true);
+
         return $result['data'] ?? [];
     }
 }

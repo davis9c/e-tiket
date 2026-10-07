@@ -397,24 +397,31 @@ final class KategoriUmumTest extends CIUnitTestCase
         KategoriUmumFakeCurlRequest::reset();
         $this->asAdmin()->get('manual-baru?kategori=' . $id);
 
+        // Filter dikirim sebagai query string, bukan body. Endpoint V2
+        // endpoint ini membaca ?jbtn=, dan KanzaBridgeApi::post() menerjemahkan
+        // $asQuery ke opsi 'query' CURLRequest.
+        $opsi = $this->opsiPanggilanPetugas();
+
+        $this->assertNotNull($opsi, 'Endpoint petugas harus dipanggil');
         $this->assertSame(
             ['jbtn' => [$kdAdmin]],
-            $this->opsiPanggilanPetugas()['json'] ?? null,
-            'Kategori berunit harus tetap menyaring petugas tujuan'
+            $opsi['query'] ?? null,
+            'Kategori berunit harus tetap menyaring petugas tujuan lewat query string'
         );
     }
 
     /**
-     * Opsi request yang dikirim ke endpoint petugas/DanJabatan, atau null
+     * Opsi request yang dikirim ke endpoint petugas/dan-jabatan, atau null
      * kalau endpoint itu tidak pernah dipanggil.
      *
-     * Yang dikembalikan opsi, bukan body-nya: kategori umum sengaja
-     * memanggil tanpa key 'jbtn' sama sekali, jadi body-nya kosong.
+     * Pencocokan ditulis longgar atas 'dan-jabatan' saja: path-nya
+     * berubah dari petugas/DanJabatan (V1) ke petugas/dan-jabatan (V2),
+     * dan tes ini tidak boleh gagal hanya karena path yang berubah.
      */
     private function opsiPanggilanPetugas(): ?array
     {
         foreach (KategoriUmumFakeCurlRequest::$calls as $call) {
-            if (str_contains($call['url'], 'petugas/DanJabatan')) {
+            if (str_contains(strtolower($call['url']), 'dan-jabatan')) {
                 return $call['options'];
             }
         }

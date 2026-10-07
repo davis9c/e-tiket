@@ -59,6 +59,12 @@ abstract class BaseController extends Controller
             'nip'         => $this->session('nip'),
             'nama'        => $this->session('nama'),
             'headsection' => $this->session('headsection'),
+            // Diaktifkan secara eksplisit di session saat login. Tanpa ini,
+            // guard berbasis logged_in di Admin_alias / ETicket2::guard()
+            // selalu melihat nilainya falsy lalu mengarahkan ke /login
+            // -- gejalanya halaman dashboard dan /manual muncul redirect
+            // alih-alih render.
+            'logged_in'   => $this->session('logged_in'),
         ];
     }
 
@@ -74,26 +80,37 @@ abstract class BaseController extends Controller
 
     protected function extractUserSession(): array
     {
-        return array_merge($this->getUserSessionData(), [
-            'token' => $this->session('token'),
-        ]);
+        // 'token' sengaja tidak diteruskan ke $userData lagi: token JWT sudah
+        // tidak dipakai oleh aplikasi, dan guard auth sekarang memeriksa
+        // logged_in -- bukan token -- jadi keberadaannya di array ini tidak
+        // bisa dipakai sebagai pencadangan apa pun.
+        return array_merge($this->getUserSessionData(), []);
     }
 
     protected function checkToken()
     {
-        // kalau tidak ada token → ke login
-        if (!$this->session('token')) {
+        // Guard autis, tidak lagi berbasis token.
+        if (!$this->session('logged_in')) {
             return redirect()->to(base_url('login'));
         }
 
-        $expires = $this->session('expires');
+        // Masa berlaku sesi tidak lagi datang dari 'expires' token -- token
+        // sudah tidak dipakai sama sekali. Patokannya waktu login, bukan
+        // aktivitas terakhir, supaya sesi tidak terus diperbarui oleh
+        // polling notifikasi tiap 3 detik.
+        $masuk = $this->session('login_at');
 
-        // kalau expires tidak ada ATAU sudah lewat waktu
-        if (!$expires || strtotime($expires) < time()) {
+        // Kalau login_at belum ada (session lama / test), anggap saja baru
+        // masuk sekarang supaya guard tidak langsung membersihkan session
+        // yang sebetulnya masih valid.
+        if (!$masuk) {
+            $masuk = time();
+            session()->set('login_at', $masuk);
+        }
+
+        if ((time() - (int) $masuk) > 28800) {
 
             session()->remove([
-                'token',
-                'expires',
                 'id_pegawai',
                 'nip',
                 'nik',
@@ -102,6 +119,7 @@ abstract class BaseController extends Controller
                 'jabatan',
                 'headsection',
                 'logged_in',
+                'login_at',
             ]);
 
             return redirect()

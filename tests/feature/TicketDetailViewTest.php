@@ -840,30 +840,27 @@ final class TicketDetailViewTest extends CIUnitTestCase
         $method->setAccessible(true);
 
         // getJabatan() memanggil API lewat $this->client yang bertipe
-        // CURLRequest, jadi stub harus subclass-nya dan tanda tangannya
-        // harus sama persis dengan parent (termasuk return type).
-        $client = new class(
-            new \Config\App(),
-            new \CodeIgniter\HTTP\Uri('http://example.com'),
-            null
-        ) extends \CodeIgniter\HTTP\CURLRequest {
-            public function get(string $url, array $options = []): \CodeIgniter\HTTP\ResponseInterface
+        // getJabatan() kini lewat KanzaBridgeApi, bukan CURLRequest
+        // langsung -- makanya yang disisipkan adalah bridge, bukan client.
+        // Stub-nya subclass KanzaBridgeApi supaya cocok dengan tipe
+        // property $bridge di controller.
+        $bridge = new class('http://bridge.test/api/v2/', 'kb_live_test') extends \App\Services\KanzaBridgeApi {
+            public function get(string $path): array
             {
-                // Body di-set terpisah: constructor Response menerima
-                // config, bukan isi body.
-                $response = new \CodeIgniter\HTTP\Response(new \Config\App());
-                $response->setBody((string) json_encode(['data' => [
-                    ['kd_jbtn' => 'J001', 'nm_jbtn' => 'Unit Sarana'],
-                    ['kd_jbtn' => 'J002', 'nm_jbtn' => 'Unit Teknisi'],
-                ]]));
-
-                return $response;
+                return [
+                    'status'  => 200,
+                    'message' => 'Data jabatan',
+                    'data'    => [
+                        ['kd_jbtn' => 'J001', 'nm_jbtn' => 'Unit Sarana'],
+                        ['kd_jbtn' => 'J002', 'nm_jbtn' => 'Unit Teknisi'],
+                    ],
+                ];
             }
         };
 
-        $prop = (new \ReflectionClass($controller))->getProperty('client');
+        $prop = (new \ReflectionClass($controller))->getProperty('bridge');
         $prop->setAccessible(true);
-        $prop->setValue($controller, $client);
+        $prop->setValue($controller, $bridge);
 
         $out = $method->invoke($controller, [
             'unit_penanggung_jawab' => [

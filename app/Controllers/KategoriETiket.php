@@ -5,13 +5,13 @@ namespace App\Controllers;
 use App\Controllers\BaseController;
 use App\Models\KategoriETiketModel;
 use App\Models\KategoriUnitJabatanModel;
-use Config\Services;
+use App\Services\KanzaBridgeApi;
 
 class KategoriETiket extends BaseController
 {
     protected $kategoriEticketModel;
     protected $unitModel;
-    protected $client;
+    protected KanzaBridgeApi $bridge;
 
     /**
      * Cache map jabatan (kd_jbtn => nm_jbtn) per request,
@@ -21,9 +21,9 @@ class KategoriETiket extends BaseController
 
     public function __construct()
     {
-        $this->client               = Services::curlrequest();
         $this->kategoriEticketModel = new KategoriETiketModel();
         $this->unitModel            = new KategoriUnitJabatanModel();
+        $this->bridge               = new KanzaBridgeApi();
     }
 
     /* ===============================
@@ -128,7 +128,7 @@ class KategoriETiket extends BaseController
     public function index()
     {
         $userData = $this->userData;
-        if (! $userData['token']) {
+        if (empty($userData['logged_in'])) {
             return redirect()->to('/login');
         }
 
@@ -170,39 +170,18 @@ class KategoriETiket extends BaseController
 
         $this->jabatanMap = [];
 
-        try {
-            $response = $this->client->get(
-                env('API_KANZA_BRIDGE') . 'jabatan',
-                [
-                    'headers'     => $this->apiHeaders(),
-                    'http_errors' => false,
-                    'timeout'     => 10,
-                ]
-            );
+        $result = $this->bridge->get('jabatan');
 
-            if ($response->getStatusCode() !== 200) {
-                return $this->jabatanMap;
-            }
-
-            $result = json_decode($response->getBody(), true);
-            $data   = $result['data'] ?? [];
-
-            $this->jabatanMap = array_column($data, 'nm_jbtn', 'kd_jbtn');
-        } catch (\Throwable $e) {
-            log_message('error', '[GET_JABATAN_MAP] ' . $e->getMessage());
+        if ($result['status'] !== 200 || ! is_array($result['data'])) {
+            // Map kosong: form edit kategori tetap bisa dibuka, hanya
+            // nama jabatan yang tidak tampil. Kegagalan bridge sudah
+            // dicatat di dalam KanzaBridgeApi.
+            return $this->jabatanMap;
         }
 
+        $this->jabatanMap = array_column($result['data'], 'nm_jbtn', 'kd_jbtn');
+
         return $this->jabatanMap;
-    }
-
-    private function apiHeaders(): array
-    {
-        $userData = $this->userData;
-
-        return [
-            'Authorization' => $userData['token'] ?? null,
-            'Accept'        => 'application/json',
-        ];
     }
 
     /* ===============================

@@ -4,21 +4,17 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\UsersModel;
+use App\Services\KanzaBridgeApi;
 
 class Auth extends BaseController
 {
     protected UsersModel $userModel;
-    protected $client;
-    protected array $headers;
+    protected KanzaBridgeApi $bridge;
 
     public function __construct()
     {
         $this->userModel = new UsersModel();
-        $this->client    = \Config\Services::curlrequest();
-        $this->headers   = [
-            'Content-Type' => 'application/json',
-            'Accept'       => 'application/json',
-        ];
+        $this->bridge    = new KanzaBridgeApi();
     }
 
     public function login()
@@ -50,8 +46,6 @@ class Auth extends BaseController
     public function logout()
     {
         session()->remove([
-            'token',
-            'expires',
             'id_pegawai',
             'nip',
             'nik',
@@ -60,6 +54,7 @@ class Auth extends BaseController
             'jabatan',
             'headsection',
             'logged_in',
+            'login_at',
         ]);
         return redirect()->to(base_url('login'))->with('success', 'Berhasil logout');
     }
@@ -69,42 +64,36 @@ class Auth extends BaseController
 
     private function loginApi(string $userId, string $password): array
     {
-        try {
-            $response = $this->client->post(
-                env('API_KANZA_BRIDGE') . 'auth/login/',
-                [
-                    'headers'     => $this->headers,
-                    'json'        => [
-                        'user_id'  => $userId,
-                        'password' => $password,
-                    ],
-                    'http_errors' => false,
-                ]
-            );
-            $result = json_decode($response->getBody(), true);
-            if ($response->getStatusCode() !== 200) {
-                return [
-                    'success' => false,
-                    'message' => $result['message'] ?? 'Login gagal'
-                ];
-            }
-            return [
-                'success' => true,
-                'data'    => $result
-            ];
-        } catch (\Throwable $e) {
+        // Endpoint V2: tidak menerbitkan token JWT, jadi tidak ada lagi
+        // 'token'/'expires' di respons. Envelope status/message/data
+        // tetap sama, sehingga Auth::attempt() tidak perlu diubah.
+        $result = $this->bridge->post('auth/login', [
+            'user_id'  => $userId,
+            'password' => $password,
+        ]);
+
+        if ($result['status'] !== 200) {
             return [
                 'success' => false,
-                'message' => 'Gagal menghubungi server autentikasi'
+                'message' => $result['message'] ?: 'Login gagal',
             ];
         }
+
+        return [
+            'success' => true,
+            'message' => $result['message'],
+            // Disimpan dalam bentuk ['status','message','data'] agar
+            // $result['data']['data']['nama'] di attempt() tetap terbaca.
+            'data'    => $result,
+        ];
     }
     private function setUserSession(array $result): void
     {
         $data = $result['data'];
+        // 'token' dan 'expires' sengaja tidak diisi: token JWT sudah
+        // dihentikan, tidak ada penerimaannya lagi. Masa berlaku sesi
+        // ditangani checkToken() memakai login_at.
         session()->set([
-            'token'       => $result['token'],
-            'expires'     => $result['expires'] ?? null,
             'id_pegawai'  => $data['pegawai_id'],
             'nip'         => $data['nik'],
             'nik'         => $data['nik'],
@@ -113,6 +102,7 @@ class Auth extends BaseController
             'jabatan'     => $data['jabatan'] ?? null,
             'headsection' => $this->userModel->getHeadSectionByNip($data['nik']),
             'logged_in'   => true,
+            'login_at'    => time(),
         ]);
     }
 
@@ -131,7 +121,8 @@ class Auth extends BaseController
         ];
 
         // Unit + jabatan ikut disimpan. Halaman login tidak bisa memanggil
-        // API (semua endpoint mewajibkan token), jadi ini satu-satunya
+        // endpoint V2 (semuanya butuh X-API-Key), jadi inilah satu-satunya
+        // sumber unit yang terbaca sebelum login.
         // sumber unit yang terbaca sebelum login.
         // Hanya ditulis kalau API benar-benar mengirimnya, supaya unit
         // yang sudah tersimpan tidak tertimpa NULL.
