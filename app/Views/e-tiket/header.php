@@ -57,13 +57,22 @@ $next = $currentIndex !== null ? ($data['eticket'][$currentIndex + 1] ?? null) :
  * e-tiket/list.php. Disalin di sini, bukan diekstrak ke helper bersama,
  * karena list.php dan header ini dimuat pada dua view berbeda dan daftar
  * tetap harus bisa tampil sendirian tanpa header.
+ *
+ * $petugas hanya dipakai untuk status 'dikerjakan': nama yang tampil adalah
+ * petugas UPJ terakhir yang bekerja, sama seperti di kolom Status daftar.
+ * Kolom handler sengaja tidak dipakai -- handler bisa diisi pengaju tiket,
+ * sementara status 'dikerjakan' hanya berlaku kalau ada UPJ yang bekerja
+ * (lihat ETicketModel::hitungStatus).
  */
-$statusBadge = static function (?string $status): array {
+$statusBadge = static function (?string $status, ?string $petugas = null): array {
     switch ($status) {
         case 'selesai':
             return ['bg-primary', 'Diselesaikan'];
         case 'dikerjakan':
-            return ['bg-warning', 'Dikerjakan'];
+            return [
+                'bg-warning',
+                'Dikerjakan' . (! empty($petugas) ? ' ' . $petugas : ''),
+            ];
         case 'dalam_antrian':
             return ['bg-secondary', 'Dalam antrian'];
         default:
@@ -71,7 +80,10 @@ $statusBadge = static function (?string $status): array {
     }
 };
 
-[$badgeClass, $badgeText] = $statusBadge($detail['status'] ?? null);
+[$badgeClass, $badgeText] = $statusBadge(
+    $detail['status'] ?? null,
+    $detail['petugas_upj_nama'] ?? null
+);
 
 // Nama pengaju. Kolom petugas_id_nama adalah orang yang mengajukan;
 // nm_jbtn adalah unit pengaju, bukan orang -- jadi ditampilkan terpisah.

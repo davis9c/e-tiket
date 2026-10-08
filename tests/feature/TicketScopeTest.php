@@ -685,27 +685,50 @@ final class TicketScopeTest extends CIUnitTestCase
     }
 
     /* =====================================================
-     | STATUS 'dikerjakan' DARI handler
+     | STATUS 'dikerjakan' DARI handler + KERJA UPJ
      |===================================================== */
 
     /**
-     * handler menandai tiket yang sedang dikerjakan: dipakai sebagai
-     * status 'dikerjakan', dan hanya dibaca kalau tiket belum selesai.
+     * Status 'dikerjakan' butuh DUA hal: handler terisi dan ada unit UPJ
+     * yang benar-benar bekerja.
+     *
+     * Dulu handler saja sudah cukup. Sekarang tidak, karena kolom handler
+     * diisi siapa pun yang menyimpan progress -- termasuk pengaju tiket,
+     * yang punya hak kerjakan. Tanpa syarat UPJ, tiket yang hanya
+     * disentuh pengaju akan berstatus 'dikerjakan' padahal tidak ada unit
+     * yang pernah mengambilnya.
+     *
+     * Test ini menjaga keempat kombinasi supaya tidak ada salah satu sisi
+     * yang hilang: handler saja, UPJ saja, keduanya, dan keduanya dengan
+     * message_akhir terisi.
      */
-    public function testDikerjakanDiambilDariHandler(): void
+    public function testDikerjakanButuhHandlerDanKerjaUpj(): void
     {
         $this->seedDuaUnit();
 
-        $antrian   = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
-        $dikerjakan = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        // Tanpa handler dan tanpa proses: masih antrian.
+        $antrian = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
 
+        // Handler terisi tapi tidak ada unit UPJ yang bekerja -- inilah
+        // kasus pengaju yang menekan tombol Tindakan.
+        $hanyaHandler = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $this->db->table('tb_e_ticket')
+            ->where('id', $hanyaHandler)
+            ->update(['handler' => self::NIP_LOGIN]);
+
+        // Ada UPJ yang bekerja tapi handler kosong.
+        $hanyaProses = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, $this->kdJbtn, true, false);
+        $this->seedProses($hanyaProses, $this->kdJbtn);
+
+        // Dua-duanya: status 'dikerjakan'.
+        $dikerjakan = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, $this->kdJbtn, true, false);
+        $this->seedProses($dikerjakan, $this->kdJbtn);
         $this->db->table('tb_e_ticket')
             ->where('id', $dikerjakan)
             ->update(['handler' => self::NIP_LOGIN]);
 
-        // handler terisi tapi message_akhir juga terisi -> selesai yang
-        // menang, bukan dikerjakan.
-        $selesaiDenganHandler = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        // Keduanya, tapi message_akhir juga terisi -> selesai yang menang.
+        $selesaiDenganHandler = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, $this->kdJbtn, true, false);
         $this->db->table('tb_e_ticket')
             ->where('id', $selesaiDenganHandler)
             ->update([
@@ -717,12 +740,22 @@ final class TicketScopeTest extends CIUnitTestCase
             $this->model()->getTickets(['saya'], $this->kdJbtn, self::NIP_LOGIN, null, null, $this->kategoriMilikLogin)
         );
 
-        $this->assertSame('dalam_antrian', $status[$antrian], 'handler kosong -> dalam_antrian');
-        $this->assertSame('dikerjakan', $status[$dikerjakan], 'handler terisi -> dikerjakan');
+        $this->assertSame('dalam_antrian', $status[$antrian], 'tidak ada handler dan tidak ada proses -> dalam_antrian');
+        $this->assertSame(
+            'dalam_antrian',
+            $status[$hanyaHandler],
+            'handler tanpa kerja UPJ -> dalam_antrian, bukan dikerjakan'
+        );
+        $this->assertSame(
+            'dalam_antrian',
+            $status[$hanyaProses],
+            'kerja UPJ tanpa handler -> dalam_antrian (handler masih penanda memegang)'
+        );
+        $this->assertSame('dikerjakan', $status[$dikerjakan], 'handler + kerja UPJ -> dikerjakan');
         $this->assertSame(
             'selesai',
             $status[$selesaiDenganHandler],
-            'message_akhir harus menang dari handler'
+            'message_akhir harus menang dari handler dan kerja UPJ'
         );
     }
 
@@ -811,7 +844,8 @@ final class TicketScopeTest extends CIUnitTestCase
     {
         $this->seedDuaUnit();
 
-        $dikerjakan = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, null, true, false);
+        $dikerjakan = $this->seedTiket(self::NIP_LOGIN, $this->kdJbtn, $this->kdJbtn, true, false);
+        $this->seedProses($dikerjakan, $this->kdJbtn);
         $this->db->table('tb_e_ticket')
             ->where('id', $dikerjakan)
             ->update(['handler' => self::NIP_LOGIN]);

@@ -99,6 +99,24 @@ class ETicketModel extends Model
         // di dalam loop akan menembak 1 query per baris (N+1).
         $this->primeUnitCache(array_column($rows, 'kategori_id'));
 
+        // `upj` dibutuhkan dua hal di bawah: penanda is_proses per unit dan
+        //hitungStatus() yang kini menuntut bukti kerja dari UPJ. Pemanggil
+        // yang sudah memuatnya (getTickets()) tidak di-query ulang; sisanya
+        // mengambilnya di sini, satu query untuk semua baris.
+        $tanpaUpj = array_values(array_filter(
+            $rows,
+            static fn ($r) => ! array_key_exists('upj', $r)
+        ));
+
+        if ($tanpaUpj !== []) {
+            $upjMap = $this->loadUpjMap(array_column($tanpaUpj, 'id'));
+
+            foreach ($tanpaUpj as &$rowTanpaUpj) {
+                $rowTanpaUpj['upj'] = $upjMap[$rowTanpaUpj['id']] ?? [];
+            }
+            unset($rowTanpaUpj);
+        }
+
         foreach ($rows as &$row) {
 
             $proses = $prosesGrouped[$row['id']] ?? [];
@@ -119,6 +137,11 @@ class ETicketModel extends Model
 
             $row['unit_penanggung_jawab'] = $units;
 
+            // Siapa yang sedang bekerja. View (badge daftar + header) memakai
+            // field ini, bukan handler_nama, supaya nama yang tampil sama
+            // dengan yang dipakai hitungStatus() di bawah.
+            $row['petugas_upj_nama'] = self::petugasUpjTerakhir($row['upj'] ?? [], $proses);
+
             $row['status'] = self::hitungStatus($row);
         }
         unset($row);
@@ -136,8 +159,8 @@ class ETicketModel extends Model
      *                   konfirmasi selesai.
      *   belum_valid   - valid_nama masih kosong: tiket belum disetujui
      *                   atasan.
-     *   dikerjakan    - handler terisi: ada petugas yang sudah mengambil
-     *                   tiket dan menyimpan progress.
+     *   dikerjakan    - handler terisi DAN ada unit UPJ yang benar-benar
+     *                   bekerja (lihat petugasUpjTerakhir()).
      *   dalam_antrian - handler dan message_akhir kosong padahal valid_nama
      *                   sudah ada: disetujui, tapi belum ada yang mengambil
      *                   dan mengerjakan tiketnya.
@@ -160,11 +183,48 @@ class ETicketModel extends Model
             return 'belum_valid';
         }
 
-        if (! empty($row['handler'])) {
+        // Handler SAJA tidak cukup. Kolom itu diisi siapa pun yang menyimpan
+        // progress, termasuk pengaju tiket -- tindakan() mengizinkan
+        // $isPengaju untuk kerjakan. Tanpa syarat UPJ di bawah, tiket yang
+        // hanya disentuh pengaju akan berstatus 'dikerjakan' padahal tidak
+        // ada unit yang pernah mengambilnya.
+        if (! empty($row['handler']) && ! empty($row['petugas_upj_nama'])) {
             return 'dikerjakan';
         }
 
         return 'dalam_antrian';
+    }
+
+    /**
+     * Nama petugas UPJ terakhir yang mengerjakan sebuah tiket.
+     *
+     * Sumber kebenaran untuk "sedang siapa yang bekerja", dipakai bersama
+     * oleh hitungStatus(), daftar, dan timeline status -- supaya ketiganya
+     * tidak bisa berbeda pendapat tentang siapa pemegang tiket.
+     *
+     * Yang dicari adalah baris proses TERAKHIR yang kd_jbtn-nya terdaftar
+     * sebagai UPJ tiket ini (tb_e_ticket_upj). $proses harus sudah terurut
+     * created_at ASC; pemanggilnya memang begitu.
+     *
+     * @param  array|string|null $upj    daftar kd_jbtn UPJ ($row['upj'])
+     * @param  array              $proses baris tb_e_ticket_proses tiket
+     * @return string|null nama petugas, atau null kalau belum ada UPJ yang bekerja
+     */
+    public static function petugasUpjTerakhir($upj, array $proses): ?string
+    {
+        $upj = array_map('strval', (array) ($upj ?: []));
+
+        if ($upj === []) {
+            return null;
+        }
+
+        foreach (array_reverse($proses) as $p) {
+            if (in_array((string) ($p['kd_jbtn'] ?? ''), $upj, true)) {
+                return $p['id_petugas_nama'] ?? null;
+            }
+        }
+
+        return null;
     }
 
     public function findDetailLengkap(int $id): ?array
@@ -296,14 +356,13 @@ class ETicketModel extends Model
             0
         );
         // ================================
-        // STATUS LOGIC
-        // Sama persis dengan attachProsesToRows(), lewat helper yang
-        // sama supaya daftar dan detail tidak bisa berbeda.
-        // ================================
-        $row['status'] = self::hitungStatus($row);
-
-        // ================================
         // Ambil UPJ dari tabel eticketupjs
+        //
+        // WAJIB SEBELUM hitungStatus() di bawah: status 'dikerjakan' kini
+        // menuntut bukti kerja dari unit UPJ, jadi daftar UPJ harus sudah
+        // ada di $row saat status dihitung. Dulu urutannya terbalik --
+        // upj ditulis setelahnya -- dan statusnya hanya bergantung handler,
+        // jadi masalahnya tidak terlihat.
         // ================================
         $upjRows = $this->db->table('tb_e_ticket_upj')
             ->select('kd_jbtn')
@@ -312,6 +371,16 @@ class ETicketModel extends Model
             ->getResultArray();
 
         $row['upj'] = array_column($upjRows, 'kd_jbtn');
+
+        // Siapa yang sedang bekerja; dipakai header detail.
+        $row['petugas_upj_nama'] = self::petugasUpjTerakhir($row['upj'], $proses);
+
+        // ================================
+        // STATUS LOGIC
+        // Sama persis dengan attachProsesToRows(), lewat helper yang
+        // sama supaya daftar dan detail tidak bisa berbeda.
+        // ================================
+        $row['status'] = self::hitungStatus($row);
 
         return $row;
     }

@@ -361,14 +361,14 @@ final class TicketDetailViewTest extends CIUnitTestCase
             ],
         ]));
 
-        foreach (['Validasi', 'Kerjakan', 'Teruskan', 'Kategori', 'Edit'] as $label) {
+        foreach (['Validasi', 'Kerjakan', 'Tindakan', 'Teruskan', 'Kategori', 'Edit'] as $label) {
             $this->assertStringContainsString($label, $html, "Tombol $label harus tetap tampil");
         }
 
-        // Lima tombol aksi, semuanya tidak aktif. Dicocokkan dengan pola
+        // Enam tombol aksi, semuanya tidak aktif. Dicocokkan dengan pola
         // penutup tag, bukan kata 'disabled' polos: komentar di dalam markup
         // juga menyebut kata itu dan akan ikut terhitung.
-        $this->assertSame(5, substr_count($html, '" disabled>'));
+        $this->assertSame(6, substr_count($html, '" disabled>'));
     }
 
     /**
@@ -391,7 +391,7 @@ final class TicketDetailViewTest extends CIUnitTestCase
             ],
         ]));
 
-        foreach (['modalValidasi', 'modalKerjakan', 'modalTeruskan', 'modalKategori', 'modalEditTicket'] as $modal) {
+        foreach (['modalValidasi', 'modalKerjakan', 'modalTindakan', 'modalTeruskan', 'modalKategori', 'modalEditTicket'] as $modal) {
             $this->assertStringNotContainsString('#' . $modal, $html, "Tombol disabled tidak boleh menunjuk ke $modal");
             $this->assertStringNotContainsString('id="' . $modal . '"', $html, "Modal $modal tidak boleh dirender");
         }
@@ -411,13 +411,45 @@ final class TicketDetailViewTest extends CIUnitTestCase
             ],
         ]));
 
-        $this->assertStringContainsString('data-bs-target="#modalKerjakan"', $html, 'Tombol aktif harus menunjuk modalnya');
+        // Satu izin menghasilkan dua tombol aktif: keduanya menutup endpoint
+        // yang sama dengan `aksi` berbeda, jadi keduanya harus punya target.
+        foreach (['modalKerjakan', 'modalTindakan'] as $modal) {
+            $this->assertStringContainsString('data-bs-target="#' . $modal . '"', $html, 'Tombol aktif harus menunjuk modalnya');
+            $this->assertStringContainsString('id="' . $modal . '"', $html);
+        }
         $this->assertStringContainsString('submit_final', $html);
-        $this->assertStringContainsString('id="modalKerjakan"', $html);
 
         // Empat tombol lain tetap ada, disabled, tanpa target.
         $this->assertSame(4, substr_count($html, '" disabled>'));
         $this->assertStringNotContainsString('#modalValidasi', $html);
+    }
+
+    /**
+     * Kedua tombol hidup dan mati bersama, dari gate yang sama.
+     *
+     * Kalau salah satu dihitung dari sumber terpisah, akan muncul keadaan
+     * yang tidak bisa dijelaskan ke user: bisa menyimpan riwayat tapi tidak
+     * bisa menutup tiket -- padahal keduanya adalah hak yang sama di server.
+     */
+    public function testKeduaTombolTidakBerpisahSendiri(): void
+    {
+        $tanpaIzin = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
+            'tindakan' => [
+                'validasi' => null,
+                'kerjakan' => null,
+                'teruskan' => null,
+                'kategoric' => null,
+                'edittiket' => null,
+                'rproses'   => [],
+                'pesan'     => 'Tidak ada tindakan',
+            ],
+        ]));
+
+        // Tanpa kerjakan, kedua tombol ikut mati dan modalnya tidak ada.
+        foreach (['modalKerjakan', 'modalTindakan'] as $modal) {
+            $this->assertStringNotContainsString('#' . $modal, $tanpaIzin, "Tombol tanpa izin tidak boleh menunjuk $modal");
+            $this->assertStringNotContainsString('id="' . $modal . '"', $tanpaIzin, "Modal $modal tidak boleh dirender");
+        }
     }
 
     /**
@@ -470,12 +502,18 @@ final class TicketDetailViewTest extends CIUnitTestCase
     }
 
     /**
+     * Riwayat kosong tetap punya tombol, dan modalnya menjelaskan keadaannya.
+     *
      * Tiket yang baru dibuat punya tepat satu baris proses, yaitu permintaannya
      * sendiri (ETicket2::submit() menyimpan proses awal lalu menunjuk
-     * message_awal ke sana). Setelah baris itu disaring, riwayatnya kosong --
-     * jadi tombolnya harus hilang, bukan membuka modal kosong.
+     * message_awal ke sana). Setelah baris itu disaring, riwayatnya kosong.
+     *
+     * Tombol TIDAK boleh hilang di keadaan itu. Kalau hilang, user tidak bisa
+     * membedakan "tiket ini belum ada yang dikerjakan" dari "tombolnya ada
+     * tapi rusak" -- keduanya sama-sama tidak ada tombolnya. Karena itu modal
+     * terbuka dengan teks, bukan modal kosong.
      */
-    public function testRiwayatKosongSetelahPermintaanDibuang(): void
+    public function testRiwayatKosongTetapAdaTombolnya(): void
     {
         $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
             'tindakan' => [
@@ -488,8 +526,44 @@ final class TicketDetailViewTest extends CIUnitTestCase
             ],
         ]));
 
-        $this->assertStringNotContainsString('modalRProsess', $html, 'Tombol harus hilang, bukan membuka modal kosong');
+        $this->assertStringContainsString('data-bs-target="#modalRProsess"', $html, 'Tombol riwayat harus tetap ada');
+        $this->assertStringContainsString('id="modalRProsess"', $html);
+        $this->assertStringContainsString('Belum ada tindakan', $html, 'Modal kosong harus menjelaskan keadaannya');
+
+        // Saringan baris permintaan tetap berlaku: isi permintaan bukan
+        // "tindakan", jadi tidak boleh muncul di mana pun di sini.
         $this->assertStringNotContainsString('Butuh AC', $html);
+
+        // Catatan "isi permintaan tidak dimuat di sini" tidak relevan kalau
+        // tidak ada daftar sama sekali, jadi sekarang hanya membingungkan.
+        $this->assertStringNotContainsString(
+            'Isi permintaan tidak dimuat di sini',
+            $html,
+            'Penjelasan daftar tidak boleh tampil saat daftarnya kosong'
+        );
+    }
+
+    /**
+     * Riwayat kosong harus tetap punya teksnya, walau `rproses` benar-benar
+     * kosong dari controller -- bukan hanya habis disaringan baris permintaan.
+     *
+     * Dua jalur kosong ini berbeda asalnya di server (tiket tanpa proses sama
+     * sekali vs tiket yang prosesnya cuma permintaan), tapi keduanya harus
+     * berakhir sama di user: tombol ada, modal menjelaskan kosong.
+     */
+    public function testRiwayatKosongTotalTetapMenjelaskan(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
+            'tindakan' => [
+                'validasi' => null, 'kerjakan' => null, 'teruskan' => null,
+                'kategoric' => null, 'edittiket' => null,
+                'rproses'   => [],
+                'pesan'     => 'Tidak ada tindakan',
+            ],
+        ]));
+
+        $this->assertStringContainsString('data-bs-target="#modalRProsess"', $html);
+        $this->assertStringContainsString('Belum ada tindakan', $html);
     }
 
     /**
@@ -972,62 +1046,126 @@ final class TicketDetailViewTest extends CIUnitTestCase
     }
 
     /**
-     * Checkbox konfirmasi tidak boleh `required`.
+     * Dua tombol harus mengirim `aksi` yang berbeda.
      *
-     * Ini akar bug-nya: `required` memaksa browser menahan submit sampai
-     * checkbox dicentang, jadi cabang "riwayat pengerjaan" di
-     * submit_final() tidak pernah bisa dipakai dari UI -- setiap
-     * penyimpanan lewat form ini otomatis menjadi penyelesaian tiket.
+     * Inilah pemecahan yang diminta: "Kerjakan" menutup tiket
+     * (aksi=selesai), "Tindakan" hanya menambah riwayat (aksi=riwayat).
+     * Kalau keduanya mengirim aksi yang sama, salah satu tombol diam-diam
+     * melakukan hal yang tidak dijanjikan -- dan yang salah menutup tiket
+     * lebih merusak, karena tiket jadi tidak bisa dikerjakan lagi.
      *
-     * Diperiksa pada tag input-nya sendiri, bukan pada seluruh halaman:
-     * kata "required" jelas masih muncul di markup lain.
+     * Dicocokkan per modal dengan pola di sekitar modalnya, bukan dengan
+     * substring global: string 'aksi="riwayat"' ada di halaman manapun
+     * begitu tombolnya dirender, jadi tidak membuktikan modal Kerjakan
+     * memakai nilai yang benar.
      */
-    public function testCheckboxPenyelesaianTidakWajib(): void
+    public function testKeduaTombolMengirimAksiYangBerbeda(): void
     {
         $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
             'tindakan' => $this->tindakanDenganKerjakan(),
         ]));
 
-        $this->assertSame(
-            1,
-            preg_match('/<input[^>]*name="konfirmasiSelesai"[^>]*>/', $html, $m),
-            'Checkbox konfirmasiSelesai tidak ditemukan'
-        );
+        foreach ([['modalKerjakan', 'selesai'], ['modalTindakan', 'riwayat']] as [$modal, $aksi]) {
+            $this->assertSame(
+                1,
+                preg_match('/id="' . $modal . '".*?name="aksi" value="' . $aksi . '"/s', $html),
+                "Modal $modal harus mengirim aksi=$aksi"
+            );
+        }
+
+        // Dua form, jadi tepat dua input `aksi`. Kalau ada yang muncul lagi,
+        // ada modal ketiga yang tidak sengaja ikut memakai endpoint ini.
+        $this->assertSame(2, substr_count($html, 'name="aksi"'));
+    }
+
+    /**
+     * Teks tombol dan judul modal harus jujur soal akibatnya.
+     *
+     * Kerjakan menutup tiket secara permanen, Tindakan tidak. Kalau keduanya
+     * berbunyi sama, user tidak punya cara tahu sebelum menekan -- dan salah
+     * menekan di sini tidak bisa dibatalkan.
+     */
+    public function testKeduaModalBerbedaPenjelasan(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
+            'tindakan' => $this->tindakanDenganKerjakan(),
+        ]));
+
+        $this->assertStringContainsString('Selesaikan Tiket', $html, 'Modal Kerjakan harus menyebut penyelesaian');
+        $this->assertStringContainsString('Tindakan Penyelesaian', $html);
+        $this->assertStringContainsString('tidak bisa dikerjakan atau diselesaikan lagi', $html);
+
+        $this->assertStringContainsString('Simpan Riwayat Pengerjaan', $html, 'Modal Tindakan harus menyebut riwayat');
+        $this->assertStringContainsString('Catatan Pengerjaan', $html);
+        $this->assertStringContainsString('Tiket tetap terbuka', $html);
+    }
+
+    /**
+     * Checkbox konfirmasi harus benar-benar hilang.
+     *
+     * Dua tombol sudah membedakan akibatnya, jadi checkbox hanya jadi
+     * satu cara lain untuk salah pilih mode -- dan kalau masih ada, user
+     * bisa mengisinya lalu mengira itu yang menentukan status, padahal
+     * yang menentukan adalah tombol yang dia tekan.
+     *
+     * Diperiksa pada seluruh markup: tidak ada lagi tempat yang boleh
+     * mengirim field ini.
+     */
+    public function testCheckboxKonfirmasiSudahDihapus(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
+            'tindakan' => $this->tindakanDenganKerjakan(),
+        ]));
 
         $this->assertStringNotContainsString(
-            'required',
-            $m[0],
-            'Checkbox tidak boleh required, atau cabang riwayat pengerjaan tidak bisa dipakai'
+            'konfirmasiSelesai',
+            $html,
+            'Checkbox konfirmasi sudah tidak dipakai; kalau masih ada berarti ada jalur menuaikan mode'
         );
     }
 
     /**
-     * Dua mode harus dinyatakan, bukan disiratkan dari teks tombol.
+     * Script penukar mode harus hilang bersama checkboxnya.
      *
-     * Dulu judul, label, dan tombol semuanya berbunyi "penyelesaian"
-     * walau yang disimpan cuma riwayat pengerjaan.
+     * Dulu ada JS yang mengganti judul/label/tombol mengikuti checkbox.
+     * Sekarang tiap mode punya modal sendiri dengan teks sendiri, jadi
+     * script itu tidak punya yang bisa diubah -- kalau dibiarkan, ia akan
+     * mencari elemen yang sudah tidak ada.
      */
-    public function testModalKerjakanMenjelaskanDuaMode(): void
+    public function testTidakAdaLagiScriptPenukarMode(): void
     {
         $html = $this->render('e-tiket/e-tiket-tindakan', $this->payload([
             'tindakan' => $this->tindakanDenganKerjakan(),
         ]));
 
-        // Mode riwayat (tidak dicentang) -- nilai awal yang dirender server.
-        $this->assertStringContainsString('Simpan Riwayat Pengerjaan', $html);
-        $this->assertStringContainsString('kerjakanPenjelasan', $html, 'Penjelasan mode harus ada');
+        foreach ([
+            'terapkanModeKerjakan',
+            'kerjakanJudulTeks',
+            'kerjakanTombol',
+            'kerjakanPenjelasan',
+            'kerjakanLabelCatatan',
+        ] as $sisa) {
+            $this->assertStringNotContainsString($sisa, $html, "Sisa script mode lama: $sisa");
+        }
+    }
 
-        // Mode selesai (dicentang) -- harus ada teks yang sama-sama
-        // dirender supaya perpindahan mode terlihat jelas.
-        $this->assertStringContainsString('Selesaikan Tiket', $html);
-        $this->assertStringContainsString('Catatan Pengerjaan', $html);
-        $this->assertStringContainsString('Tindakan Penyelesaian', $html);
-
-        // Keduanya harus benar-benar ditukar oleh script, bukan hanya
-        // ada sebagai teks mati di markup.
-        $this->assertStringContainsString('kerjakanJudulTeks', $html);
-        $this->assertStringContainsString('kerjakanTombol', $html);
-        $this->assertStringContainsString('addEventListener(\'change\'', $html);
+    /**
+     * Hanya modal yang boleh dipakai yang dirender.
+     *
+     * Flash `modal` membuka kembali modal sesuai tombol yang tadi ditekan,
+     * jadi kedua nama itu harus dikenal view -- kalau tidak, validasi gagal
+     * akan mengembalikan user ke halaman dengan input yang sudah terkirim
+     * tapi modalnya tidak terbuka.
+     */
+    public function testKeduaModalBisaDibukaKembaliSetelahValidasiGagal(): void
+    {
+        foreach (['kerjakan', 'tindakan'] as $kunci) {
+            $this->assertStringContainsString(
+                "session('modal') === '" . $kunci . "'",
+                file_get_contents(APPPATH . 'Views/e-tiket/e-tiket-tindakan.php'),
+                "Flash modal '$kunci' tidak dibaca view"
+            );
+        }
     }
 
     /**

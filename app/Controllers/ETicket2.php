@@ -476,6 +476,23 @@ public function index()
         'proses' => ['dikerjakan', 'dalam_antrian'],
     ];
 
+    /**
+     * Dua aksi dari satu endpoint submit_final(), dibedakan field POST
+     * `aksi`:
+     *
+     *   - selesai : tiket ditutup (message_akhir diisi, handler dikosongkan).
+     *   - riwayat : hanya menambah baris riwayat proses; tiket tetap
+     *               terbuka dan statusnya jadi dikerjakan.
+     *
+     * Whitelist ini sengaja dipisah dari daftar status, karena tujuannya
+     * berbeda: di sini penjaganya adalah "hanya nilai persis `selesai`
+     * yang boleh menutup tiket", sehingga POST crafted dengan `aksi` ngawur
+     * tidak bisa membuat tiket selesai diam-diam. Nilai yang tidak ada di
+     * sini sudah ditolak rulesForKerjakan() lebih dulu.
+     */
+    private const AKSI_SELESAI = 'selesai';
+    private const AKSI_RIWAYAT = 'riwayat';
+
     private function getQueryStatus(): ?string
     {
         $value = $this->request->getGet('status');
@@ -785,6 +802,11 @@ public function index()
             // kolom Status, jadi tidak perlu menebak dari kolom mentah.
             'status' => $t['status'] ?? null,
             'handler_nama' => $t['handler_nama'] ?? null,
+            // Petugas UPJ yang terakhir bekerja. Badge "Dikerjakan" di list
+            // memakai ini, bukan handler_nama: handler bisa diisi pengaju,
+            // sedangkan status 'dikerjakan' hanya berlaku kalau ada UPJ yang
+            // benar-benar bekerja (lihat ETicketModel::hitungStatus).
+            'petugas_upj_nama' => $t['petugas_upj_nama'] ?? null,
             'respon_message_id_petugas_nama' => $t['respon_message_id_petugas_nama'] ?? null,
             'kategori_id' => $t['kategori_id'] ?? null,
             // Penanda hubungan user login dengan tiket, dipakai view untuk
@@ -827,6 +849,9 @@ public function index()
             'status' => $t['status'] ?? null,
             'handler' => $t['handler'] ?? null,
             'handler_nama' => $t['handler_nama'] ?? null,
+            // Petugas UPJ terakhir -- yang nama itu yang ditampilkan badge
+            // header, supaya sama dengan kolom Status di daftar.
+            'petugas_upj_nama' => $t['petugas_upj_nama'] ?? null,
             // Pesan AWAL. Field message_* ini berasal dari join ke baris
             // tb_e_ticket_proses yang ditunjuk e.message_awal -- SUDAH
             // dipilih findOneLengkap(), tapi dulu dibuang whitelist ini,
@@ -961,16 +986,22 @@ public function index()
                     'ext_in'   => '{field} harus berformat JPG, JPEG, PNG atau PDF.',
                 ],
             ],
-            // Field ini opsional by design: tidak dicentang berarti entri
-            // disimpan sebagai riwayat pengerjaan, bukan penyelesaian. Yang
-            // divalidasi hanya nilai saat checkbox benar-benar terkirim,
-            // supaya is-invalid/invalid-feedback di view jadi hidup -- dua
-            // hook itu sebelumnya tidak pernah punya sumber. Diazarkan
-            // kosong karena checkbox yang tidak dicentang tidak terkirim sama
-            // sekali, bukan terkirim dengan nilai kosong.
-            'konfirmasiSelesai' => [
-                'label' => 'Konfirmasi selesai',
-                'rules' => 'permit_empty|in_list[1]',
+            // Menentukan tombol mana yang dipakai: "selesai" (tombol
+            // Kerjakan) menutup tiket, "riwayat" (tombol Tindakan) hanya
+            // menambah baris riwayat proses.
+            //
+            // permit_empty karena request yang tidak mengirim `aksi` sama
+            // sekali harus tetap diterima: form versi lama memakai
+            // checkbox konfirmasiSelesai, dan request crafted bisa kosong.
+            // submit_final() yang membaca ulang field ini, bukan rules ini,
+            // yang memutuskan sisa logikanya.
+            //
+            // Nilai ngawur ditolak di sini, bukan diabaikan, supaya
+            // kesalahannya kelihatan -- kalau diteruskan, salah ketik akan
+            // berakhir jadi riwayat saja tanpa ada yang protes.
+            'aksi' => [
+                'label' => 'Tindakan',
+                'rules' => 'permit_empty|in_list[' . self::AKSI_SELESAI . ',' . self::AKSI_RIWAYAT . ']',
                 'errors' => [
                     'in_list' => '{field} tidak valid.',
                 ],
@@ -1091,10 +1122,11 @@ public function index()
     /**
      * Menyimpan satu entri pengerjaan untuk tiket.
      *
-     * Dua mode, ditentukan konfirmasiSelesai:
-     *   - tidak dicentang -> entri riwayat biasa; tiket tetap terbuka,
+     * Dua mode, dibedakan field POST `aksi` -- bukan checkbox, karena
+     * bentuknya sudah dipisah jadi dua tombol terpisah di view:
+     *   - aksi=riwayat -> entri riwayat biasa; tiket tetap terbuka,
      *     hanya handler yang diisi.
-     *   - dicentang       -> tiket ditutup: message_akhir menunjuk
+     *   - aksi=selesai -> tiket ditutup: message_akhir menunjuk
      *     entri ini dan handler dikosongkan.
      *
      * Otorisasi tidak diambil dari POST. Tiket dibaca ulang dari database
@@ -1113,7 +1145,28 @@ public function index()
         // (string) supaya trim() tidak menerima null -- field ini boleh
         // kosong di POST crafted, dan trim(null) deprecated di PHP 8.1.
         $catatan  = trim((string) $this->request->getPost('catatan'));
-        $selesai  = $this->request->getPost('konfirmasiSelesai');
+
+        $aksi = (string) $this->request->getPost('aksi');
+
+        // Form versi lama memakai checkbox konfirmasiSelesai, jadi request
+        // yang tidak mengirim `aksi` sama sekali dibaca sebagai riwayat --
+        // kecuali checkbox itu ikut terkirim, yang berarti tiket memang
+        // dimaksudkan ditutup. Tanpa cabang ini, bookmark/tab yang masih
+        // menyimpan form lama akan diam-diam menyimpan riwayat saja.
+        if ($aksi === '' && $this->request->getPost('konfirmasiSelesai') === '1') {
+            $aksi = self::AKSI_SELESAI;
+        }
+
+        // Hanya nilai persis AKSI_SELESAI yang menutup tiket. Nilai lain
+        // -- termasuk yang lolos karena string kosong, dan yang lolos
+        // validasi karena rules mengizinkan -- tidak pernah bisa menutup
+        // tiket diam-diam.
+        $selesai = ($aksi === self::AKSI_SELESAI);
+
+        // Kunci flash modal yang harus dibuka lagi kalau validasi gagal.
+        // Dipakai view untuk reopen modal yang benar sesuai tombol yang
+        // tadi ditekan, jadi input yang diketik tidak hilang.
+        $modal = $selesai ? 'kerjakan' : 'tindakan';
 
         $userData = $this->userData;
         $nip     = $userData['nip'];
@@ -1131,7 +1184,7 @@ public function index()
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors())
-                ->with('modal', 'kerjakan');
+                ->with('modal', $modal);
         }
 
         // --------------------------------------------------
@@ -1171,7 +1224,7 @@ public function index()
             $file->move(WRITEPATH . 'uploads/proses', $lampiran);
         }
 
-        if ($selesai === '1') {
+        if ($selesai) {
 
             // LOG 1: catatan selesai
             $prosesId = $this->simpanLogProses(
@@ -2104,7 +2157,6 @@ public function index()
         // VARIABLE DASAR
         // =====================================================
         $timeline = [];
-        // dd($ticket['handler_nama']);
         $validNama   = $ticket['valid_nama'] ?? null;
         // Penanda "sudah selesai" diambil dari kolomnya sendiri, bukan
         // dari hasil join ke tb_e_ticket_proses. Kalau join-nya tidak
@@ -2113,7 +2165,6 @@ public function index()
         $selesai     = ! empty($ticket['message_akhir']);
         // Nama petugas yang menjawab, hanya untuk ditampilkan.
         $messageAkhir = $ticket['respon_message_id_petugas_nama'] ?? null;
-        $handler  = $ticket['handler'] ?? null;
         $isHead = (int)($ticket['headsection'] ?? 0) === 1;
         // =====================================================
         // AMBIL JABATAN YANG SUDAH MEMPROSES
@@ -2126,6 +2177,21 @@ public function index()
                 }
             }
         }
+        // =====================================================
+        // PETUGAS UPJ YANG TERAKHIR BEKERJA
+        // =====================================================
+        // Dipanggil helper yang sama dengan yang dipakai hitungStatus(),
+        // supaya timeline, badge daftar, dan badge header tidak bisa
+        // berbeda pendapat soal siapa yang memegang tiket. Column handler
+        // sengaja tidak dipakai: kolom itu diisi siapa pun yang menyimpan
+        // progress, termasuk pengaju (tindakan() mengizinkan $isPengaju),
+        // sehingga menjadikannya bukti akan menampilkan "Sedang
+        // Dikerjakan [nama pengaju]" untuk tiket yang tidak ada unitnya
+        // yang bekerja.
+        $petugasUpj = ETicketModel::petugasUpjTerakhir(
+            $ticket['upj'] ?? [],
+            $ticket['proses'] ?? []
+        );
 
         // =====================================================
         // STATUS : TIKET DIBUAT
@@ -2174,20 +2240,29 @@ public function index()
                 'text'  => 'Disetujui ' . $validNama,
             ];
         }
-        if ($handler && ! $selesai) {
-            $timeline[] = [
-                'type'  => 'queue',
-                'color' => 'warning',
-                'icon'  => 'fa-solid fa-hourglass-half',
-                'text'  => 'Sedang Dikerjakan ' . $ticket['handler_nama'],
-            ];
-        } elseif (! $selesai) {
-            $timeline[] = [
-                'type'  => 'queue',
-                'color' => 'secondary',
-                'icon'  => 'fa-solid fa-hourglass-half',
-                'text'  => 'Dalam Antrian',
-            ];
+        if (! $selesai) {
+            // Ticket yang belum ditutup. Yang ditampilkan ditentukan oleh
+            // apakah ada UPJ yang benar-benar bekerja (lihat blok di atas),
+            // bukan oleh isi kolom handler, supaya timeline ini tidak
+            // menyatakan ada pekerjaan padahal tidak ada. Perbedaannya dengan
+            // hitungStatus() di model disengaja: kolom handler tetap dihitung
+            // 'dikerjakan' di daftar dan dashboard, sementara di sini yang
+            // ditampilkan adalah unit yang benar-benar bekerja.
+            if ($petugasUpj) {
+                $timeline[] = [
+                    'type'  => 'queue',
+                    'color' => 'warning',
+                    'icon'  => 'fa-solid fa-hourglass-half',
+                    'text'  => 'Sedang Dikerjakan ' . $petugasUpj,
+                ];
+            } else {
+                $timeline[] = [
+                    'type'  => 'queue',
+                    'color' => 'secondary',
+                    'icon'  => 'fa-solid fa-hourglass-half',
+                    'text'  => 'Dalam Antrian',
+                ];
+            }
         }
 
         // =====================================================

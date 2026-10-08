@@ -183,8 +183,12 @@ final class DashboardCardFilterTest extends CIUnitTestCase
      *                     'pelaksana'). Set false untuk tiket yang hanya
      *                     "diajukan oleh unit" tanpa ditugaskan ke sana --
      *                     itulah yang harus hilang dari /etiket.
+     * @param bool $sertakanProsesUpj sisipkan juga satu baris proses dari
+     *                     unit UPJ untuk status 'dikerjakan'. Set false kalau
+     *                     testnya memang sedang menguji kasus "handler terisi
+     *                     tapi tidak ada UPJ yang bekerja".
      */
-    private function seedTiket(int $kategoriId, string $kdJbtn, string $nama, string $status, string $petugasId = '199004232019022005', bool $daftarUpj = true): int
+    private function seedTiket(int $kategoriId, string $kdJbtn, string $nama, string $status, string $petugasId = '199004232019022005', bool $daftarUpj = true, bool $sertakanProsesUpj = true): int
     {
         $now = date('Y-m-d H:i:s');
 
@@ -241,6 +245,15 @@ final class DashboardCardFilterTest extends CIUnitTestCase
             $this->db->table('tb_e_ticket')
                 ->where('id', $tiketId)
                 ->update(['message_akhir' => $this->db->insertID()]);
+        }
+
+        // Status 'dikerjakan' tidak cukup dari handler saja: sejak
+        // hitungStatus() diubah, tiket hanya 'dikerjakan' kalau ada unit
+        // UPJ yang benar-benar bekerja. Tanpa baris proses ini, tiket uji
+        // diam-diam jadi 'dalam_antrian' dan test yang bergantung ke status
+        // 'dikerjakan' gagal dengan alasan yang menyesatkan.
+        if ($status === 'dikerjakan' && $sertakanProsesUpj && $daftarUpj) {
+            $this->seedProses($tiketId, $kdJbtn, 'Petugas UPJ Default', $now);
         }
 
         return $tiketId;
@@ -1882,21 +1895,24 @@ public function testSemuaKartuPunyaLinkLihat(): void
     }
 
     /**
-     * Dua mode checkbox konfirmasi harus tetap bisa dipakai.
+     * Dua tombol harus punya akibat yang berbeda di server.
      *
-     * Mode "riwayat pengerjaan" (checkbox tidak dicentang) dulu
-     * tidak bisa dipakai dari UI karena checkbox-nya `required` -- setiap
-     * penyimpanan jadi penyelesaian. Test ini menjaga kedua cabang tetap
-     * hidup setelah required dilepas.
+     *_submit_final() menerima `aksi`:
+     *   - riwayat -> menambah baris proses, tiket tetap terbuka
+     *   - selesai -> menutup tiket (message_akhir terisi)
+     *
+     * Inilah yang dipisah di UI: sebelum ada dua tombol, kedua cabang hanya
+     * dibedakan checkbox di satu form, dan cabang riwayat praktis tidak pernah
+     * bisa dipakai karena checkbox-nya `required`.
      */
-    public function testSubmitFinalDuaModeMasihBisaDipakai(): void
+    public function testSubmitFinalDuaAksiMasihBisaDipakai(): void
     {
         $setup    = $this->seedKategoriDenganSatuUnitPj();
         $kategori = $setup['kategori_id'];
         $svc      = new \App\Services\HashIdService();
 
         // ------------------------------------------------------
-        // Mode 1: tidak dicentang -> riwayat pengerjaan saja
+        // aksi=riwayat (tombol Tindakan) -> riwayat saja
         // ------------------------------------------------------
         $riwayat = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Riwayat', 'dalam_antrian');
         $sebelum = $this->jumlahProses($riwayat);
@@ -1904,7 +1920,10 @@ public function testSemuaKartuPunyaLinkLihat(): void
         $this->asUser()->post('etiket/submit_final', [
             'ticket_id' => $svc->encode($riwayat),
             'catatan'   => 'Sudah ada progresses pekerjaan',
+            'aksi'      => 'riwayat',
         ])->assertRedirect();
+
+        $this->assertSame('Progress pekerjaan berhasil disimpan.', session('success'));
 
         $tiket = $this->tiket($riwayat);
         $this->assertNull($tiket['message_akhir'], 'Riwayat pengerjaan tidak boleh menutup tiket');
@@ -1916,19 +1935,21 @@ public function testSemuaKartuPunyaLinkLihat(): void
         );
 
         // ------------------------------------------------------
-        // Mode 2: dicentang -> tiket diselesaikan
+        // aksi=selesai (tombol Kerjakan) -> tiket diselesaikan
         // ------------------------------------------------------
         $final = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Final', 'dalam_antrian');
         $sebelum = $this->jumlahProses($final);
 
         $this->asUser()->post('etiket/submit_final', [
-            'ticket_id'          => $svc->encode($final),
-            'catatan'            => 'Pekerjaan sudah selesai',
-            'konfirmasiSelesai'  => '1',
+            'ticket_id' => $svc->encode($final),
+            'catatan'   => 'Pekerjaan sudah selesai',
+            'aksi'      => 'selesai',
         ])->assertRedirect();
 
+        $this->assertSame('Ticket berhasil diselesaikan.', session('success'));
+
         $tiket = $this->tiket($final);
-        $this->assertNotNull($tiket['message_akhir'], 'Checkbox dicentang harus menutup tiket');
+        $this->assertNotNull($tiket['message_akhir'], 'aksi=selesai harus menutup tiket');
         $this->assertNull($tiket['handler'], 'Tiket yang selesai harus mengosongkan handler');
         $this->assertSame($sebelum + 1, $this->jumlahProses($final));
 
@@ -1969,8 +1990,8 @@ public function testSemuaKartuPunyaLinkLihat(): void
 
         $this->asUser()->post('etiket/submit_final', [
             'ticket_id'         => $svc->encode($tiketId),
-            'catatan'           => 'Mencoba menyelesaikan lagi',
-            'konfirmasiSelesai' => '1',
+            'catatan' => 'Mencoba menyelesaikan lagi',
+            'aksi'    => 'selesai',
         ])->assertRedirect();
 
         $this->assertSame(
@@ -2011,8 +2032,8 @@ public function testSemuaKartuPunyaLinkLihat(): void
 
         $this->asUserBiasa()->post('etiket/submit_final', [
             'ticket_id'         => $svc->encode($tiketId),
-            'catatan'           => 'Mencoba menutup tiket orang',
-            'konfirmasiSelesai' => '1',
+            'catatan' => 'Mencoba menutup tiket orang',
+            'aksi'    => 'selesai',
         ])->assertRedirect();
 
         $this->assertSame(
@@ -2038,11 +2059,287 @@ public function testSemuaKartuPunyaLinkLihat(): void
         $svc = new \App\Services\HashIdService();
 
         $this->asUser()->post('etiket/submit_final', [
-            'ticket_id'         => $svc->encode(99999999),
-            'catatan'           => 'Mencoba memakai tiket hantu',
-            'konfirmasiSelesai' => '1',
+            'ticket_id' => $svc->encode(99999999),
+            'catatan'   => 'Mencoba memakai tiket hantu',
+            'aksi'      => 'selesai',
         ])->assertRedirect();
 
         $this->assertSame('Tiket tidak ditemukan.', session('error'));
+    }
+
+    /**
+     * `aksi` ngawur tidak boleh sampai menutup tiket.
+     *
+     * Endpoint ini hanya punya dua mode, dan salah satunya permanen --
+     * jadi nilai yang tidak dikenal harus berhenti di validasi. Kalau
+     * diteruskan, ada dua jalan yang sama-sama tertutup: POST crafted yang
+     * maksudnya jelas-jelas bukan "selesai", dan user yang salah ketik yang
+     * tidak melihat pesan apa pun karena errornya dibuang diam-diam.
+     */
+    public function testSubmitFinalMenolakAksiYangTidakDikenal(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+        $svc      = new \App\Services\HashIdService();
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Aksi Ngawur', 'dalam_antrian');
+
+        $prosesSebelum = $this->jumlahProses($tiketId);
+
+        $this->asUser()->post('etiket/submit_final', [
+            'ticket_id' => $svc->encode($tiketId),
+            'catatan'   => 'Aksi tidak ada di daftar',
+            'aksi'      => 'hapus',
+        ])->assertRedirect();
+
+        $tiket = $this->tiket($tiketId);
+        $this->assertNull($tiket['message_akhir'], 'Aksi ngawur tidak boleh menutup tiket');
+        $this->assertSame(
+            $prosesSebelum,
+            $this->jumlahProses($tiketId),
+            'Aksi ngawur tidak boleh menulis baris proses'
+        );
+
+        // Validasi gagal harus membuka kembali modal yang benar, supaya input
+        // yang sudah diketik tidak hilang di balik halaman yang diam saja.
+        $this->assertSame('riwayat', session('modal'));
+    }
+
+    /**
+     * Form versi lama -- yang memakai checkbox konfirmasiSelesai -- harus
+     * tetap bisa menutup tiket.
+     *
+     * Tab yang sudah terbuka sebelum perubahan ini masih mengirim form lama,
+     * dan isinya tidak pernah atau belum pernah dipurge. Kalau checkbox
+     * diabaikan begitu saja, user yang menekan "Selesaikan" justru menyimpan
+     * riwayat tanpa tahu, padahal tiket belum tertutup.
+     */
+    public function testSubmitFinalMasihMenerimaCheckboxVersiLama(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+        $svc      = new \App\Services\HashIdService();
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Form Lama', 'dalam_antrian');
+
+        $this->asUser()->post('etiket/submit_final', [
+            'ticket_id'         => $svc->encode($tiketId),
+            'catatan'           => 'Dikirim dari form versi lama',
+            'konfirmasiSelesai' => '1',
+        ])->assertRedirect();
+
+        $this->assertNotNull(
+            $this->tiket($tiketId)['message_akhir'],
+            'Checkbox versi lama tanpa `aksi` harus tetap menutup tiket'
+        );
+    }
+
+    /* =====================================================
+     | TIMELINE: SIAPA YANG SEDANG BEKERJA
+     |===================================================== */
+
+    /**
+     * Sisipkan satu baris proses untuk tiket uji.
+     *
+     * $waktu dipakai untuk mengurutkan baris: timeline mengambil baris
+     * UPJ TERAKHIR, jadi urutan created_at harus benar-benar dapat
+     * dibedakan antar baris.
+     */
+    private function seedProses(int $tiketId, string $kdJbtn, string $namaPetugas, string $waktu): int
+    {
+        $this->db->table('tb_e_ticket_proses')->insert([
+            'id_eticket'      => $tiketId,
+            'kd_jbtn'         => $kdJbtn,
+            'nm_jbtn'         => 'Unit Uji',
+            'id_petugas'      => '199004232019022005',
+            'id_petugas_nama' => $namaPetugas,
+            'catatan'         => 'Catatan ' . $namaPetugas,
+            'created_at'      => $waktu,
+            'updated_at'      => $waktu,
+        ]);
+
+        return (int) $this->db->insertID();
+    }
+
+    /**
+     * Timeline "Sedang Dikerjakan" harus menyebut petugas UPJ.
+     *
+     * Sumbernya baris proses dari unit yang terdaftar di tb_e_ticket_upj,
+     * bukan kolom handler. Kolom handler diisi siapa pun yang menyimpan
+     * progress, jadi tidak bisa dipakai: pengaju pun punya hak kerjakan
+     * (lihat tindakan()).
+     */
+    public function testTimelineMenyebutPetugasUpjYangBekerja(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+
+        // handler diisi, jadi status tiketnya 'dikerjakan' -- tapi yang
+        // bekerja adalah petugas dari unit UPJ, bukan yang jadi handler.
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Timeline UPJ', 'dikerjakan', daftarUpj: true, sertakanProsesUpj: false);
+
+        $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas UPJ', '2026-10-01 10:00:00');
+
+        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+
+        $this->assertStringContainsString(
+            'Sedang Dikerjakan Petugas UPJ',
+            $html,
+            'Timeline harus menyebut petugas dari unit UPJ'
+        );
+        $this->assertStringNotContainsString(
+            'Dalam Antrian',
+            $html,
+            'Tiket yang UPJ-nya sudah bekerja tidak boleh tampil Dalam Antrian'
+        );
+    }
+
+    /**
+     * Pengaju yang bukan UPJ tidak boleh muncul sebagai pekerja.
+     *
+     * Pengaju punya hak kerjakan (tindakan() mengizinkan $isPengaju), dan
+     * menyimpan progress mengisi kolom handler. Kalau timeline memakai
+     * handler, tiket ini akan menampilkan "Sedang Dikerjakan [nama
+     * pengaju]" padahal tidak ada unit yang pernah mengambilnya.
+     */
+    public function testTimelineTidakMenyebutPengajuYangBukanUpj(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+
+        // handler terisi (sumpah ada yang optimistis), tapi prosesnya
+        // datang dari J003 yang tidak ada di tb_e_ticket_upj.
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Pengaju Aja', 'dikerjakan', daftarUpj: true, sertakanProsesUpj: false);
+
+        $this->seedProses($tiketId, 'J003', 'Pengaju Saja', '2026-10-01 10:00:00');
+
+        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+
+        $this->assertStringContainsString(
+            'Dalam Antrian',
+            $html,
+            'Tiket yang belum ada UPJ yang bekerja harus Dalam Antrian'
+        );
+        $this->assertStringNotContainsString(
+            'Pengaju Saja',
+            $html,
+            'Nama orang di luar UPJ tidak boleh tampil sebagai pekerja'
+        );
+        $this->assertStringNotContainsString(
+            'Sedang Dikerjakan',
+            $html,
+            'Pengaju yang bukan UPJ tidak boleh dibaca sebagai sedang dikerjakan'
+        );
+    }
+
+    /**
+     * Yang tampil harus baris UPJ paling baru, bukan yang pertama.
+     *
+     * Satu unit bisa mengerjakan tiket berkali-kali; nama yang tampil
+     * harus milik petugas terakhir, karena itu yang sedang memegang
+     * pekerjaan sekarang.
+     */
+    public function testTimelineAmbilProsesUpjTerakhir(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Banyak Petugas', 'dikerjakan', daftarUpj: true, sertakanProsesUpj: false);
+
+        $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas Pertama', '2026-10-01 09:00:00');
+        $this->seedProses($tiketId, 'J003', 'Petugas Luar Unit', '2026-10-01 09:30:00');
+        $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas Terakhir', '2026-10-01 11:00:00');
+
+        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+
+        $this->assertStringContainsString('Sedang Dikerjakan Petugas Terakhir', $html);
+        $this->assertStringNotContainsString('Petugas Pertama', $html, 'Petugas lama tidak boleh jadi yang tampil');
+    }
+
+    /**
+     * Baris proses di luar UPJ tidak boleh menggeser pilihan.
+     *
+     * Baris paling baru di atas milik unit yang tidak ditugaskan. Kalau
+     * filter UPJ diabaikan, baris itulah yang jadi yang tampil -- padahal
+     * yang terakhir dari unit UPJ adalah Petugas UPJ.
+     */
+    public function testTimelineProsesDiLuarUpjTidakMenggeserPemilihan(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Proses Luar UPJ', 'dikerjakan', daftarUpj: true, sertakanProsesUpj: false);
+
+        $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas UPJ', '2026-10-01 09:00:00');
+        $this->seedProses($tiketId, 'J003', 'Petugas Luar Unit', '2026-10-01 11:00:00');
+
+        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+
+        $this->assertStringContainsString(
+            'Sedang Dikerjakan Petugas UPJ',
+            $html,
+            'Baris paling baru milik non-UPJ tidak boleh jadi yang tampil'
+        );
+    }
+
+    /**
+     * Badge "Dikerjakan" di tabel harus menyebut petugas UPJ, bukan handler.
+     *
+     * Dua tempat menampilkan nama yang sama: kolom Status di daftar dan badge
+     * di header detail. Keduanya harus pakai petugas UPJ terakhir, karena
+     * nama handler bisa milik orang yang tidak sedang mengerjakan apa pun.
+     *
+     * Disatu test supaya daftar dan header tidak bisa berbeda: kalau
+     * hanya salah satu yang diperbaiki, test inilah yang menangkapnya.
+     */
+    public function testBadgeDikerjakanMenyebutPetugasUpjDiDaftarDanHeader(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Badge Nama', 'dikerjakan', daftarUpj: true, sertakanProsesUpj: false);
+        $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas Sonder', '2026-10-01 10:00:00');
+
+        $svc = new \App\Services\HashIdService();
+
+        // Daftar: satu tiket, jadi badge-nya pasti yang ini.
+        $daftar = $this->html($this->asUser()->get('etiket?kategori=' . $kategori));
+        $this->assertStringContainsString('Dikerjakan Petugas Sonder', $daftar, 'Badge di tabel harus menyebut petugas UPJ');
+
+        // Header detail: badge yang sama.
+        $detail = $this->html($this->asUser()->get('etiket/' . $svc->encode($tiketId)));
+        $this->assertStringContainsString('Dikerjakan Petugas Sonder', $detail, 'Badge di header harus menyebut petugas UPJ');
+    }
+
+    /**
+     * Badge tidak boleh menampilkan nama pengaju yang bukan pekerja.
+     *
+     * Pengaju bisa mengisi handler lewat tombol Tindakan. Kalau badge memakai
+     * handler, namanya akan muncul seolah dia yang sedang mengerjakan,
+     * padahal statusnya sudah 'dalam_antrian'.
+     */
+    public function testBadgeTidakMenyebutPengajuYangBukanPekerja(): void
+    {
+        $setup    = $this->seedKategoriDenganSatuUnitPj();
+        $kategori = $setup['kategori_id'];
+
+        $tiketId = $this->seedTiket($kategori, $setup['kd_jbtn'], 'Tiket Badge Pengaju', 'dikerjakan', daftarUpj: true, sertakanProsesUpj: false);
+        $this->seedProses($tiketId, 'J003', 'Pengaju Doang', '2026-10-01 10:00:00');
+
+        $svc = new \App\Services\HashIdService();
+
+        $daftar = $this->html($this->asUser()->get('etiket?kategori=' . $kategori));
+        $this->assertStringNotContainsString(
+            'Pengaju Doang',
+            $daftar,
+            'Nama di luar UPJ tidak boleh muncul sebagai pekerja di tabel'
+        );
+
+        $detail = $this->html($this->asUser()->get('etiket/' . $svc->encode($tiketId)));
+        $this->assertStringNotContainsString(
+            'Pengaju Doang',
+            $detail,
+            'Nama di luar UPJ tidak boleh muncul sebagai pekerja di header'
+        );
     }
 }

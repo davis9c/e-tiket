@@ -266,9 +266,16 @@ $jumlahTiket = count($data['eticket'] ?? []);
                                     break;
 
                                 case 'dikerjakan':
+                                    // Nama yang ditampilkan adalah petugas UPJ
+                                    // terakhir, bukan isi kolom handler.
+                                    // Handler bisa diisi pengaju tiket, sedangkan
+                                    // status 'dikerjakan' sendiri hanya berlaku
+                                    // kalau ada UPJ yang bekerja -- jadi memakai
+                                    // handler akan menampilkan nama orang yang
+                                    // tidak sedang mengerjakan apa pun.
                                     $badgeClass = 'bg-warning';
                                     $badgeText  = 'Dikerjakan'
-                                        . (! empty($p['handler_nama']) ? ' ' . $p['handler_nama'] : '');
+                                        . (! empty($p['petugas_upj_nama']) ? ' ' . $p['petugas_upj_nama'] : '');
                                     break;
 
                                 case 'dalam_antrian':

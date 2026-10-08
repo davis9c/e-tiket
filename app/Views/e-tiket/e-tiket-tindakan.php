@@ -11,9 +11,19 @@
  * diberi disabled, bukan disembunyikan -- jadi cakupan tindakan tetap terlihat
  * dan yang aktif jelas karena hanya itu yang tidak abu-abu.
  *
- * Tombol "Tindakan" (Ambil Tiket) dihapus: $canTindakan di versi lama
- * di-hardcode false dan tidak pernah diubah, jadi tombol dan modalnya tidak
- * pernah tampil. Endpoint POST ambil-tiket di Routes.php tidak ikut disentuh.
+ * Catatan: tombol "Tindakan" (Ambil Tiket) versi lama sudah dihapus --
+ * $canTindakan-nya di-hardcode false dan tidak pernah diubah, jadi tombol dan
+ * modalnya tidak pernah tampil. Endpoint POST ambil-tiket di Routes.php tidak
+ * ikut disentuh. Nama tombol "Tindakan" yang sekarang ada tidak berkaitan
+ * dengan itu: itu tombol kedua milik aksi kerjakan, bukan ambil-tiket.
+ *
+ * Aksi kerjakan punya DUA tombol yang memakai satu endpoint yang sama
+ * (etiket/submit_final) dan dibedakan field `aksi`:
+ *   - Kerjakan (aksi=selesai) -> tiket ditutup.
+ *   - Tindakan (aksi=riwayat) -> hanya menambah baris riwayat proses;
+ *     tiket tetap terbuka.
+ * Keduanya punya gate yang sama ($bolehKerjakan, dari tindakan()['kerjakan']),
+ * jadi tidak ada keadaan di mana satu bisa dipakai dan yang lain tidak.
  *
  * Navigasi Before / After tidak ada di sini; keduanya dipindah ke header
  * halaman (lihat e-tiket/header.php) karena di dalam btn-group lama keduanya
@@ -42,18 +52,14 @@ $bolehEdit     = ! empty($t['edittiket']);
  * kosong -- mis. barisnya sudah dihapus -- pencocokan dilewati dan tidak ada
  * yang dibuang, jadi riwayat tetap utuh.
  *
- * PENTING: tombol dihitung dari daftar SETELAH disaring. Kalau gate-nya
- * memakai rproses mentah, tiket yang baru dibuat -- yang rproses-nya hanya
- * berisi permintaan itu sendiri -- akan tetap menampilkan tombol Riwayat
- * Proses, lalu membuka modal kosong.
+ * Saringan ini tetap berjalan walau riwayatnya kosong: baris permintaan
+ * tidak boleh muncul sebagai "tindakan", sekarang maupun nanti.
  */
 $riwayat = array_values(array_filter(
     $t['rproses'] ?? [],
     static fn ($p) => ! isset($det['message_id'])
         || (int) ($p['id'] ?? 0) !== (int) $det['message_id']
 ));
-
-$bolehRiwayat = ! empty($riwayat);
 
 // Kalau tidak ada satu pun aksi tulis yang boleh dipakai, alasannya tetap
 // ditampilkan (lihat $t['pesan']). Tombol abu-abu sendiri tidak memberi tahu
@@ -83,9 +89,15 @@ $atribut = static function (bool $boleh, string $modal): string {
             Validasi
         </button>
 
-        <button type="button" class="btn btn-primary" <?= $atribut($bolehKerjakan, 'modalKerjakan') ?>>
+        <!-- Satu izin, dua hasil berbeda: lihat catatan header file ini. -->
+        <button type="button" class="btn btn-success" <?= $atribut($bolehKerjakan, 'modalKerjakan') ?>>
             <i class="fas fa-screwdriver-wrench me-1"></i>
             Kerjakan
+        </button>
+
+        <button type="button" class="btn btn-outline-primary" <?= $atribut($bolehKerjakan, 'modalTindakan') ?>>
+            <i class="fas fa-list-check me-1"></i>
+            Tindakan
         </button>
 
         <button type="button" class="btn btn-outline-primary" <?= $atribut($bolehTeruskan, 'modalTeruskan') ?>>
@@ -104,17 +116,21 @@ $atribut = static function (bool $boleh, string $modal): string {
         </button>
 
         <!-- Aksi baca-saja: dipisah ke kanan supaya tidak tercampur dengan aksi
-             yang mengubah data. Tetap enabled kalau ada riwayat --
-             "tidak ada yang bisa dibaca" bukan informasi yang berguna.
+             yang mengubah data.
+
+             Tidak pernah disembunyikan, bahkan saat tiket belum punya satu pun
+             tindakan. Tombol yang hilang berarti user tidak bisa membedakan
+             "belum ada yang dikerjakan" dari "ada tombol tapi tidak
+             berfungsi" -- dua-duanya terlihat sama: tidak ada tombol.
+             Modalnya sendiri yang menjelaskan keadaan kosong itu.
+
              ms-auto hanya kalau ada aksi tulis, supaya tetap menempel kanan
              walau semua tombol lain sedang disabled. -->
-        <?php if ($bolehRiwayat): ?>
-            <button type="button" class="btn btn-outline-secondary <?= $adaAksi ? 'ms-auto' : '' ?>"
-                data-bs-toggle="modal" data-bs-target="#modalRProsess">
-                <i class="fas fa-clock-rotate-left me-1"></i>
-                Riwayat Proses
-            </button>
-        <?php endif; ?>
+        <button type="button" class="btn btn-outline-secondary <?= $adaAksi ? 'ms-auto' : '' ?>"
+            data-bs-toggle="modal" data-bs-target="#modalRProsess">
+            <i class="fas fa-clock-rotate-left me-1"></i>
+            Riwayat Proses
+        </button>
 
         <?php if (! $adaAksi): ?>
             <span class="text-muted small">
@@ -195,6 +211,19 @@ $atribut = static function (bool $boleh, string $modal): string {
 <?php endif; ?>
 
 <?php if ($bolehKerjakan): ?>
+    <!--
+        Dua modal di bawah sengaja markup-nya hampir sama persis dan TIDAK
+        digabung jadi satu modal dengan JS.
+
+        Alasannya: mode-nya sudah ditentukan server dari `aksi`, jadi tidak ada
+        yang perlu ditukar di sisi klien -- judul, label, dan teks tombol di
+        masing-masing modal memang berbeda karena memang dua aksi berbeda, bukan
+        satu aksi yang berubah mode. Modal terpisah juga membuat re-open
+        setelah validasi gagal jadi sederhana: flash `modal` tinggal menunjuk
+        modal yang benar tanpa harus menyimpan mode di session terpisah.
+    -->
+
+    <!-- ============================ KERJAKAN: aksi=selesai ============================ -->
     <div class="modal fade" id="modalKerjakan" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form action="<?= $t['kerjakan']['form']['url'] ?>" method="post"
@@ -203,39 +232,26 @@ $atribut = static function (bool $boleh, string $modal): string {
                 <input type="hidden"
                     name="<?= esc($t['kerjakan']['form']['ticket_id']['variable']) ?>"
                     value="<?= esc($t['kerjakan']['form']['ticket_id']['value']) ?>">
+                <input type="hidden" name="aksi" value="selesai">
 
                 <div class="modal-header">
                     <h5 class="modal-title">
                         <i class="fas fa-screwdriver-wrench me-1"></i>
-                        <span id="kerjakanJudulTeks">Simpan Riwayat Pengerjaan</span>
+                        Selesaikan Tiket
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
                 </div>
 
                 <div class="modal-body">
-                    <!--
-                        Form ini punya dua mode, ditentukan checkbox di bawah:
-
-                          tidak dicentang -> disimpan sebagai riwayat pengerjaan
-                                             (submit_final(), cabang else)
-                          dicentang       -> tiket ditutup sebagai selesai
-                                             (submit_final(), $selesai === '1')
-
-                        Judul modal, label, penjelasan, dan teks tombol ikut
-                        berganti mengikuti mode -- lihat script di bawah form.
-                        Sebelumnya semuanya berbunyi "penyelesaian" walau yang
-                        disimpan cuma riwayat, jadi tidak ada cara untuk tahu
-                        mode mana yang berlaku sebelum tombol ditekan.
-                    -->
-                    <p class="small text-muted" id="kerjakanPenjelasan">
-                        Isi form ini untuk menambahkan riwayat pengerjaan. Tiket tetap terbuka dan belum dianggap selesai.
+                    <p class="small text-muted">
+                        Tiket akan langsung ditandai selesai. Unit tujuan dan pengaju menerima pemberitahuan, dan tiket tidak bisa dikerjakan atau diselesaikan lagi.
                     </p>
 
                     <div class="mb-3">
-                        <label for="catatanKerjakan" class="form-label fw-semibold" id="kerjakanLabelCatatan">Catatan Pengerjaan</label>
+                        <label for="catatanKerjakan" class="form-label fw-semibold">Tindakan Penyelesaian</label>
                         <textarea id="catatanKerjakan" name="catatan" rows="3"
                             class="form-control editor <?= session('errors.catatan') ? 'is-invalid' : '' ?>"
-                            placeholder="Tuliskan catatan pengerjaan..."><?= old('catatan') ?></textarea>
+                            placeholder="Tuliskan ringkasan hasil pekerjaan..."><?= old('catatan') ?></textarea>
                         <div class="invalid-feedback"><?= session('errors.catatan') ?></div>
                     </div>
 
@@ -245,91 +261,80 @@ $atribut = static function (bool $boleh, string $modal): string {
                             class="form-control <?= session('errors.bukti') ? 'is-invalid' : '' ?>">
                         <div class="invalid-feedback"><?= session('errors.bukti') ?></div>
                     </div>
+                </div>
 
-                    <div class="form-check">
-                        <!--
-                            SENGAJA TIDAK memakai `required`.
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paper-plane me-1"></i>
+                        Selesaikan Tiket
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php if (session('modal') === 'kerjakan'): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                new bootstrap.Modal(document.getElementById('modalKerjakan')).show();
+            });
+        </script>
+    <?php endif; ?>
 
-                            Atribut itu memaksa browser menahan submit sampai
-                            checkbox dicentang, sehingga cabang "riwayat
-                            pengerjaan" di submit_final() tidak pernah bisa
-                            dipakai dari UI: setiap penyimpanan lewat form ini
-                            otomatis menjadi penyelesaian tiket.
-                        -->
-                        <input class="form-check-input <?= session('errors.konfirmasiSelesai') ? 'is-invalid' : '' ?>"
-                            type="checkbox" name="konfirmasiSelesai" value="1" id="konfirmasiSelesai"
-                            <?= old('konfirmasiSelesai') ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="konfirmasiSelesai">
-                            Saya menyatakan pekerjaan telah selesai dan data yang saya input sudah benar.
-                        </label>
-                        <div class="invalid-feedback"><?= session('errors.konfirmasiSelesai') ?></div>
+    <!-- ============================ TINDAKAN: aksi=riwayat ============================ -->
+    <div class="modal fade" id="modalTindakan" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form action="<?= $t['kerjakan']['form']['url'] ?>" method="post"
+                enctype="multipart/form-data" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden"
+                    name="<?= esc($t['kerjakan']['form']['ticket_id']['variable']) ?>"
+                    value="<?= esc($t['kerjakan']['form']['ticket_id']['value']) ?>">
+                <input type="hidden" name="aksi" value="riwayat">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-list-check me-1"></i>
+                        Simpan Riwayat Pengerjaan
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="small text-muted">
+                        Isi form ini untuk menambahkan riwayat pengerjaan. Tiket tetap terbuka dan belum dianggap selesai.
+                    </p>
+
+                    <div class="mb-3">
+                        <label for="catatanTindakan" class="form-label fw-semibold">Catatan Pengerjaan</label>
+                        <textarea id="catatanTindakan" name="catatan" rows="3"
+                            class="form-control editor <?= session('errors.catatan') ? 'is-invalid' : '' ?>"
+                            placeholder="Tuliskan catatan pengerjaan..."><?= old('catatan') ?></textarea>
+                        <div class="invalid-feedback"><?= session('errors.catatan') ?></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="buktiTindakan" class="form-label">Lampiran</label>
+                        <input type="file" id="buktiTindakan" name="bukti" accept=".jpg,.jpeg,.png,.pdf"
+                            class="form-control <?= session('errors.bukti') ? 'is-invalid' : '' ?>">
+                        <div class="invalid-feedback"><?= session('errors.bukti') ?></div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-outline-primary" id="kerjakanTombol">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-save me-1"></i>
                         Simpan Riwayat Pengerjaan
                     </button>
                 </div>
             </form>
         </div>
     </div>
-    <script>
-        /*
-         * Dua mode form "Kerjakan Ticket", lihat catatan di markup body.
-         *
-         * Script ini diletakkan setelah modalnya, jadi semua elemen yang
-         * dibaca di sini sudah ada dan bisa langsung dipakai. State
-         * checkbox hasil old() sudah tercermin di atribut `checked`, jadi
-         * terapkan() cukup dipanggil sekali di awal -- label dan tombol
-         * sudah sesuai mode sejak modal dibuka, tanpa perlu user menyentuh
-         * checkbox lebih dulu.
-         */
-        (function terapkanModeKerjakan() {
-            var cb = document.getElementById('konfirmasiSelesai');
-            var tombol = document.getElementById('kerjakanTombol');
-            var judul = document.getElementById('kerjakanJudulTeks');
-            var label = document.getElementById('kerjakanLabelCatatan');
-            var penjelasan = document.getElementById('kerjakanPenjelasan');
-
-            if (! cb || ! tombol || ! judul || ! label || ! penjelasan) {
-                return;
-            }
-
-            var RIWAYAT = {
-                judul: 'Simpan Riwayat Pengerjaan',
-                label: 'Catatan Pengerjaan',
-                penjelasan: 'Isi form ini untuk menambahkan riwayat pengerjaan. Tiket tetap terbuka dan belum dianggap selesai.',
-                tombol: 'Simpan Riwayat Pengerjaan'
-            };
-            var SELESAI = {
-                judul: 'Selesaikan Tiket',
-                label: 'Tindakan Penyelesaian',
-                penjelasan: 'Tiket akan langsung ditandai selesai. Unit tujuan dan pengaju menerima pemberitahuan, dan tiket tidak bisa dikerjakan lagi.',
-                tombol: 'Selesaikan Tiket'
-            };
-
-            var terapkan = function () {
-                var mode = cb.checked ? SELESAI : RIWAYAT;
-
-                judul.textContent = mode.judul;
-                label.textContent = mode.label;
-                penjelasan.textContent = mode.penjelasan;
-                tombol.textContent = mode.tombol;
-
-                tombol.classList.toggle('btn-success', cb.checked);
-                tombol.classList.toggle('btn-outline-primary', ! cb.checked);
-            };
-
-            cb.addEventListener('change', terapkan);
-            terapkan();
-        })();
-    </script>
-    <?php if (session('modal') === 'kerjakan'): ?>
+    <?php if (session('modal') === 'tindakan'): ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                new bootstrap.Modal(document.getElementById('modalKerjakan')).show();
+                new bootstrap.Modal(document.getElementById('modalTindakan')).show();
             });
         </script>
     <?php endif; ?>
@@ -482,8 +487,11 @@ $atribut = static function (bool $boleh, string $modal): string {
     <?php endif; ?>
 <?php endif; ?>
 
-<?php if ($bolehRiwayat): ?>
-    <div class="modal fade" id="modalRProsess" tabindex="-1" aria-hidden="true">
+<!-- Modal ini dirender tanpa syarat: tombol Riwayat Proses juga selalu ada
+     (lihat baris tombol di atas), jadi tidak akan pernah ada tombol yang
+     menunjuk ke modal yang tidak ada. Isi kosong ditangani di dalam modal,
+     bukan dengan menyembunyikannya. -->
+<div class="modal fade" id="modalRProsess" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
@@ -495,16 +503,32 @@ $atribut = static function (bool $boleh, string $modal): string {
                 </div>
 
                 <div class="modal-body">
-                    <!-- Daftar ini sengaja tidak memuat baris permintaan:
-                         isinya sudah tampil penuh di kartu Permintaan. -->
-                    <p class="small text-muted mb-3">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Isi permintaan tidak dimuat di sini &mdash; buka
-                        <strong>Detail</strong> pada kartu Permintaan.
-                    </p>
+                    <?php if (empty($riwayat)): ?>
+                        <!--
+                            Keadaan kosong -- tiket yang baru dibuat, atau yang
+                            baru saja divalidasi dan belum ada yang mengerjakan.
 
-                    <ul class="list-unstyled mb-0">
-                        <?php foreach ($riwayat as $p): ?>
+                            Ditulis eksplisit, bukan dengan membiarkan <ul> kosong:
+                            modal yang terbuka tanpa isi apa pun terbaca sebagai
+                            tombol yang rusak, bukan sebagai jawaban "belum ada
+                            yang dikerjakan".
+
+                            Catatan "isi permintaan tidak dimuat di sini" tidak
+                            ikut tampil di cabang ini -- tidak ada daftar yang
+                            perlu dijelaskan.
+                        -->
+                        <p class="text-muted fst-italic mb-0">Belum ada tindakan.</p>
+                    <?php else: ?>
+                        <!-- Daftar ini sengaja tidak memuat baris permintaan:
+                             isinya sudah tampil penuh di kartu Permintaan. -->
+                        <p class="small text-muted mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Isi permintaan tidak dimuat di sini &mdash; buka
+                            <strong>Detail</strong> pada kartu Permintaan.
+                        </p>
+
+                        <ul class="list-unstyled mb-0">
+                            <?php foreach ($riwayat as $p): ?>
                             <li class="card mb-2 shadow-sm">
                                 <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
                                     <span class="fw-semibold text-primary text-break">
@@ -533,8 +557,9 @@ $atribut = static function (bool $boleh, string $modal): string {
                                     ]) ?>
                                 </div>
                             </li>
-                        <?php endforeach; ?>
-                    </ul>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
                 </div>
 
                 <div class="modal-footer">
@@ -543,4 +568,3 @@ $atribut = static function (bool $boleh, string $modal): string {
             </div>
         </div>
     </div>
-<?php endif; ?>
