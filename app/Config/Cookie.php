@@ -53,6 +53,14 @@ class Cookie extends BaseConfig
      * --------------------------------------------------------------------------
      *
      * Cookie will only be set if a secure HTTPS connection exists.
+     *
+     * Default di sini WAJIB di production, tapi bisa ditimpa dari .env lewat
+     * kunci `cookie.secure` (dibaca Config\BaseConfig). Lokal aplikasinya
+     * jalan di http://localhost, jadi .env lokal mengisi
+     * `cookie.secure = false`; tanpa itu setiap request yang menulis cookie
+     * session berakhir sebagai error "Insecure Cookie".
+     *
+     * HAPUS kunci itu di .env produksi begitu aplikasi memakai HTTPS.
      */
     public bool $secure = ENVIRONMENT === 'production';
 

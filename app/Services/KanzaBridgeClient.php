@@ -36,7 +36,7 @@ class KanzaBridgeClient
         if ($this->apiKey === '' || $parts === false
             || !in_array($parts['scheme'] ?? '', ['http', 'https'], true)
             || !str_ends_with($parts['path'] ?? '', '/api/v2/')
-            || (ENVIRONMENT === 'production' && $parts['scheme'] !== 'https')) {
+            || ($this->requiresHttps() && $parts['scheme'] !== 'https')) {
             throw new KanzaBridgeException('Konfigurasi KanzaBridge V2 tidak valid.');
         }
         if ($endpoint === '' || str_contains($endpoint, '..') || str_contains($endpoint, '://') || str_starts_with($endpoint, '/')) {
@@ -89,5 +89,34 @@ class KanzaBridgeClient
         }
 
         return $body;
+    }
+
+    /**
+     * KanzaBridge hanya boleh diakses lewat HTTPS di server production:
+     * X-API-Key dikirim di setiap request, dan password user ikut di body
+     * request auth/login. Lokal KanzaBridge jalan di http://localhost, jadi
+     * syarat itu dimatikan lewat `KANZABRIDGE_REQUIRE_HTTPS = false` di .env.
+     *
+     * Default-nya sengaja TIDAK ikut nilai ENVIRONMENT di .env: begitu
+     * aplikasi dionlinekan dan kunci .env itu dihapus, syarat HTTPS aktif
+     * lagi tanpa perlu menyentuh kode.
+     */
+    private function requiresHttps(): bool
+    {
+        $override = env('KANZABRIDGE_REQUIRE_HTTPS');
+
+        if ($override === null || $override === '') {
+            return ENVIRONMENT === 'production';
+        }
+
+        // Nilai yang bukan boolean diperlakukan sebagai salah konfigurasi,
+        // bukan diam-diam mematikan proteksi HTTPS.
+        $parsed = filter_var($override, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        if ($parsed === null) {
+            throw new KanzaBridgeException('KANZABRIDGE_REQUIRE_HTTPS harus true atau false.');
+        }
+
+        return $parsed;
     }
 }

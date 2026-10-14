@@ -13,6 +13,11 @@ API_KANZA_BRIDGE = 'http://localhost:8091/api/'
 KANZABRIDGE_BASE_URL = 'http://localhost:8091/api/v2/'
 KANZABRIDGE_API_KEY = 'kb_live_****'
 
+# KanzaBridge hanya boleh diakses lewat HTTPS di server production.
+# Lokal masih http://localhost:8091, jadi syaratnya dimatikan di sini.
+# HAPUS baris ini di .env produksi begitu aplikasi dionlinekan dengan HTTPS.
+KANZABRIDGE_REQUIRE_HTTPS = false
+
 
 
 
@@ -24,6 +29,15 @@ app.baseURL = http://localhost:8092
 # app_baseURL = ''
 # app.forceGlobalSecureRequests = false
 # app.CSPEnabled = false
+
+#-----------------------------------------------------------------------
+# COOKIE
+#-----------------------------------------------------------------------
+# Cookie session hanya bisa disimpan browser lewat koneksi HTTPS, jadi di
+# production nilainya wajib true. Lokal aplikasinya jalan di
+# http://localhost:8092, jadi di sini dimatikan supaya session tidak hilang.
+# HAPUS baris ini di .env produksi begitu aplikasi memakai HTTPS.
+cookie.secure = false
 
 #--------------------------------------------------------------------
 # DATABASE
