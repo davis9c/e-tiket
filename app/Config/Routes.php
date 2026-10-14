@@ -88,6 +88,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     //Notifikasi
     $routes->get('notif', 'Notifikasi::index');
     $routes->post('notif/read', 'Notifikasi::read');
+
+    // Histori notifikasi. Dipisah dari /notif yang di atas: yang itu endpoint
+    // JSON untuk polling badge+toast, hanya mengembalikan yang belum dibaca.
+    // Halaman ini justru soal notifikasi yang sudah lewat, jadi keduanya
+    // tidak bisa digabung tanpa satu sama lain salah.
+    $routes->get('notifikasi', 'Notifikasi::histori');
+    $routes->post('notifikasi/baca-semua', 'Notifikasi::readAll');
     $routes->get('lampiran/view/(:segment)', 'ETicket2::viewLampiran/$1');
     $routes->get('lampiran/download/(:segment)', 'ETicket2::downloadLampiran/$1');
 

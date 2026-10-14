@@ -1,4 +1,24 @@
 <?php
+/*
+ * Lonceng notifikasi (id notifBtn) kembali ke navbar.
+ *
+ * Sesaat ini belum punya modal atau dropdown -- kliknya hanya menandai semua
+ * notifikasi terbaca lewat POST notif/read. Itu seluruh gunanya, dan itu juga
+ * alasan badge jumlah belum dibaca masih relevan: toast menandai notifikasi
+ * yang benar-benar DITAMPILKAN saja sebagai terbaca (dibatasi 3 per muat
+ * halaman, lihat layout-dashboard/dashboard.php), jadi sisanya masih
+ * belum terbaca dan tetap dihitung di badge sampai user menekan lonceng.
+ *
+ * Menu "Notifikasi" di sidenav sengaja tidak ada untuk sementara, jadi
+ * halaman /notifikasi hanya bisa dibuka lewat URL langsung. Halaman dan
+ * route-nya tidak dihapus -- hanya pintunya.
+ *
+ * Tombol audio di bawah TETAP ADA dan sekarang benar-benar mengubah state
+ * (disimpan di localStorage). Sebelumnya id audioToggle hanya memanggil
+ * unlockAudio() yang sama dengan klik pertama di halaman mana pun, jadi ikon
+ * "aktif" yang ditampilkan sebenarnya cuma menampilkan status, bukan kontrol.
+ */
+
 // Nama dan jabatan user sudah tersedia sebagai variabel view global:
 // BaseController::initController() mendaftarkannya lewat
 // Services::renderer()->setVar('user', $this->userData), jadi tidak perlu
@@ -64,9 +84,10 @@ $avatarWarna = $nipUser !== ''
     <!-- Right Navbar -->
     <ul class="navbar-nav ms-auto me-3 me-lg-4 align-items-center">
 
-        <!-- 🔔 NOTIF -->
+        <!-- 🔔 NOTIF: badge jumlah belum dibaca, klik = tandai semua terbaca -->
         <li class="nav-item me-3">
-            <a href="#" class="nav-link position-relative" id="notifBtn">
+            <a href="#" class="nav-link position-relative" id="notifBtn"
+                role="button" aria-label="Notifikasi">
                 <i class="fas fa-bell"></i>
 
                 <!-- badge -->
@@ -78,9 +99,12 @@ $avatarWarna = $nipUser !== ''
             </a>
         </li>
 
-        <!-- 🔊 AUDIO notif status -->
+        <!-- 🔊 AUDIO notif: toggle sungguhan, bukan penampil status -->
         <li class="nav-item me-3">
-            <a href="#" class="nav-link" id="audioToggle">
+            <a href="#" class="nav-link" id="audioToggle"
+                role="button" aria-pressed="false"
+                title="Bunyi notifikasi"
+                aria-label="Bunyi notifikasi">
                 <i id="audioIcon" class="fas fa-volume-up"></i>
             </a>
         </li>

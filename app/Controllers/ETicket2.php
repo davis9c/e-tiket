@@ -106,6 +106,31 @@ public function index()
             )
             : null;
 
+        // Tombol "Buat Tiket" di dashboard.
+        //
+        // Dua hal dikirim terpisah dan sengaja tidak digabung: yang pertama
+        // menentukan apakah tombol dirender, sedangkan yang kedua menentukan
+        // apa yang tampil di dalam modal.
+        //
+        // Gate mengikuti halaman /etiket: user tanpa kd_jabatan tidak punya
+        // tombol sama sekali, bukan punya tombol yang nanti ditolak /baru.
+        // Kalau tombolnya tetap ada, user itu akan menekan, memilih
+        // kategori, lalu baru diberi tahu akunnya tidak bisa dipakai.
+        $data['adaTombolBuat'] = ! empty($userData['kd_jabatan']);
+
+        // Kategori milik unit user -- himpunan yang sama dengan yang dipakai
+        // form /baru, jadi kategori yang tampil di modal dijamin bisa
+        // dipilih di halaman berikutnya.
+        //
+        // null sengaja diteruskan kalau kd_jabatan kosong: findByUnitPengajuan()
+        // tanpa filter akan mengembalikan SEMUA kategori aktif, termasuk yang
+        // unit pengajuannya tidak memuat user. Itu kebetulan tidak terlihat
+        // karena gate di atas sudah menyembunyikan tombolnya, tapi kalau
+        // suatu saat gate dilonggarkan, daftar yang tampil jadi salah diam-diam.
+        $data['kategori'] = $this->attachNamaJabatanToKategori(
+            $this->kategoriModel->findByUnitPengajuan($userData['kd_jabatan'] ?? null)
+        );
+
         return view('dashboard/user', $data);
     }
 

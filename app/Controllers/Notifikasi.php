@@ -8,6 +8,19 @@ class Notifikasi extends BaseController
 {
     protected $db;
 
+    /**
+     * Batas baris histori notifikasi per halaman.
+     *
+     * Tidak ada paging di halaman ini: notifikasi dibaca sekali untuk isi
+     * tabel dan badge sidenav. Kalau someday tabelnya perlu jauh lebih besar
+     * lagi, angka ini harus naik bersama paging-nya -- bukan sendirian.
+     *
+     * Badge sidenav TIDAK memakai angka ini sebagai sumber: badge dihitung
+     * dari kolom read_at di layout, bukan dari sini, supaya membuka halaman
+     * tidak ikut menambah query dashboard.
+     */
+    private const BATAS_HISTORI = 100;
+
     public function __construct()
     {
         $this->db = \Config\Database::connect();
@@ -49,6 +62,74 @@ class Notifikasi extends BaseController
         }
 
         return $this->response->setJSON(['status' => 'read']);
+    }
+
+    /**
+     * Tandai semua notifikasi milik user ini sebagai terbaca.
+     *
+     * Debtornya halaman /notifikasi: dulu tombol "tandai terbaca" ada di
+     * lonceng di navbar, dan sekarang tidak ada ikon itu lagi, jadi satu-
+     * klik ini hilang bersamanya. Halaman histori butuh jalan yang tidak
+     * bergantung pada satu ikon.
+     *
+     * WHERE-nya tetap 'read_at IS NULL' supaya tidak menulis ulang baris yang
+     * sudah terbaca -- kalau tidak, read_at jadi waktu klik terakhir, bukan
+     * waktu benar-benar dibaca, dan urutan "kapan dibaca" jadi tidak berguna.
+     */
+    public function readAll()
+    {
+        $userData = $this->userData;
+
+        $this->db->table('tb_e_ticket_notifikasi')
+            ->where('id_pegawai', $userData['id_pegawai'])
+            ->where('read_at IS NULL', null, false)
+            ->update(['read_at' => date('Y-m-d H:i:s')]);
+
+        return redirect()->to(base_url('notifikasi'));
+    }
+
+    /**
+     * Histori notifikasi milik user yang sedang login.
+     *
+     * Sengaja TIDAK memakai filter 'read_at IS NULL' seperti index(): halaman
+     * ini soal notifikasi yang sudah lewat, jadi membacanya justru akan
+     * membuat daftar kosong setiap kali user membukanya.
+     *
+     * Batas 100 baris: notifikasi tidak pernah dihapus dari tabel, jadi tanpa
+     * batas query ini akan tumbuh terus di sisi server. Badge di sidenav
+     * memakai hitungan yang sama supaya angka di menu dan isi halaman tidak
+     * berbeda.
+     */
+    public function histori()
+    {
+        $userData = $this->userData;
+
+        $notif = $this->db->table('tb_e_ticket_notifikasi')
+            ->where('id_pegawai', $userData['id_pegawai'])
+            ->orderBy('created_at', 'DESC')
+            ->limit(self::BATAS_HISTORI)
+            ->get()
+            ->getResultArray();
+
+        // Dipisah supaya view tidak perlu menghitung ulang, dan supaya
+        // "baru" didefinisikan sekali di satu tempat.
+        $belumTerbaca = 0;
+
+        foreach ($notif as $i => $baris) {
+            $baru = empty($baris['read_at']);
+            $notif[$i]['adalah_baru'] = $baru;
+
+            if ($baru) {
+                $belumTerbaca++;
+            }
+        }
+
+        return view('notifikasi/histori', [
+            'title'        => 'Histori Notifikasi',
+            'notif'        => $notif,
+            'jumlah'       => count($notif),
+            'belumTerbaca' => $belumTerbaca,
+        ]);
     }
 
     // ➕ Tambah notifikasi

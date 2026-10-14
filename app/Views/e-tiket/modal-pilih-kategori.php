@@ -15,10 +15,18 @@
  *
  *   $targetForm = 'baru'   -> arahkan ke /baru?kategori=id        (mandiri)
  *   $targetForm = 'manual' -> arahkan ke /manual-baru?kategori=id  (admin)
+ *
+ * $kategori WAJIB diberikan pemanggil. Dulu partial ini membaca
+ * $data['kategori'], yang kebetulan bekerja karena payload /etiket dan
+ * /allticket dibungkus satu level di bawah kunci literal 'data'. Payload
+ * yang datanya rata -- misalnya dashboard/user -- tidak punya kunci itu, dan
+ * partialnya diam-diam menampilkan "Data kategori belum tersedia" tanpa error.
+ * Ketergantungan yang bergantung pada bentuk payload pemanggil adalah kelas
+ * jebakan itu, jadi sekarang keduanya argumen yang dinyatakan eksplisit.
  */
 
 $targetForm = $targetForm ?? 'baru';
-$kategori = $data['kategori'] ?? [];
+$kategori = $kategori ?? [];
 
 $urlBuat = static function ($id) use ($targetForm): string {
     return $targetForm === 'manual'

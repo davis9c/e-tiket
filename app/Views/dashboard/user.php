@@ -51,11 +51,34 @@
 
         <div class="d-flex align-items-center justify-content-between mb-2">
             <h5 class="fw-bold mb-0">Dashboard Saya</h5>
-            <small class="text-muted">
-                <i class="fas fa-list me-1"></i>My E-Tiket
-                <span class="mx-1">|</span>
-                <i class="fas fa-clipboard-list me-1"></i>Pelaksana
-            </small>
+            <div class="d-flex align-items-center gap-2">
+                <small class="text-muted">
+                    <i class="fas fa-list me-1"></i>My E-Tiket
+                    <span class="mx-1">|</span>
+                    <i class="fas fa-clipboard-list me-1"></i>Pelaksana
+                </small>
+
+                <!--
+                    Tombol "Buat Tiket" hidup di sini supaya user tidak perlu
+                    masuk ke /etiket lebih dulu hanya untuk membuat tiket.
+
+                    Gate-nya ($adaTombolBuat) sudah diputuskan controller, bukan
+                    dicek ulang di view: halaman /etiket memakai aturan yang
+                    sama, jadi user tanpa kd_jabatan punya pengalaman yang sama
+                    di kedua halaman.
+
+                    Modalnya ikut memakai gate yang sama. Tombol yang membuka
+                    modal yang tidak dirender akan terlihat normal lalu diam
+                    saat diklik -- persis kelas bug yang sudah pernah muncul di
+                    baris tindakan tiket.
+                -->
+                <?php if (! empty($adaTombolBuat)): ?>
+                    <button type="button" class="btn btn-sm btn-primary flex-shrink-0"
+                        data-bs-toggle="modal" data-bs-target="#ModalPilihKategori">
+                        <i class="fas fa-plus me-1"></i>Buat Tiket
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php
@@ -366,6 +389,26 @@
         // -- hanya pemanggilannya yang dibuang, supaya method itu tetap
         // ada kalau nanti diperlukan.
         ?>
+
+        <!-- ===================== -->
+        <!-- BUAT TIKET            -->
+        <!-- ===================== -->
+        <?php
+        // Partial yang sama dengan dipakai /etiket dan /allticket, dengan
+        // targetForm='baru' supaya tautannya ke /baru?kategori=id.
+        //
+        // ID modalnya tetap ModalPilihKategori. Tidak bentrok di halaman ini
+        // karena dashboard tidak pernah menyertakan e-tiket.php -- tapi itu
+        // alasan kenapa partial ini hanya boleh dipakai SATU KALI per
+        // halaman: dua modal dengan id sama membuat yang kedua tidak bisa
+        // dibuka Bootstrap, dan tidak ada error yang membantu.
+        ?>
+        <?php if (! empty($adaTombolBuat)): ?>
+            <?= view('e-tiket/modal-pilih-kategori', [
+                    'targetForm' => 'baru',
+                    'kategori'   => $kategori ?? [],
+                ]) ?>
+        <?php endif; ?>
     </div>
 </main>
 

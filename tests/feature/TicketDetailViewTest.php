@@ -698,18 +698,47 @@ final class TicketDetailViewTest extends CIUnitTestCase
      | PARTIAL LAIN
      |===================================================== */
 
+    /**
+ * $kategori dan $targetForm keduanya argumen yang dinyatakan eksplisit.
+ *
+ * Partial ini dulu membaca $data['kategori'], yang hanya kebetulan bekerja
+     * karena payload halaman penganggil dibungkus satu level di bawah kunci
+     * literal 'data'. Dashboard punya payload rata, jadi bentuk lama itu tidak
+     * berlaku di sana -- dan partialnya diam-diam menampilkan "Data kategori
+     * belum tersedia" tanpa error. Test ini sekarang memakai bentuk yang sama
+     * dengan ketiga pemanggil sungguhan.
+ */
     public function testModalPilihKategoriMenyesuaikanTarget(): void
     {
-        $baru = $this->render('e-tiket/modal-pilih-kategori', $this->payload([
-            'kategori' => [['id' => 5, 'kode_kategori' => 'SAR', 'nama_kategori' => 'Sarana', 'deskripsi' => 'desc', 'unit_penanggung_jawab' => [['kd_jbtn' => 'J001', 'nm_jbtn' => 'Unit Sarana']]]],
-        ]) + ['targetForm' => 'baru']);
+        $kategori = [
+            ['id' => 5, 'kode_kategori' => 'SAR', 'nama_kategori' => 'Sarana', 'deskripsi' => 'desc',
+             'unit_penanggung_jawab' => [['kd_jbtn' => 'J001', 'nm_jbtn' => 'Unit Sarana']]],
+        ];
 
-        $manual = $this->render('e-tiket/modal-pilih-kategori', $this->payload([
-            'kategori' => [['id' => 5, 'kode_kategori' => 'SAR', 'nama_kategori' => 'Sarana', 'deskripsi' => 'desc', 'unit_penanggung_jawab' => []]],
-        ]) + ['targetForm' => 'manual']);
+        $baru   = $this->render('e-tiket/modal-pilih-kategori', ['kategori' => $kategori, 'targetForm' => 'baru']);
+        $manual = $this->render('e-tiket/modal-pilih-kategori', ['kategori' => $kategori, 'targetForm' => 'manual']);
 
         $this->assertStringContainsString('baru?kategori=5', $baru);
         $this->assertStringContainsString('manual-baru?kategori=5', $manual);
+    }
+
+    /**
+     * Kategori kosong harus tetap membuka modal yang bisa dibaca, bukan
+     * modal kosong tanpa penjelasan.
+     *
+     * Ini juga yang membedakan "kategori tidak ada" dari "partial salah
+     * pemanggil": keduanya dulu berakhir sama -- modal kosong -- jadi bug
+     * seperti ini tidak terlihat dari halaman pemanggil.
+     */
+    public function testModalPilihKategoriTanpaKategoriTerjelaskan(): void
+    {
+        $html = $this->render('e-tiket/modal-pilih-kategori', [
+            'kategori'   => [],
+            'targetForm' => 'baru',
+        ]);
+
+        $this->assertStringContainsString('Data kategori belum tersedia', $html);
+        $this->assertStringNotContainsString('baru?kategori=', $html, 'Kategori kosong tidak boleh menghasilkan tautan');
     }
 
     /* =====================================================
@@ -836,6 +865,36 @@ final class TicketDetailViewTest extends CIUnitTestCase
         $this->assertStringNotContainsString('ModalPilihKategori', $this->halaman('e-tiket', true));
         $this->assertStringContainsString('ModalPilihKategori', $this->halaman('e-tiket', false));
         $this->assertStringContainsString('ModalPilihKategori', $this->halaman('allticket', false, 'allticket'));
+    }
+
+    /**
+     * Halaman daftar harus meneruskan kategorinya ke modal picker.
+     *
+     * Keberadaan modal saja tidak cukup sebagai bukti: partial ini pernah
+     * membaca $data['kategori'], dan kalau pemanggil berhenti meneruskannya
+     * dengan nama itu, modal tetap muncul dengan keadaan kosong. Diuji lewat
+     * isi tautannya, bukan lewat string "Data kategori belum tersedia",
+     * supaya test ini gagal hanya kalau daftarnya benar-benar tidak sampai.
+     */
+    public function testHalamanDaftarMeneruskanKategoriKeModal(): void
+    {
+        $kategori = [[
+            'id'              => 42,
+            'kode_kategori'   => 'SAR',
+            'nama_kategori'   => 'Sarana',
+            'deskripsi'       => 'desc',
+            'unit_penanggung_jawab' => [],
+        ]];
+
+        $payload = $this->payload();
+        $payload['data']['detailTicket'] = null;
+        $payload['data']['kategori']     = $kategori;
+
+        $html = view('e-tiket', $payload);
+        $this->assertStringContainsString('baru?kategori=42', $html, 'Kategori tidak sampai ke modal di /etiket');
+
+        $html = view('allticket', $payload);
+        $this->assertStringContainsString('manual-baru?kategori=42', $html, 'Kategori tidak sampai ke modal di /allticket');
     }
 
     /**

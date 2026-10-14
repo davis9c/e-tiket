@@ -67,7 +67,10 @@ $adaTombolBuat = ! $adaDetail;
                     <i class="fas fa-plus me-1"></i>
                     Buat Tiket
                 </button>
-                <?= view('e-tiket/modal-pilih-kategori', ['targetForm' => 'baru']) ?>
+                <?= view('e-tiket/modal-pilih-kategori', [
+                    'targetForm' => 'baru',
+                    'kategori'   => $data['kategori'] ?? [],
+                ]) ?>
             </div>
         <?php endif; ?>
 

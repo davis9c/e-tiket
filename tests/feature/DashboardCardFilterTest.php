@@ -174,6 +174,42 @@ final class DashboardCardFilterTest extends CIUnitTestCase
     }
 
     /**
+     * Kategori yang unit PENGAJUannya adalah unit user login.
+     *
+     * Beda dengan seedKategoriDenganSatuUnitPj() di atas: yang itu mendaftarkan
+     * unit sebagai penanggung jawab (is_penanggung_jawab = 1), sedangkan
+     * findByUnitPengajuan() -- yang dipakai tombol "Buat Tiket" -- justru
+     * mencari is_penanggung_jawab = 0. Pakai seed yang salah di sini akan
+     * membuat test lolos karena alasan yang salah, atau gagal padahal
+     * implementasinya benar.
+     */
+    private function seedKategoriPengajuan(): array
+    {
+        $kode = 'ZZP' . random_int(1000, 9999);
+
+        $this->db->table('tb_e_ticket_kategori_eticket')->insert([
+            'kode_kategori' => $kode,
+            'nama_kategori' => 'Kategori Uji Pengajuan',
+            'deskripsi'     => 'Kategori uji tombol buat tiket.',
+            'template'      => '',
+            'aktif'         => 1,
+            'headsection'   => 0,
+            'teruskan'      => 0,
+            'created_at'    => date('Y-m-d H:i:s'),
+        ]);
+        $kategoriId = (int) $this->db->insertID();
+
+        $this->db->table('tb_e_ticket_kategori_unit_jabatan')->insert([
+            'kategori_id'         => $kategoriId,
+            'kd_jbtn'             => (string) env('ROLE_ADMIN'),
+            'is_penanggung_jawab' => 0,
+            'created_at'          => date('Y-m-d H:i:s'),
+        ]);
+
+        return ['kategori_id' => $kategoriId, 'kode' => $kode];
+    }
+
+    /**
      * $petugasId boleh dioverride untuk menguji filter "bukan milik sendiri"
      * pada scope headsection. Nilai default = NIP user yang login.
      */
@@ -1033,6 +1069,119 @@ public function testTabelPerluValidasiIsiKartuBelumValid(): void
             method_exists(\App\Services\DashboardService::class, 'perluValidasiData'),
             'perluValidasiData() sudah dihapus -- jangan dipanggil lagi'
         );
+    }
+
+    /* =====================================================
+     | TOMBOL "BUAT TIKET" DI DASHBOARD
+     |===================================================== */
+
+    /**
+     * Dashboard harus punya jalan membuat tiket tanpa harus ke /etiket dulu.
+     *
+     * Tombolnya membuka partial yang sama dengan /etiket, dengan
+     * targetForm='baru', dan daftar kategori diteruskan sebagai argumen
+     * eksplisit. Kategori inilah yang membuat bedanya: partialnya pernah
+     * membaca $data['kategori'], yang tidak berlaku untuk payload dashboard
+     * yang rata -- modal terbuka tapi isinya "Data kategori belum tersedia",
+     * tanpa error sama sekali.
+     */
+    public function testDashboardPunyaTombolBuatTiket(): void
+    {
+        $html = $this->html($this->asUser()->get('index'));
+
+        $this->assertStringContainsString(
+            'data-bs-target="#ModalPilihKategori"',
+            $html,
+            'Tombol Buat Tiket harus ada di dashboard'
+        );
+        $this->assertStringContainsString('Buat Tiket', $html);
+        $this->assertStringContainsString('id="ModalPilihKategori"', $html, 'Modalnya harus ikut dirender');
+        $this->assertStringNotContainsString(
+            'manual-baru',
+            $html,
+            'Dashboard memakai alur /baru, bukan /manual-baru yang milik admin'
+        );
+    }
+
+    /**
+     * Modalnya harus benar-benar punya isi, bukan cuma kerangkanya.
+     *
+     * Dipakai sebagai penjaga: kalau daftar kategori tidak sampai ke
+     * partial, tombolnya tetap terlihat dan modalnya tetap terbuka, jadi
+     * tidak ada yang rusak sampai user menekan tombol.
+     */
+    public function testModalBuatTiketDiDashboardPunyaIsi(): void
+    {
+        $setup = $this->seedKategoriPengajuan();
+
+        $html = $this->html($this->asUser()->get('index'));
+
+        $this->assertStringContainsString(
+            $setup['kode'],
+            $html,
+            'Kategori milik unit user harus tampil di modal Buat Tiket'
+        );
+        $this->assertStringContainsString(
+            'baru?kategori=' . $setup['kategori_id'],
+            $html,
+            'Modal harus menautkan ke /baru dengan id kategori yang benar'
+        );
+        $this->assertStringNotContainsString(
+            'Data kategori belum tersedia',
+            $html,
+            'Modal tidak boleh kosong -- kategori tidak sampai ke partial'
+        );
+    }
+
+    /**
+     * User tanpa kd_jabatan tidak boleh punya tombol sama sekali.
+     *
+     * Memakai gate yang sama dengan /etiket. Kalau tombolnya tetap dirender,
+     * user itu akan menekan, memilih kategori, lalu baru diberi tahu akunnya
+     * tidak bisa dipakai -- tiga langkah untuk sampai ke penolakan yang
+     * seharusnya dicegah di langkah pertama.
+     */
+    public function testTombolBuatTiketHilangTanpaJabatan(): void
+    {
+        $html = $this->html(
+            $this->withSession([
+                'logged_in'    => true,
+                'nip'          => '199004232019022005',
+                'nama'         => 'Tanpa Jabatan',
+                'id_pegawai'   => '199004232019022005',
+                'kd_jabatan'   => null,
+                'jabatan'      => null,
+                'headsection'  => null,
+            ])->get('index')
+        );
+
+        $this->assertStringNotContainsString('data-bs-target="#ModalPilihKategori"', $html, 'Tombol harus hilang');
+        $this->assertStringNotContainsString('id="ModalPilihKategori"', $html, 'Modal juga harus hilang');
+        $this->assertStringNotContainsString('Data kategori belum tersedia', $html);
+
+        // Halamannya sendiri harus tetap hidup: yang hilang cuma tombolnya.
+        $this->assertStringContainsString('Dashboard Saya', $html);
+    }
+
+    /**
+     * Partial picker kategori harus muncul paling banyak sekali per halaman.
+     *
+     * Id-nya tetap ModalPilihKategori di semua pemanggil. Dua modal dengan
+     * id sama membuat yang kedua tidak bisa dibuka Bootstrap, dan tidak ada
+     * error yang membantu -- tombolnya kelihatan benar lalu tidak terjadi
+     * apa pun.
+     */
+    public function testModalPilihKategoriHanyaSekaliPerHalaman(): void
+    {
+        foreach (['etiket', 'allticket', 'index'] as $url) {
+            $html = $this->html($this->asUser()->get($url));
+
+            $this->assertSame(
+                1,
+                substr_count($html, 'id="ModalPilihKategori"'),
+                'Halaman ' . $url . ' merender modal picker lebih dari sekali'
+            );
+        }
     }
 
 /**

@@ -58,7 +58,10 @@ if ($s = service('request')->getGet('status')) {
                     <i class="fas fa-plus me-1"></i>
                     Buat Tiket Manual
                 </button>
-                <?= view('e-tiket/modal-pilih-kategori', ['targetForm' => 'manual']) ?>
+                <?= view('e-tiket/modal-pilih-kategori', [
+                    'targetForm' => 'manual',
+                    'kategori'   => $data['kategori'] ?? [],
+                ]) ?>
             </div>
         <?php endif; ?>
 

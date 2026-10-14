@@ -284,8 +284,8 @@ final class NavbarUserTest extends CIUnitTestCase
 
     /**
      * Jabatan wajib TIDAK tampil di layar kecil. Topbar tetap 56px di HP
-     * juga, jadi dua baris akan berebut ruang dengan ikon notif dan audio.
-     * Di HP information-nya tetap tersedia lewat dropdown.
+     * juga, jadi dua baris akan berebut ruang dengan tombol audio.
+     * Di HP informasinya tetap tersedia lewat dropdown, jadi tidak hilang.
      */
     public function testJabatanDisembunyikanDiLayarKecil(): void
     {
@@ -304,7 +304,7 @@ final class NavbarUserTest extends CIUnitTestCase
     }
 
     /**
-     * Nama panjang tidak boleh mendorong tombol notif dan ikon audio keluar
+     * Nama panjang tidak boleh mendorong tombol audio keluar
      * layar. Batasnya harus lewat max-width + text-truncate, bukan hanya
      * mengandalkan wrap.
      */

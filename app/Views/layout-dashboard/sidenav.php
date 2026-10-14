@@ -25,6 +25,11 @@ $activeLink = function ($route, $status = null) use ($currentPath, $queryParams)
 $isTiket = $activeLink('etiket')
     || $activeLink('pelaksana')
     || $activeLink('headsection');
+
+// $isNotifikasi sengaja tidak ada: menu Notifikasi untuk sementara
+// tidak dirender di sidenav (lihat catatan di bawah blok E-Tiket), jadi
+// tidak ada path yang perlu ditandai aktif. Halaman /notifikasi masih
+// hidup -- hanya pintunya yang disembunyikan sementara ini.
 // /admin?tab=petugas adalah satu-satunya entry admin yang masih ada di
 // navigasi (grup KANZA sudah dihapus, lihat blok ADMIN di bawah).
 //
@@ -88,6 +93,21 @@ $openApp = preg_match('#^(kategori|admin)(/|$)#', $currentPath);
                         <span class="badge bg-primary ms-2"><?= esc($sumberAktif) ?></span>
                     <?php endif; ?>
                 </a>
+
+                <!--
+                    Menu "Notifikasi" untuk sementara TIDAK ada di sini.
+
+                    Awalnya halaman histori notifikasi berdiri sebagai menu
+                    level atas, tapi lonceng di navbar dikembalikan sehingga
+                    pintunya jadi kembar: dua tempat untuk hal yang sama, dan
+                    bukan yang paling mudah ditemukan -- orang lebih dahulu
+                    melihat lonceng di atas kepalanya daripada membaca sidenav.
+
+                    Halaman /notifikasi beserta route, histori(), dan
+                    readAll() TIDAK dihapus, hanya tautan menunya. Kalau
+                    kontribusinya mau dibuka lagi, cukup kembalikan satu blok
+                    <a> di sini.
+                -->
 
                 <!-- ===================== -->
                 <!-- ADMIN -->
