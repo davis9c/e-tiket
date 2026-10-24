@@ -10,14 +10,14 @@
         "slack": "https://codeigniterchat.slack.com"
     },
     "require": {
-        "php": "^8.1",
-        "codeigniter4/framework": "^4.0",
+        "php": "^8.2 || ^8.3 || ^8.4 || ^8.5",
+        "codeigniter4/framework": "^4.6",
         "hashids/hashids": "^5.0"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.9",
+        "fakerphp/faker": "^1.9 || ^1.23",
         "mikey179/vfsstream": "^1.6",
-        "phpunit/phpunit": "^10.5.16"
+        "phpunit/phpunit": "^10.5.16 || ^11.0"
     },
     "autoload": {
         "psr-4": {
