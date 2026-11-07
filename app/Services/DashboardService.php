@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ETicketModel;
+use App\Models\ETicketMengetahuiModel;
 use App\Models\KategoriETiketModel;
 
 /**
@@ -26,13 +27,15 @@ class DashboardService
 {
     protected ETicketModel $tiket;
     protected KategoriETiketModel $kategori;
+    protected ETicketMengetahuiModel $mengetahui;
     protected HashIdService $hashId;
 
     public function __construct()
     {
-        $this->tiket    = new ETicketModel();
-        $this->kategori = new KategoriETiketModel();
-        $this->hashId   = new HashIdService();
+        $this->tiket      = new ETicketModel();
+        $this->kategori   = new KategoriETiketModel();
+        $this->mengetahui = new ETicketMengetahuiModel();
+        $this->hashId     = new HashIdService();
     }
 
     /**
@@ -439,6 +442,73 @@ class DashboardService
      * 'tugas' = belum selesai (dalam_antrian + dikerjakan), jadi angkanya
      * persis sama dengan isi ?sumber=pelaksana&selesai=0.
      */
+    /**
+     * "Tiket yang perlu saya ketahui": tiket yang memuat user login di
+     * snapshot Mengetahui dan aksinya belum diberikan.
+     *
+     * Mengembalikan null kalau user tidak pernah ditunjuk pada tiket mana
+     * pun -- view memakai itu untuk tidak merender kelompok kartunya.
+     *
+     * Pemeriksaan keberadaan sengaja memakai tb_e_ticket_mengetahui,
+     * bukan getTickets(): halaman user biasa yang tidak punya peran ini
+     * tidak boleh menambah query daftar tb_e_ticket (dijaga test jumlah
+     * query dashboard).
+     */
+    public function mengetahuiData(?string $kdJbtn, ?string $nip, ?string $kdPegawai = null): ?array
+    {
+        $userData = [
+            'nip'        => $nip,
+            'id_pegawai' => $kdPegawai,
+            'kd_jabatan' => $kdJbtn,
+        ];
+
+        if (! $this->mengetahui->hasUntukUser($userData)) {
+            return null;
+        }
+
+        // Hanya yang belum diaksi. Link kartu membawa ?mengetahui=0,
+        // jadi angka dan isi halaman tujuan memakai definisi yang sama.
+        $list = $this->tiket->getTickets(
+            ['mengetahui'],
+            $kdJbtn,
+            $nip,
+            null,
+            null,
+            null,
+            null,
+            $kdPegawai,
+            0
+        );
+
+        $belumValid = $dalamAntrian = $dikerjakan = $selesai = 0;
+
+        foreach ($list as $t) {
+            switch ($t['status'] ?? null) {
+                case 'belum_valid':
+                    $belumValid++;
+                    break;
+                case 'dalam_antrian':
+                    $dalamAntrian++;
+                    break;
+                case 'dikerjakan':
+                    $dikerjakan++;
+                    break;
+                case 'selesai':
+                    $selesai++;
+                    break;
+            }
+        }
+
+        return [
+            'total'        => count($list),
+            'selesai'      => $selesai,
+            'dikerjakan'   => $dikerjakan,
+            'dalamAntrian' => $dalamAntrian,
+            'belumValid'   => $belumValid,
+            'list'         => $this->attachHashId($list),
+        ];
+    }
+
     public function tugasData(?string $kdJbtn): array
     {
         // Tanpa kd_jabatan filter akan dilewati -> semua tiket terekspos.

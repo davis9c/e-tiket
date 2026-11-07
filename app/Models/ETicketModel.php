@@ -32,6 +32,8 @@ class ETicketModel extends Model
         'proses_unit',
         'valid',
         'valid_nama',
+        'valid_nip',
+        'valid_kd_jbtn',
         'handler',
         'created_at',
         'updated_at',
@@ -283,7 +285,15 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
-    public function findOneLengkap(int $id): ?array
+    /**
+     * Detail lengkap satu tiket.
+     *
+     * @param array|null $userData identitas user login (nip, id_pegawai,
+     *                             kd_jabatan). Dipakai untuk mengisi
+     *                             mengetahui_saya; null = tidak dihitung,
+     *                             tetapi daftar + progres tetap diisi.
+     */
+    public function findOneLengkap(int $id, ?array $userData = null): ?array
     {
         // ================================
         // Ambil data utama tiket
@@ -376,6 +386,27 @@ class ETicketModel extends Model
         $row['petugas_upj_nama'] = self::petugasUpjTerakhir($row['upj'], $proses);
 
         // ================================
+        // MENGETAHUI
+        // ================================
+        $row['mengetahui_list']     = $this->db->table('tb_e_ticket_mengetahui')
+            ->where('etiket_id', $id)
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getResultArray();
+        $row['mengetahui_progress'] = self::mengetahuiProgress($row['mengetahui_list']);
+
+        // Hanya dihitung kalau identitas user dikirim. Pemanggil lama
+        // (timeline, dsb.) yang tidak butuh tetap aman tanpa argumen.
+        $row['mengetahui_saya'] = $userData === null
+            ? null
+            : self::matchMengetahui(
+                $row['mengetahui_list'],
+                $userData['nip'] ?? null,
+                $userData['id_pegawai'] ?? null,
+                $userData['kd_jabatan'] ?? null
+            );
+
+        // ================================
         // STATUS LOGIC
         // Sama persis dengan attachProsesToRows(), lewat helper yang
         // sama supaya daftar dan detail tidak bisa berbeda.
@@ -413,9 +444,10 @@ class ETicketModel extends Model
      * - saya        : tiket yang dibuat user login
      * - pelaksana   : tiket yang ditugaskan ke unit user (sudah divalidasi)
      * - headsection : tiket yang diajukan unit user, kecuali miliknya sendiri
+     * - mengetahui  : tiket yang memuat user login di snapshot Mengetahui
      * - all         : semua tiket, tanpa filter cakupan (khusus admin)
      */
-    public const SUMBER_LIST = ['saya', 'pelaksana', 'headsection', 'all'];
+    public const SUMBER_LIST = ['saya', 'pelaksana', 'headsection', 'mengetahui', 'all'];
 
     /**
      * Sumber yang boleh dipakai halaman /etiket, dan yang dipakai sebagai
@@ -435,7 +467,7 @@ class ETicketModel extends Model
      * DashboardService memanggilnya langsung untuk menghitung kelompok
      * "Tiket unit saya yang harus saya validasi".
      */
-    public const SUMBER_DEFAULT = ['saya', 'pelaksana'];
+    public const SUMBER_DEFAULT = ['saya', 'pelaksana', 'mengetahui'];
 
     /**
      * Satu-satunya query untuk seluruh halaman daftar tiket.
@@ -453,6 +485,9 @@ class ETicketModel extends Model
      *                     bersama $nip pada scope 'saya' karena session
      *                     'nip' bisa berisi NIK (API menerima login NIP
      *                     maupun NIK) sedangkan petugas_id berisi NIP.
+     * @param int|null $mengetahui 1 = user login sudah memberi aksi
+     *                     Mengetahui, 0 = belum. Hanya bermakna bila
+     *                     scope 'mengetahui' ikut aktif.
      */
     public function getTickets(
         array $sumber = [],
@@ -462,7 +497,8 @@ class ETicketModel extends Model
         ?int $selesai = null,
         ?int $kategori = null,
         ?int $headsection = null,
-        ?string $kdPegawai = null
+        ?string $kdPegawai = null,
+        ?int $mengetahui = null
     ): array {
         $sumber  = array_values(array_intersect($sumber, self::SUMBER_LIST));
         $semua   = in_array('all', $sumber, true);
@@ -548,6 +584,22 @@ class ETicketModel extends Model
             $builder->where('e.headsection', 1);
         }
 
+        // =========================
+        // FILTER AKSI MENGETAHUI
+        // =========================
+        // 1 = user login sudah menekan "Mengetahui" pada tiket ini,
+        // 0 = belum. Yang dicocokkan adalah baris snapshot MILIK USER
+        // LOGIN, bukan baris siapa pun, supaya kartu dashboard "perlu saya
+        // ketahui" konsisten dengan halaman tujuannya.
+        if ($mengetahui === 0 || $mengetahui === 1) {
+            $builder->where(
+                $this->mengetahuiUserExistsSql($nip, $kdPegawai, $kdJbtn, $mengetahui === 1)
+                ,
+                null,
+                false
+            );
+        }
+
         $rows = $builder
             ->orderBy('e.created_at', 'DESC')
             ->get()
@@ -561,9 +613,22 @@ class ETicketModel extends Model
         // UPJ + PENANDA HUBUNGAN
         // =========================
         $upjMap = $this->loadUpjMap(array_column($rows, 'id'));
+        $mengetahuiMap = $this->loadMengetahuiMap(array_column($rows, 'id'));
 
         foreach ($rows as &$row) {
             $row['upj'] = $upjMap[$row['id']] ?? [];
+
+            // Snapshot Mengetahui per tiket + progres "sudah/total".
+            // Dipasang di sini, bukan di view, supaya daftar dan detail
+            // memakai sumber yang sama dan tidak ada query per baris.
+            $row['mengetahui_list']     = $mengetahuiMap[$row['id']] ?? [];
+            $row['mengetahui_progress'] = self::mengetahuiProgress($row['mengetahui_list']);
+            $row['mengetahui_saya']     = self::matchMengetahui(
+                $row['mengetahui_list'],
+                $nip,
+                $kdPegawai,
+                $kdJbtn
+            );
 
             // Diperlukan view untuk memberi badge sumber pada tiap baris,
             // jadi user bisa lihat kenapa sebuah tiket muncul di daftar.
@@ -720,11 +785,170 @@ class ETicketModel extends Model
             $adaCabang = true;
         }
 
+        // ---------------------------------------------------------------
+        // MENGETAHUI: user login ada di snapshot tb_e_ticket_mengetahui.
+        // Snapshot disalin saat tiket dibuat, jadi perubahan konfigurasi
+        // kategori tidak mengubah siapa yang berhak pada tiket lama.
+        // ---------------------------------------------------------------
+        if (in_array('mengetahui', $sumber, true)
+            && ($nip !== null || $kdPegawai !== null || $kdJbtn !== null)) {
+            if ($adaCabang) {
+                $builder->orGroupStart();
+            }
+
+            $builder->where(
+                $this->mengetahuiUserExistsSql($nip, $kdPegawai, $kdJbtn),
+                null,
+                false
+            );
+
+            if ($adaCabang) {
+                $builder->groupEnd();
+            }
+
+            $adaCabang = true;
+        }
+
         if (! $adaCabang) {
             $builder->where('1 = 0', null, false);
         }
 
         $builder->groupEnd();
+    }
+
+    /**
+     * Syarat EXISTS: tiket ini punya baris Mengetahui untuk user login.
+     *
+     * Pencocokan memakai NIP dulu, lalu id_pegawai, lalu baris cadangan
+     * (identitas NULL) lewat jabatan. Urutannya sama dengan
+     * ETicketMengetahuiModel::findUntukUser() supaya scope daftar dan
+     * otorisasi aksi tidak bisa berbeda pendapat.
+     *
+     * @param bool|null $acted null = abaikan status aksi;
+     *                         true = sudah acted; false = belum acted.
+     */
+    private function mengetahuiUserExistsSql(
+        ?string $nip,
+        ?string $kdPegawai,
+        ?string $kdJbtn,
+        ?bool $acted = null
+    ): string {
+        $sy = [];
+
+        if ($nip !== null && $nip !== '') {
+            $sy[] = 'm.nip = ' . $this->db->escape($nip);
+        }
+
+        if ($kdPegawai !== null && $kdPegawai !== '') {
+            $sy[] = 'm.id_pegawai = ' . $this->db->escape($kdPegawai);
+        }
+
+        if ($kdJbtn !== null && $kdJbtn !== '') {
+            $sy[] = '(m.nip IS NULL AND m.id_pegawai IS NULL AND m.kd_jbtn = '
+                . $this->db->escape($kdJbtn) . ')';
+        }
+
+        // Tidak ada identitas yang bisa dicocokkan -> jangan pernah cocok.
+        if ($sy === []) {
+            $sy[] = '1 = 0';
+        }
+
+        $sql = 'EXISTS (SELECT 1 FROM tb_e_ticket_mengetahui m'
+            . ' WHERE m.etiket_id = e.id AND (' . implode(' OR ', $sy) . ')';
+
+        if ($acted === true) {
+            $sql .= ' AND m.acted_at IS NOT NULL';
+        } elseif ($acted === false) {
+            $sql .= ' AND m.acted_at IS NULL';
+        }
+
+        return $sql . ')';
+    }
+
+    /**
+     * Peta snapshot Mengetahui untuk sekumpulan tiket (1 query).
+     *
+     * @return array<int, array<int, array>> baris snapshot per id tiket
+     */
+    private function loadMengetahuiMap(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = $this->db->table('tb_e_ticket_mengetahui')
+            ->whereIn('etiket_id', $ids)
+            ->orderBy('id', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $map[(int) $row['etiket_id']][] = $row;
+        }
+
+        return $map;
+    }
+
+    /**
+     * Progres aksi Mengetahui sebuah tiket: berapa yang sudah dan total
+     * user yang ditunjuk. Ditampilkan sebagai "1/3" di view.
+     *
+     * @return array{sudah:int,total:int}
+     */
+    public static function mengetahuiProgress(array $list): array
+    {
+        $sudah = 0;
+
+        foreach ($list as $row) {
+            if (! empty($row['acted_at'])) {
+                $sudah++;
+            }
+        }
+
+        return ['sudah' => $sudah, 'total' => count($list)];
+    }
+
+    /**
+     * Baris snapshot Mengetahui milik user login.
+     *
+     * Urutan pencocokan: NIP, lalu id_pegawai, lalu baris cadangan tanpa
+     * identitas lewat jabatan. Null kalau user tidak ditunjuk.
+     */
+    public static function matchMengetahui(
+        array $list,
+        ?string $nip,
+        ?string $kdPegawai,
+        ?string $kdJbtn
+    ): ?array {
+        if ($nip !== null && $nip !== '') {
+            foreach ($list as $row) {
+                if ($row['nip'] !== null && (string) $row['nip'] === (string) $nip) {
+                    return $row;
+                }
+            }
+        }
+
+        if ($kdPegawai !== null && $kdPegawai !== '') {
+            foreach ($list as $row) {
+                if ($row['id_pegawai'] !== null
+                    && (string) $row['id_pegawai'] === (string) $kdPegawai) {
+                    return $row;
+                }
+            }
+        }
+
+        if ($kdJbtn !== null && $kdJbtn !== '') {
+            foreach ($list as $row) {
+                if ($row['nip'] === null && $row['id_pegawai'] === null
+                    && (string) $row['kd_jbtn'] === (string) $kdJbtn) {
+                    return $row;
+                }
+            }
+        }
+
+        return null;
     }
 
     public function isSudahValid(

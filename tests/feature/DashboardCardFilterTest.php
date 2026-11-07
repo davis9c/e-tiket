@@ -134,6 +134,15 @@ final class DashboardCardFilterTest extends CIUnitTestCase
         return (string) $result->response()->getBody();
     }
 
+    private function timeline(string $html): string
+    {
+        preg_match('/<ul class="timeline-tiket">.*?<\/ul>/s', $html, $matches);
+
+        $this->assertNotEmpty($matches, 'Timeline status harus dirender');
+
+        return $matches[0];
+    }
+
     /* =====================================================
      * SEED: satu kategori dengan tepat 1 unit PJ, jadi logika
      * status jadi mudah diprediksi:
@@ -1146,6 +1155,7 @@ public function testTabelPerluValidasiIsiKartuBelumValid(): void
         $html = $this->html(
             $this->withSession([
                 'logged_in'    => true,
+                'auth_version' => 2,
                 'nip'          => '199004232019022005',
                 'nama'         => 'Tanpa Jabatan',
                 'id_pegawai'   => '199004232019022005',
@@ -1378,6 +1388,120 @@ public function testFilterHeadsectionMengizinkanAdminDanMenolakUserBiasa(): void
     );
 
     unset($route, $ditolak, $diterima, $head);
+}
+
+public function testHeadsectionDapatMemvalidasiTiketUnitnya(): void
+{
+    $kategori = $this->seedKategoriDenganSatuUnitPj();
+    $this->db->table('tb_e_ticket_kategori_eticket')
+        ->where('id', $kategori['kategori_id'])
+        ->update(['headsection' => 1]);
+
+    $ticketId = $this->seedTiket(
+        $kategori['kategori_id'],
+        'J036',
+        'Pemohon Uji',
+        'belum_valid',
+        '123456789012345678',
+        false
+    );
+
+    // UserData jabatan berisi label "Kepala Unit", sedangkan kd_jbtn
+    // tiket berisi kode unit "J036". Hak validasi harus mencocokkan kode.
+    $response = $this->asHeadsection()->post('etiket/submit_approve', [
+        'ticket_id' => $ticketId,
+        'catatan'   => 'Disetujui untuk diproses',
+    ]);
+
+    $this->assertTrue($response->isRedirect());
+    $ticket = $this->db->table('tb_e_ticket')
+        ->select('valid_nama')
+        ->where('id', $ticketId)
+        ->get()
+        ->getRowArray();
+
+    $this->assertSame(
+        'Kepala Unit',
+        $ticket['valid_nama'],
+        'Headsection unit J036 harus berhasil memvalidasi tiket unit J036'
+    );
+}
+
+public function testMengetahuiFallbackMenyimpanIdentitasOrangPertama(): void
+{
+    $kategori = $this->seedKategoriDenganSatuUnitPj();
+    $ticketId = $this->seedTiket(
+        $kategori['kategori_id'],
+        'J036',
+        'Pemohon Uji',
+        'belum_valid',
+        '123456789012345678',
+        false
+    );
+
+    $this->db->table('tb_e_ticket_mengetahui')->insert([
+        'etiket_id'  => $ticketId,
+        'kd_jbtn'    => 'J022',
+        'id_pegawai' => null,
+        'nip'        => null,
+        'nama'       => null,
+        'is_fallback' => 1,
+        'created_at' => date('Y-m-d H:i:s'),
+    ]);
+
+    $response = $this->withSession([
+        'logged_in'   => true,
+        'auth_version' => 2,
+        'id_pegawai'  => 2279,
+        'nip'         => '357408005260043',
+        'nama'        => 'Petugas Informatika',
+        'kd_jabatan'  => 'J022',
+        'jabatan'     => 'Tenaga Informatika',
+        'headsection' => null,
+    ])->post('etiket/submit_mengetahui', [
+        'ticket_id' => $ticketId,
+        'catatan'   => 'Sudah mengetahui',
+    ]);
+
+    $this->assertTrue($response->isRedirect());
+    $snapshot = $this->db->table('tb_e_ticket_mengetahui')
+        ->where('etiket_id', $ticketId)
+        ->get()
+        ->getRowArray();
+
+    $this->assertSame('2279', (string) $snapshot['id_pegawai']);
+    $this->assertSame('357408005260043', $snapshot['nip']);
+    $this->assertSame('Petugas Informatika', $snapshot['nama']);
+    $this->assertNotEmpty($snapshot['acted_at']);
+}
+
+public function testBackfillMengetahuiMenambahkanFallbackPembuatUntukTiketBelumDivalidasi(): void
+{
+    $kategori = $this->seedKategoriDenganSatuUnitPj();
+    $ticketId = $this->seedTiket(
+        $kategori['kategori_id'],
+        $kategori['kd_jbtn'],
+        'Pemohon Belum Divalidasi',
+        'belum_valid',
+        '123456789012345678',
+        false
+    );
+
+    require_once APPPATH . 'Database/Migrations/2026-11-07-000005_BackfillUnvalidatedMengetahuiFallback.php';
+    $migration = new \App\Database\Migrations\BackfillUnvalidatedMengetahuiFallback();
+    $migration->up();
+    $migration->up();
+
+    $snapshots = $this->db->table('tb_e_ticket_mengetahui')
+        ->where('etiket_id', $ticketId)
+        ->get()
+        ->getResultArray();
+
+    $this->assertCount(1, $snapshots, 'Backfill harus aman dijalankan lebih dari sekali');
+    $this->assertSame('123456789012345678', (string) $snapshots[0]['id_pegawai']);
+    $this->assertSame('123456789012345678', $snapshots[0]['nip']);
+    $this->assertSame('Pemohon Belum Divalidasi', $snapshots[0]['nama']);
+    $this->assertSame(1, (int) $snapshots[0]['is_fallback']);
 }
 
 /**
@@ -2251,7 +2375,7 @@ public function testSemuaKartuPunyaLinkLihat(): void
 
         // Validasi gagal harus membuka kembali modal yang benar, supaya input
         // yang sudah diketik tidak hilang di balik halaman yang diam saja.
-        $this->assertSame('riwayat', session('modal'));
+        $this->assertSame('tindakan', session('modal'));
     }
 
     /**
@@ -2329,7 +2453,9 @@ public function testSemuaKartuPunyaLinkLihat(): void
 
         $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas UPJ', '2026-10-01 10:00:00');
 
-        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+        $html = $this->html($this->asUser()->get(
+            'etiket/' . (new \App\Services\HashIdService())->encode($tiketId) . '?kategori=' . $kategori
+        ));
 
         $this->assertStringContainsString(
             'Sedang Dikerjakan Petugas UPJ',
@@ -2338,7 +2464,7 @@ public function testSemuaKartuPunyaLinkLihat(): void
         );
         $this->assertStringNotContainsString(
             'Dalam Antrian',
-            $html,
+            $this->timeline($html),
             'Tiket yang UPJ-nya sudah bekerja tidak boleh tampil Dalam Antrian'
         );
     }
@@ -2362,21 +2488,23 @@ public function testSemuaKartuPunyaLinkLihat(): void
 
         $this->seedProses($tiketId, 'J003', 'Pengaju Saja', '2026-10-01 10:00:00');
 
-        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+        $html = $this->html($this->asUser()->get(
+            'etiket/' . (new \App\Services\HashIdService())->encode($tiketId) . '?kategori=' . $kategori
+        ));
 
         $this->assertStringContainsString(
             'Dalam Antrian',
-            $html,
+            $this->timeline($html),
             'Tiket yang belum ada UPJ yang bekerja harus Dalam Antrian'
         );
         $this->assertStringNotContainsString(
-            'Pengaju Saja',
-            $html,
+            'Sedang Dikerjakan Pengaju Saja',
+            $this->timeline($html),
             'Nama orang di luar UPJ tidak boleh tampil sebagai pekerja'
         );
         $this->assertStringNotContainsString(
             'Sedang Dikerjakan',
-            $html,
+            $this->timeline($html),
             'Pengaju yang bukan UPJ tidak boleh dibaca sebagai sedang dikerjakan'
         );
     }
@@ -2399,10 +2527,16 @@ public function testSemuaKartuPunyaLinkLihat(): void
         $this->seedProses($tiketId, 'J003', 'Petugas Luar Unit', '2026-10-01 09:30:00');
         $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas Terakhir', '2026-10-01 11:00:00');
 
-        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+        $html = $this->html($this->asUser()->get(
+            'etiket/' . (new \App\Services\HashIdService())->encode($tiketId) . '?kategori=' . $kategori
+        ));
 
         $this->assertStringContainsString('Sedang Dikerjakan Petugas Terakhir', $html);
-        $this->assertStringNotContainsString('Petugas Pertama', $html, 'Petugas lama tidak boleh jadi yang tampil');
+        $this->assertStringNotContainsString(
+            'Sedang Dikerjakan Petugas Pertama',
+            $html,
+            'Petugas lama tidak boleh jadi yang tampil'
+        );
     }
 
     /**
@@ -2422,7 +2556,9 @@ public function testSemuaKartuPunyaLinkLihat(): void
         $this->seedProses($tiketId, $setup['kd_jbtn'], 'Petugas UPJ', '2026-10-01 09:00:00');
         $this->seedProses($tiketId, 'J003', 'Petugas Luar Unit', '2026-10-01 11:00:00');
 
-        $html = $this->html($this->asUser()->get('etiket/' . (new \App\Services\HashIdService())->encode($tiketId)));
+        $html = $this->html($this->asUser()->get(
+            'etiket/' . (new \App\Services\HashIdService())->encode($tiketId) . '?kategori=' . $kategori
+        ));
 
         $this->assertStringContainsString(
             'Sedang Dikerjakan Petugas UPJ',
@@ -2456,7 +2592,9 @@ public function testSemuaKartuPunyaLinkLihat(): void
         $this->assertStringContainsString('Dikerjakan Petugas Sonder', $daftar, 'Badge di tabel harus menyebut petugas UPJ');
 
         // Header detail: badge yang sama.
-        $detail = $this->html($this->asUser()->get('etiket/' . $svc->encode($tiketId)));
+        $detail = $this->html($this->asUser()->get(
+            'etiket/' . $svc->encode($tiketId) . '?kategori=' . $kategori
+        ));
         $this->assertStringContainsString('Dikerjakan Petugas Sonder', $detail, 'Badge di header harus menyebut petugas UPJ');
     }
 
@@ -2479,14 +2617,16 @@ public function testSemuaKartuPunyaLinkLihat(): void
 
         $daftar = $this->html($this->asUser()->get('etiket?kategori=' . $kategori));
         $this->assertStringNotContainsString(
-            'Pengaju Doang',
+            'Dikerjakan Pengaju Doang',
             $daftar,
             'Nama di luar UPJ tidak boleh muncul sebagai pekerja di tabel'
         );
 
-        $detail = $this->html($this->asUser()->get('etiket/' . $svc->encode($tiketId)));
+        $detail = $this->html($this->asUser()->get(
+            'etiket/' . $svc->encode($tiketId) . '?kategori=' . $kategori
+        ));
         $this->assertStringNotContainsString(
-            'Pengaju Doang',
+            'Dikerjakan Pengaju Doang',
             $detail,
             'Nama di luar UPJ tidak boleh muncul sebagai pekerja di header'
         );

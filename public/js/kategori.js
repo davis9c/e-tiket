@@ -165,13 +165,14 @@
      * ===================================================== */
 
     /**
-     * Panel unit (jabatan tersedia + PJ + pengajuan).
+     * Panel unit (jabatan tersedia + PJ + pengajuan + mengetahui).
      * Satu implementasi dipakai modal unit di halaman daftar.
      */
     function createUnitPanel() {
         const jabatanList = document.getElementById('ktJabatanList');
         const pjList = document.getElementById('ktPJList');
         const pengajuanList = document.getElementById('ktPengajuanList');
+        const mengetahuiList = document.getElementById('ktMengetahuiList');
         const search = document.getElementById('ktJabatanSearch');
 
         let kategoriId = 0;
@@ -215,13 +216,17 @@
                     '<td>' + esc(j.nm_jbtn) + '</td>' +
                     '<td class="text-center"><div class="d-flex justify-content-center gap-1">' +
                     '<button type="button" class="btn btn-sm btn-success" data-kt-action="add" ' +
-                    'data-kt-type="1" data-kt-kd="' + kd + '" data-kt-nama="' + nama + '" ' +
+                    'data-kt-type="pj" data-kt-kd="' + kd + '" data-kt-nama="' + nama + '" ' +
                     'title="Tambah sebagai Unit Penanggung Jawab">' +
                     '<i class="fas fa-user-check"></i></button> ' +
                     '<button type="button" class="btn btn-sm btn-primary" data-kt-action="add" ' +
-                    'data-kt-type="0" data-kt-kd="' + kd + '" data-kt-nama="' + nama + '" ' +
+                    'data-kt-type="pengajuan" data-kt-kd="' + kd + '" data-kt-nama="' + nama + '" ' +
                     'title="Tambah sebagai Unit Pengajuan">' +
-                    '<i class="fas fa-paper-plane"></i></button>' +
+                    '<i class="fas fa-paper-plane"></i></button> ' +
+                    '<button type="button" class="btn btn-sm btn-warning" data-kt-action="add" ' +
+                    'data-kt-type="mengetahui" data-kt-kd="' + kd + '" data-kt-nama="' + nama + '" ' +
+                    'title="Tambah sebagai Mengetahui">' +
+                    '<i class="fas fa-eye"></i></button>' +
                     '</div></td></tr>';
             }).join('');
 
@@ -240,8 +245,9 @@
 
         function render(payload) {
             renderJabatan(payload.jabatan);
-            renderUnitList(pjList, payload.unit_penanggung_jawab, 1, 'Belum ada Unit Penanggung Jawab');
-            renderUnitList(pengajuanList, payload.unit_pengajuan, 0, 'Kategori ini umum: bisa dipakai semua unit');
+            renderUnitList(pjList, payload.unit_penanggung_jawab, 'pj', 'Belum ada Unit Penanggung Jawab');
+            renderUnitList(pengajuanList, payload.unit_pengajuan, 'pengajuan', 'Kategori ini umum: bisa dipakai semua unit');
+            renderUnitList(mengetahuiList, payload.unit_mengetahui, 'mengetahui', 'Belum ada unit Mengetahui');
         }
 
         function loading() {
@@ -257,6 +263,9 @@
             if (pengajuanList) {
                 pengajuanList.innerHTML = '<li class="list-group-item text-muted">Memuat...</li>';
             }
+            if (mengetahuiList) {
+                mengetahuiList.innerHTML = '<li class="list-group-item text-muted">Memuat...</li>';
+            }
         }
 
         if (search) {
@@ -270,9 +279,13 @@
 
             const kd = btn.dataset.ktKd;
             const nama = btn.dataset.ktNama;
-            const isPJ = btn.dataset.ktType === '1';
+            const jenis = btn.dataset.ktType || 'pj';
             const action = btn.dataset.ktAction;
-            const daftar = isPJ ? 'Unit Penanggung Jawab' : 'Unit Pengajuan';
+            const daftar = {
+                pj: 'Unit Penanggung Jawab',
+                pengajuan: 'Unit Pengajuan',
+                mengetahui: 'Mengetahui'
+            }[jenis] || 'Unit';
 
             btn.disabled = true;
 
@@ -283,7 +296,7 @@
                     body: JSON.stringify({
                         kategori_id: kategoriId,
                         kd_jbtn: kd,
-                        is_penanggung_jawab: isPJ ? 1 : 0,
+                        jenis: jenis,
                         action: action
                     })
                 });
@@ -371,7 +384,7 @@
 
             if (!filtered.length) {
                 tbody.innerHTML =
-                    '<tr><td colspan="7" class="text-center text-muted py-4">' +
+                    '<tr><td colspan="8" class="text-center text-muted py-4">' +
                     (rows.length ? 'Tidak ada kategori yang cocok' : 'Belum ada kategori') +
                     '</td></tr>';
 
@@ -399,6 +412,7 @@
                         '<span class="badge bg-light text-dark">' +
                             '<i class="fas fa-globe me-1"></i>Umum</span>'
                     ) + '</td>' +
+                    '<td>' + unitBadges(row.unit_mengetahui, 'bg-warning text-dark') + '</td>' +
                     '<td class="text-center">' +
                     (aktif
                         ? '<span class="badge bg-success">Aktif</span>'

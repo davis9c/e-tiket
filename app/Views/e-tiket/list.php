@@ -82,6 +82,7 @@ $jumlahTiket = count($data['eticket'] ?? []);
                     ''             => 'Semua Sumber',
                     'saya'         => 'Tiket Saya',
                     'pelaksana'    => 'Pelaksana',
+                    'mengetahui'   => 'Mengetahui',
                 ];
 
                 // ?headsection=1 mempersempit ke kategori yang WAJIB
@@ -102,6 +103,10 @@ $jumlahTiket = count($data['eticket'] ?? []);
                 </select>
                 <?php if ($headsectionSelected === '1'): ?>
                     <input type="hidden" name="headsection" value="1">
+                <?php endif; ?>
+                <?php $mengetahuiSelected = service('request')->getGet('mengetahui'); ?>
+                <?php if ($mengetahuiSelected === '0' || $mengetahuiSelected === '1'): ?>
+                    <input type="hidden" name="mengetahui" value="<?= esc($mengetahuiSelected) ?>">
                 <?php endif; ?>
             <?php endif; ?>
             <?php
@@ -203,6 +208,10 @@ $jumlahTiket = count($data['eticket'] ?? []);
             $badge[] = ['Unit Saya', 'secondary'];
         }
 
+        if (! empty($p['mengetahui_saya'])) {
+            $badge[] = ['Mengetahui', 'success'];
+        }
+
         return $badge;
     };
 
@@ -236,6 +245,17 @@ $jumlahTiket = count($data['eticket'] ?? []);
                                     <?php foreach ($badge as [$label, $warna]): ?>
                                         <span class="badge bg-<?= $warna ?>"><?= esc($label) ?></span>
                                     <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php
+                            $mengetahuiProgress = $p['mengetahui_progress'] ?? ['sudah' => 0, 'total' => 0];
+                            ?>
+                            <?php if ((int) ($mengetahuiProgress['total'] ?? 0) > 0): ?>
+                                <div class="mt-1">
+                                    <span class="badge bg-info" title="Progres aksi Mengetahui">
+                                        <i class="fas fa-eye me-1"></i>
+                                        Mengetahui <?= (int) ($mengetahuiProgress['sudah'] ?? 0) ?>/<?= (int) ($mengetahuiProgress['total'] ?? 0) ?>
+                                    </span>
                                 </div>
                             <?php endif; ?>
                         </td>

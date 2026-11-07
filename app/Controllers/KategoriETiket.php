@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\KategoriETiketModel;
+use App\Models\KategoriMengetahuiModel;
 use App\Models\KategoriUnitJabatanModel;
 use App\Services\KanzaBridgeClient;
 use App\Services\KanzaBridgeException;
@@ -12,6 +13,7 @@ class KategoriETiket extends BaseController
 {
     protected $kategoriEticketModel;
     protected $unitModel;
+    protected $mengetahuiModel;
     protected $client;
 
     /**
@@ -25,6 +27,7 @@ class KategoriETiket extends BaseController
         $this->client               = new KanzaBridgeClient();
         $this->kategoriEticketModel = new KategoriETiketModel();
         $this->unitModel            = new KategoriUnitJabatanModel();
+        $this->mengetahuiModel      = new KategoriMengetahuiModel();
     }
 
     /* ===============================
@@ -414,11 +417,19 @@ class KategoriETiket extends BaseController
 
     public function updateUnit()
     {
-        $post                = $this->payload();
-        $kategori_id         = $post['kategori_id'] ?? null;
-        $kd_jbtn             = $post['kd_jbtn'] ?? null;
-        $is_penanggung_jawab = (int) ($post['is_penanggung_jawab'] ?? 0);
-        $action              = $post['action'] ?? null;
+        $post        = $this->payload();
+        $kategori_id = $post['kategori_id'] ?? null;
+        $kd_jbtn     = $post['kd_jbtn'] ?? null;
+        $action      = $post['action'] ?? null;
+
+        // Payload lama hanya mengirim is_penanggung_jawab (0/1). Payload
+        // baru mengirim jenis=pj|pengajuan|mengetahui supaya unit
+        // Mengetahui bisa dikelola lewat endpoint yang sama.
+        $jenis = $post['jenis'] ?? null;
+
+        if ($jenis === null) {
+            $jenis = (int) ($post['is_penanggung_jawab'] ?? 0) === 1 ? 'pj' : 'pengajuan';
+        }
 
         $backUrl = 'kategori/edit/' . ($kategori_id ?: 0);
 
@@ -426,16 +437,12 @@ class KategoriETiket extends BaseController
             return $this->failOrRedirect($backUrl, 'Data tidak lengkap.');
         }
 
-        $scope = function () use ($kategori_id, $kd_jbtn, $is_penanggung_jawab) {
-            return $this->unitModel->where([
-                'kategori_id'         => $kategori_id,
-                'kd_jbtn'             => $kd_jbtn,
-                'is_penanggung_jawab' => $is_penanggung_jawab,
-            ]);
-        };
+        if (! in_array($jenis, ['pj', 'pengajuan', 'mengetahui'], true)) {
+            return $this->failOrRedirect($backUrl, 'Jenis unit tidak dikenali.');
+        }
 
         if ($action === 'add') {
-            if ($scope()->first()) {
+            if ($this->findUnitRow((int) $kategori_id, $kd_jbtn, $jenis)) {
                 if ($this->wantsJson()) {
                     return $this->jsonError('Unit sudah ada.', 409);
                 }
@@ -443,16 +450,55 @@ class KategoriETiket extends BaseController
                 return redirect()->to(base_url($backUrl))->with('info', 'Unit sudah ada.');
             }
 
-            $this->unitModel->insert([
-                'kategori_id'         => $kategori_id,
-                'kd_jbtn'             => $kd_jbtn,
-                'is_penanggung_jawab' => $is_penanggung_jawab,
-                'created_at'          => date('Y-m-d H:i:s'),
-            ]);
+            // Satu jabatan hanya menempati satu peran dalam satu kategori.
+            // Cegah juga kalau UI lama mengirim tanpa melihat daftar.
+            $peranLain = $this->findJabatanRole((int) $kategori_id, $kd_jbtn, $jenis);
+
+            if ($peranLain !== null) {
+                $message = 'Jabatan sudah terdaftar sebagai ' . $peranLain . '.';
+
+                if ($this->wantsJson()) {
+                    return $this->jsonError($message, 409);
+                }
+
+                return redirect()->to(base_url($backUrl))->with('error', $message);
+            }
+
+            if ($jenis === 'mengetahui') {
+                $this->mengetahuiModel->insert([
+                    'kategori_id' => $kategori_id,
+                    'kd_jbtn'     => $kd_jbtn,
+                    'created_at'  => date('Y-m-d H:i:s'),
+                ]);
+            } else {
+                $this->unitModel->insert([
+                    'kategori_id'         => $kategori_id,
+                    'kd_jbtn'             => $kd_jbtn,
+                    'is_penanggung_jawab' => $jenis === 'pj' ? 1 : 0,
+                    'created_at'          => date('Y-m-d H:i:s'),
+                ]);
+            }
 
             $message = 'Unit berhasil ditambahkan.';
         } elseif ($action === 'remove') {
-            $scope()->delete();
+            // Baris dicari dulu supaya request yang menghapus unit yang
+            // tidak ada tetap mendapat pesan sukses yang konsisten (idempoten),
+            // lalu dihapus lewat query builder. first() mengembalikan array,
+            // bukan model, jadi tidak bisa dipanggil ->delete().
+            if ($this->findUnitRow((int) $kategori_id, $kd_jbtn, $jenis)) {
+                if ($jenis === 'mengetahui') {
+                    $this->mengetahuiModel
+                        ->where('kategori_id', $kategori_id)
+                        ->where('kd_jbtn', $kd_jbtn)
+                        ->delete();
+                } else {
+                    $this->unitModel
+                        ->where('kategori_id', $kategori_id)
+                        ->where('kd_jbtn', $kd_jbtn)
+                        ->where('is_penanggung_jawab', $jenis === 'pj' ? 1 : 0)
+                        ->delete();
+                }
+            }
 
             $message = 'Unit berhasil dihapus.';
         } else {
@@ -464,6 +510,50 @@ class KategoriETiket extends BaseController
         }
 
         return redirect()->to(base_url($backUrl))->with('success', $message);
+    }
+
+    /**
+     * Baris unit pada satu peran. Null kalau belum terdaftar.
+     */
+    private function findUnitRow(int $kategoriId, string $kdJbtn, string $jenis)
+    {
+        if ($jenis === 'mengetahui') {
+            return $this->mengetahuiModel
+                ->where('kategori_id', $kategoriId)
+                ->where('kd_jbtn', $kdJbtn)
+                ->first();
+        }
+
+        return $this->unitModel
+            ->where('kategori_id', $kategoriId)
+            ->where('kd_jbtn', $kdJbtn)
+            ->where('is_penanggung_jawab', $jenis === 'pj' ? 1 : 0)
+            ->first();
+    }
+
+    /**
+     * Nama peran lain yang sudah memakai jabatan ini pada kategori yang
+     * sama, atau null bila belum dipakai.
+     */
+    private function findJabatanRole(int $kategoriId, string $kdJbtn, string $jenis): ?string
+    {
+        $roles = [
+            'pj'         => 'Unit Penanggung Jawab',
+            'pengajuan'  => 'Unit Pengajuan',
+            'mengetahui' => 'Mengetahui',
+        ];
+
+        foreach ($roles as $role => $label) {
+            if ($role === $jenis) {
+                continue;
+            }
+
+            if ($this->findUnitRow($kategoriId, $kdJbtn, $role)) {
+                return $label;
+            }
+        }
+
+        return null;
     }
 
     /* =========================================================
@@ -482,6 +572,7 @@ class KategoriETiket extends BaseController
                 'jabatan'               => [],
                 'unit_penanggung_jawab' => [],
                 'unit_pengajuan'        => [],
+                'unit_mengetahui'       => [],
             ];
         }
 
@@ -489,11 +580,13 @@ class KategoriETiket extends BaseController
 
         $detail['unit_penanggung_jawab'] = $this->mapUnit($detail['unit_penanggung_jawab'] ?? [], $jabatanMap);
         $detail['unit_pengajuan']        = $this->mapUnit($detail['unit_pengajuan'] ?? [], $jabatanMap);
+        $detail['unit_mengetahui']       = $this->mapUnit($detail['unit_mengetahui'] ?? [], $jabatanMap);
 
         return [
             'jabatan'               => $this->availableJabatan($jabatanMap, $detail),
             'unit_penanggung_jawab' => $detail['unit_penanggung_jawab'],
             'unit_pengajuan'        => $detail['unit_pengajuan'],
+            'unit_mengetahui'       => $detail['unit_mengetahui'],
         ];
     }
 
@@ -509,6 +602,7 @@ class KategoriETiket extends BaseController
 
         $detail['unit_penanggung_jawab'] = $this->mapUnit($detail['unit_penanggung_jawab'] ?? [], $jabatanMap);
         $detail['unit_pengajuan']        = $this->mapUnit($detail['unit_pengajuan'] ?? [], $jabatanMap);
+        $detail['unit_mengetahui']       = $this->mapUnit($detail['unit_mengetahui'] ?? [], $jabatanMap);
         $detail['jabatan']               = $this->availableJabatan($jabatanMap, $detail);
 
         return $detail;
@@ -531,14 +625,15 @@ class KategoriETiket extends BaseController
     }
 
     /**
-     * Jabatan yang belum dipakai kategori ini, dalam 2 daftar unit.
+     * Jabatan yang belum dipakai kategori ini di peran mana pun.
      */
     private function availableJabatan(array $jabatanMap, array $kategori): array
     {
         $used = array_flip(array_column(
             array_merge(
                 $kategori['unit_penanggung_jawab'] ?? [],
-                $kategori['unit_pengajuan'] ?? []
+                $kategori['unit_pengajuan'] ?? [],
+                $kategori['unit_mengetahui'] ?? []
             ),
             'kd_jbtn'
         ));
@@ -557,7 +652,7 @@ class KategoriETiket extends BaseController
     {
         $jabatanMap ??= $this->getJabatanMap();
 
-        foreach (['unit_penanggung_jawab', 'unit_pengajuan'] as $key) {
+        foreach (['unit_penanggung_jawab', 'unit_pengajuan', 'unit_mengetahui'] as $key) {
             if (empty($data[$key])) {
                 $data[$key] = [];
                 continue;
@@ -597,6 +692,7 @@ class KategoriETiket extends BaseController
             'teruskan'              => (int) ($row['teruskan'] ?? 0),
             'unit_penanggung_jawab' => $row['unit_penanggung_jawab'] ?? [],
             'unit_pengajuan'        => $row['unit_pengajuan'] ?? [],
+            'unit_mengetahui'       => $row['unit_mengetahui'] ?? [],
         ];
     }
 }

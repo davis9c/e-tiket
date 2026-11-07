@@ -103,13 +103,24 @@
                             <ul class="list-group list-group-flush" id="ktPJList"></ul>
                         </div>
 
-                        <div class="card">
+                        <div class="card mb-3">
                             <div class="card-header bg-primary text-white">
                                 Unit Pengajuan
                             </div>
                             <ul class="list-group list-group-flush" id="ktPengajuanList"></ul>
                             <div class="card-footer bg-transparent small text-muted">
                                 Kosong berarti kategori ini umum: bisa dipakai semua unit.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                Mengetahui
+                            </div>
+                            <ul class="list-group list-group-flush" id="ktMengetahuiList"></ul>
+                            <div class="card-footer bg-transparent small text-muted">
+                                User pada unit ini bisa mengetahui tindakan tiket. Bila kosong,
+                                validator headsection (atau pembuat tiket) yang menjadi Mengetahui.
                             </div>
                         </div>
                     </div>

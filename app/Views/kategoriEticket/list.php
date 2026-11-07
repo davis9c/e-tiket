@@ -32,6 +32,7 @@
                         <th>Kategori</th>
                         <th width="170">Unit PJ</th>
                         <th width="170">Unit Pengajuan</th>
+                        <th width="170">Mengetahui</th>
                         <th width="110" class="text-center">Status</th>
                         <th width="150" class="text-center">Aksi</th>
                     </tr>
@@ -84,6 +85,23 @@
                                     </span>
                                 <?php endif; ?>
                             </td>
+                            <td data-col="mengetahui">
+                                <?php if (! empty($p['unit_mengetahui'])): ?>
+                                    <?php $umCount = count($p['unit_mengetahui']); ?>
+                                    <?php foreach (array_slice($p['unit_mengetahui'], 0, 2) as $u): ?>
+                                        <span class="badge bg-warning text-dark mb-1">
+                                            <?= esc($u['nm_jbtn']) ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                    <?php if ($umCount > 2): ?>
+                                        <span class="badge bg-secondary mb-1">
+                                            +<?= esc($umCount - 2) ?> lainnya
+                                        </span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-center">
                                 <?php if ((int) $p['aktif'] === 1): ?>
                                     <span class="badge bg-success">Aktif</span>
@@ -118,7 +136,7 @@
 
                     <?php if (empty($kategoriEticket)): ?>
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 Belum ada kategori
                             </td>
                         </tr>

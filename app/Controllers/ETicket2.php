@@ -8,6 +8,8 @@ use App\Models\KategoriETiketModel;
 use App\Models\UsersModel;
 use App\Models\ETicketProsesModel;
 use App\Models\ETicketUPJModel;
+use App\Models\ETicketMengetahuiModel;
+use App\Models\KategoriMengetahuiModel;
 use App\Services\KanzaBridgeClient;
 use App\Services\KanzaBridgeException;
 use App\Services\HashIdService;
@@ -19,6 +21,8 @@ class ETicket2 extends BaseController
     protected KategoriETiketModel $kategoriModel;
     protected UsersModel $usersModel;
     protected ETicketUPJModel $eticketUPJModel;
+    protected ETicketMengetahuiModel $eticketMengetahuiModel;
+    protected KategoriMengetahuiModel $kategoriMengetahuiModel;
     protected KanzaBridgeClient $client;
     protected ETicketProsesModel $eticketProsesModel;
     protected \Hashids\Hashids $hashids;
@@ -38,6 +42,8 @@ class ETicket2 extends BaseController
         $this->kategoriModel        = new KategoriETiketModel();
         $this->usersModel           = new UsersModel();
         $this->eticketUPJModel      = new ETicketUPJModel();
+        $this->eticketMengetahuiModel = new ETicketMengetahuiModel();
+        $this->kategoriMengetahuiModel = new KategoriMengetahuiModel();
         $this->client               = new KanzaBridgeClient();
         $this->hashids              = \Config\Services::hashids();
         $this->hashIdService        = new HashIdService();
@@ -95,6 +101,14 @@ public function index()
 
         $data['executor'] = $this->dashboardService
             ->tugasData($userData['kd_jabatan']);
+
+        // Kartu Mengetahui hanya muncul untuk user yang pernah masuk ke
+        // snapshot tiket; tiket yang belum diaksi bisa dibuka dari kartu.
+        $data['mengetahui'] = $this->dashboardService->mengetahuiData(
+            $userData['kd_jabatan'] ?? null,
+            $userData['nip'] ?? null,
+            $userData['kd_pegawai'] ?? null
+        );
 
         // Query antrean persetujuan HANYA untuk yang berhak. User biasa
         // tidak akan melihat kelompok ini, jadi tidak perlu query.
@@ -209,7 +223,17 @@ public function index()
             'allticket',
             function ($filters, $userData, $id) {
                 // 'all' = tanpa filter cakupan.
-                return $this->eticketModel->getTickets(['all'], null, null, $filters['valid'], $filters['selesai'], $filters['kategori']);
+                return $this->eticketModel->getTickets(
+                    ['all'],
+                    $userData['kd_jabatan'] ?? null,
+                    $userData['nip'] ?? null,
+                    $filters['valid'],
+                    $filters['selesai'],
+                    $filters['kategori'],
+                    null,
+                    $userData['kd_pegawai'] ?? null,
+                    $filters['mengetahui']
+                );
             },
             $hashid,
             null,
@@ -237,7 +261,17 @@ public function index()
         return $this->renderTicketList(
             'e-tiket',
             function ($filters, $userData, $id) use ($kdJbtn, $nip) {
-                return $this->eticketModel->getTickets($filters['sumber'], $kdJbtn, $nip, $filters['valid'], $filters['selesai'], $filters['kategori'], $filters['headsection'], $userData['kd_pegawai'] ?? null);
+                return $this->eticketModel->getTickets(
+                    $filters['sumber'],
+                    $kdJbtn,
+                    $nip,
+                    $filters['valid'],
+                    $filters['selesai'],
+                    $filters['kategori'],
+                    $filters['headsection'],
+                    $userData['kd_pegawai'] ?? null,
+                    $filters['mengetahui']
+                );
             },
             $hashid,
             $userData['kd_jabatan'],
@@ -300,7 +334,8 @@ public function index()
                     $filters['selesai'],
                     $filters['kategori'],
                     $filters['headsection'],
-                    $userData['kd_pegawai'] ?? null
+                    $userData['kd_pegawai'] ?? null,
+                    null
                 );
             },
             $hashid,
@@ -446,6 +481,7 @@ public function index()
             'status' => $this->getQueryStatus(),
             'sumber' => $this->parseSumber(),
             'headsection' => $this->getQueryInt('headsection'),
+            'mengetahui' => $this->getQueryInt('mengetahui'),
         ];
     }
 
@@ -721,7 +757,8 @@ public function index()
                 null,
                 null,
                 null,
-                $userData['kd_pegawai'] ?? null
+                $userData['kd_pegawai'] ?? null,
+                null
             );
         };
     }
@@ -759,7 +796,7 @@ public function index()
 
         // Tahap 2: cek ulang dengan SCOPE saja.
         $scopeOnly = $filters;
-        foreach (['valid', 'selesai', 'kategori', 'headsection', 'status'] as $kunci) {
+        foreach (['valid', 'selesai', 'kategori', 'headsection', 'status', 'mengetahui'] as $kunci) {
             $scopeOnly[$kunci] = null;
         }
 
@@ -782,7 +819,7 @@ public function index()
             ];
         }
 
-        $detail = $this->eticketModel->findOneLengkap($id);
+        $detail = $this->eticketModel->findOneLengkap($id, $this->userData);
         if (!$detail) {
             return [
                 'detail' => null,
@@ -839,6 +876,11 @@ public function index()
             'is_creator' => ! empty($t['is_creator']),
             'is_executor' => ! empty($t['is_executor']),
             'is_unit_saya' => ! empty($t['is_unit_saya']),
+            // Progres aksi Mengetahui + baris milik user login. Dipakai
+            // badge daftar dan filter kartu dashboard; daftar penuh hanya
+            // dikirim di detail supaya payload tabel tetap ramping.
+            'mengetahui_progress' => $t['mengetahui_progress'] ?? ['sudah' => 0, 'total' => 0],
+            'mengetahui_saya' => $t['mengetahui_saya'] ?? null,
         ];
     }
 
@@ -915,6 +957,12 @@ public function index()
             // mapUnitWithJabatan() supaya view bisa menandai unit mana
             // yang sudah memproses tiket ini.
             'unit_penanggung_jawab' => $t['unit_penanggung_jawab'] ?? [],
+            // Snapshot Mengetahui: daftar user yang ditunjuk, progres
+            // "sudah/total", dan baris milik user login. Mengetahui_saya
+            // null berarti user tidak berhak memberi aksi pada tiket ini.
+            'mengetahui_list' => $t['mengetahui_list'] ?? [],
+            'mengetahui_progress' => $t['mengetahui_progress'] ?? ['sudah' => 0, 'total' => 0],
+            'mengetahui_saya' => $t['mengetahui_saya'] ?? null,
         ];
     }
 
@@ -1219,7 +1267,7 @@ public function index()
         // tindakan() butuh unit_penanggung_jawab, proses, dan kd_pegawai --
         // field yang hanya berasal dari join findOneLengkap().
         $ticket = $ticketId
-            ? $this->eticketModel->findOneLengkap($ticketId)
+            ? $this->eticketModel->findOneLengkap($ticketId, $this->userData)
             : null;
 
         if (!$ticket) {
@@ -1382,10 +1430,34 @@ public function index()
                 ->with('modal', 'validasi');
         }
 
-        $ticket = $this->eticketModel->findDetail($ticketId);
+        $ticket = $this->eticketModel->findOneLengkap($ticketId, $userData);
         //dd($ticket);
         if (!$ticket) {
             return redirect()->back()->with('error', 'Ticket tidak ditemukan');
+        }
+
+        if (! empty($ticket['message_akhir'])) {
+            return redirect()->back()->with('error', 'Tiket sudah selesai dan tidak bisa divalidasi lagi.');
+        }
+
+        if (! empty($ticket['valid_nama'])) {
+            return redirect()->back()->with('error', 'Tiket sudah divalidasi.');
+        }
+
+        // Otorisasi internal: route lama digate roleheadsection, tetapi
+        // route baru etiket/submit_approve tidak -- karena itu aturannya
+        // diperiksa di sini. Dua pihak yang boleh: headsection yang
+        // memang validator unit pengaju, dan user Mengetahui tiket ini.
+        $isAdmin       = $kdJbtn === getenv('ROLE_ADMIN');
+        $isHeadSection = $this->bolehValidasi();
+        $isValidator   = $isAdmin || (
+            $kdJbtn !== null
+            && (string) $ticket['kd_jbtn'] === (string) $kdJbtn
+        );
+        $mengetahuiRow = $this->eticketMengetahuiModel->findUntukUser((int) $ticketId, $userData);
+
+        if (! (($isHeadSection && $isValidator) || $mengetahuiRow !== null)) {
+            return redirect()->back()->with('error', 'Anda tidak punya hak untuk memvalidasi tiket ini.');
         }
 
         $unitSelanjutnya = $ticket['unit_penanggung_jawab'][0]['kd_jbtn'] ?? null;
@@ -1396,12 +1468,16 @@ public function index()
 
         $this->eticketModel->update($ticketId, [
             'valid_nama'   => $nama,
+            // Identitas validator disalin ke kolom sendiri supaya
+            // fallback Mengetahui bisa dikenali tanpa mencocokkan nama.
+            'valid_nip'    => $nip,
+            'valid_kd_jbtn' => $kdJbtn,
             'handler' => null, //TODO : lakukan uji jika ini tidak diisi
             'proses_unit'  => $unitSelanjutnya,
         ]);
 
         // Insert log hanya jika ada catatan
-        if (empty(trim($catatan))) {
+        if (empty(trim((string) $catatan))) {
             $catatan = "Menyetujui dan Meneruskan";
         }
         $this->simpanLogProses($ticketId, $kdJbtn, $jabatan, $nip, $nama, $catatan, $userData['id_pegawai']);
@@ -1417,6 +1493,17 @@ public function index()
                 $kategori['unit_penanggung_jawab']
             );
         }
+
+        // Kategori tanpa unit Mengetahui: validator inilah yang menjadi
+        // "Mengetahui" tiket. Baris cadangan pembuat diganti, bukan
+        // ditambah, supaya progres tetap 1/1.
+        $this->replaceFallbackMengetahui((int) $ticketId, (int) $ticket['kategori_id'], [
+            'nip'        => $nip,
+            'id_pegawai' => $userData['id_pegawai'] ?? null,
+            'nama'       => $nama,
+            'kd_jbtn'    => $kdJbtn,
+        ]);
+
         $this->notifyJabatanUsers(
             $ticket['unit_penanggung_jawab'][0]['kd_jbtn'],
             $ticketId,
@@ -1425,6 +1512,67 @@ public function index()
             'disetujui'
         );
         return redirect()->back()->with('success', 'Ticket berhasil di approve.');
+    }
+
+    /**
+     * Aksi "Mengetahui" untuk user yang ditunjuk pada satu tiket.
+     *
+     * Boleh dilakukan kapan saja -- sebelum validasi, saat dikerjakan,
+     * maupun setelah selesai -- dan tidak memblokir penyelesaian tiket.
+     * Haknya berasal dari snapshot tiket, bukan dari jabatan saat ini,
+     * sehingga perubahan konfigurasi kategori tidak menambah/mencabut
+     * akses pada tiket lama.
+     */
+    public function submit_mengetahui()
+    {
+        if (! $this->request->is('post')) {
+            return redirect()->back();
+        }
+
+        $ticketId = $this->decodePostIdValue('ticket_id');
+        $catatan  = trim((string) $this->request->getPost('catatan'));
+        $userData = $this->userData;
+
+        if (! $ticketId) {
+            return redirect()->back()->with('error', 'Tiket tidak ditemukan.');
+        }
+
+        $row = $this->eticketMengetahuiModel->findUntukUser((int) $ticketId, $userData);
+        if ($row === null) {
+            return redirect()->back()->with('error', 'Anda tidak ditunjuk sebagai Mengetahui tiket ini.');
+        }
+
+        // Catatan opsional: tanpa catatan, log tetap menunjukkan aksi.
+        if ($catatan === '') {
+            $catatan = 'Mengetahui tindakan ini.';
+        }
+
+        $update = [
+            'acted_at' => date('Y-m-d H:i:s'),
+            'catatan'  => $catatan,
+        ];
+
+        if (empty($row['nip']) && empty($row['id_pegawai'])) {
+            $update['id_pegawai'] = $userData['id_pegawai'] ?? null;
+            $update['nip']        = $userData['nip'] ?? null;
+            $update['nama']       = $userData['nama'] ?? null;
+        }
+
+        $this->eticketMengetahuiModel->update($row['id'], $update);
+
+        $ticket = $this->eticketModel->findDetail((int) $ticketId);
+        if ($ticket) {
+            $this->insertNotifikasi(
+                $ticket['kd_pegawai'] ?? null,
+                (int) $ticketId,
+                1,
+                null,
+                ($userData['nama'] ?? 'User') . ' mengetahui tiket ini.',
+                'mengetahui'
+            );
+        }
+
+        return redirect()->back()->with('success', 'Aksi Mengetahui berhasil disimpan.');
     }
     public function submit_teruskan()
     {
@@ -1474,7 +1622,7 @@ public function index()
         $kdJbtn  = $userData['kd_jabatan'];
         $jabatan = $userData['jabatan'];
 
-        $detailSebelum = $this->eticketModel->findOneLengkap($ticketId);
+        $detailSebelum = $this->eticketModel->findOneLengkap($ticketId, $this->userData);
         if (!$detailSebelum) {
             return redirect()->back()->with('error', 'Tiket tidak ditemukan.');
         }
@@ -1517,7 +1665,7 @@ public function index()
             return redirect()->back()->with('error', 'Gagal mengubah kategori.');
         }
 
-        $detailSesudah = $this->eticketModel->findOneLengkap($ticketId);
+        $detailSesudah = $this->eticketModel->findOneLengkap($ticketId, $this->userData);
         $catatan = sprintf(
             'Mengubah kategori e-Tiket dari %s (%s) menjadi %s (%s)',
             $detailSebelum['kode_kategori'],
@@ -1689,6 +1837,132 @@ public function index()
             $this->eticketUPJModel->insertBatch($insertData);
         }
     }
+    /**
+     * Salin daftar user Mengetahui kategori ke snapshot tiket.
+     *
+     * Sumbernya tb_e_ticket_users, bukan API petugas/dan-jabatan: snapshot
+     * harus tetap ada walau layanan eksternal sedang mati, dan user yang
+     * bisa login memang berasal dari tabel lokal itu.
+     *
+     * Kalau kategori belum punya unit Mengetahui sama sekali, tiket
+     * memakai satu baris cadangan berisi pembuat/validator saat ini.
+     * Baris itu diganti dengan validator headsection ketika tiket
+     * disetujui (lihat replaceFallbackMengetahui()).
+     *
+     * @param array $fallback {nip, id_pegawai, nama, kd_jbtn}
+     */
+    private function simpanSnapshotMengetahui(int $ticketId, int $kategoriId, array $fallback): void
+    {
+        $jabatanList = $this->kategoriMengetahuiModel->getJabatanByKategori($kategoriId);
+        $now = date('Y-m-d H:i:s');
+        $rows = [];
+
+        if ($jabatanList === []) {
+            if (! empty($fallback['kd_jbtn'])) {
+                $rows[] = [
+                    'etiket_id'  => $ticketId,
+                    'kd_jbtn'    => $fallback['kd_jbtn'],
+                    'id_pegawai' => $fallback['id_pegawai'] ?? null,
+                    'nip'        => $fallback['nip'] ?? null,
+                    'nama'       => $fallback['nama'] ?? null,
+                    'is_fallback' => 1,
+                    'created_at' => $now,
+                ];
+            }
+        } else {
+            $users = $this->usersModel
+                ->whereIn('kd_jbtn', $jabatanList)
+                ->findAll();
+
+            $byJabatan = [];
+            foreach ($users as $u) {
+                $byJabatan[(string) $u['kd_jbtn']][] = $u;
+            }
+
+            foreach ($jabatanList as $kdJbtn) {
+                if (empty($byJabatan[$kdJbtn])) {
+                    // Jabatan terdaftar tetapi tidak ada user lokal yang
+                    // bisa dipetakan. Baris tanpa identitas ini tetap bisa
+                    // diisi oleh siapa pun yang menjabat posisi tersebut
+                    // (lihat ETicketMengetahuiModel::findUntukUser).
+                    $rows[] = [
+                        'etiket_id'  => $ticketId,
+                        'kd_jbtn'    => $kdJbtn,
+                        'id_pegawai' => null,
+                        'nip'        => null,
+                        'nama'       => null,
+                        'is_fallback' => 1,
+                        'created_at' => $now,
+                    ];
+                    continue;
+                }
+
+                foreach ($byJabatan[$kdJbtn] as $u) {
+                    $rows[] = [
+                        'etiket_id'  => $ticketId,
+                        'kd_jbtn'    => $u['kd_jbtn'],
+                        'id_pegawai' => $u['user_id'] ?? null,
+                        'nip'        => $u['nip'] ?? null,
+                        'nama'       => $u['nama'] ?? null,
+                        'is_fallback' => 0,
+                        'created_at' => $now,
+                    ];
+                }
+            }
+        }
+
+        if ($rows !== []) {
+            $this->eticketMengetahuiModel->insertBatch($rows);
+        }
+    }
+
+    /**
+     * Ganti baris cadangan Mengetahui dengan validator headsection.
+     *
+     * Hanya berlaku untuk kategori tanpa unit Mengetahui: di kategori
+     * yang sudah punya unit, snapshot saat tiket dibuat adalah sumber
+     * kebenaran dan tidak boleh diubah oleh siapa pun yang kebetulan
+     * menyetujui.
+     */
+    private function replaceFallbackMengetahui(int $ticketId, int $kategoriId, array $validator): void
+    {
+        if ($this->kategoriMengetahuiModel->getJabatanByKategori($kategoriId) !== []) {
+            return;
+        }
+
+        $rows = $this->eticketMengetahuiModel
+            ->where('etiket_id', $ticketId)
+            ->orderBy('id', 'ASC')
+            ->findAll();
+
+        $identity = [
+            'kd_jbtn'    => $validator['kd_jbtn'] ?? null,
+            'id_pegawai' => $validator['id_pegawai'] ?? null,
+            'nip'        => $validator['nip'] ?? null,
+            'nama'       => $validator['nama'] ?? null,
+            'is_fallback' => 0,
+        ];
+
+        if ($rows === []) {
+            if (! empty($identity['kd_jbtn'])) {
+                $this->eticketMengetahuiModel->insert($identity + [
+                    'etiket_id'  => $ticketId,
+                    'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+            return;
+        }
+
+        // Baris pertama dipertahankan supaya acted_at/catatan yang
+        // mungkin sudah diisi tidak hilang; sisanya (kalau ada) dibuang.
+        $first = array_shift($rows);
+        $this->eticketMengetahuiModel->update($first['id'], $identity);
+
+        foreach ($rows as $row) {
+            $this->eticketMengetahuiModel->delete($row['id']);
+        }
+    }
+
     private function tindakan($tiket)
     {
         $userData = $this->userData;
@@ -1703,9 +1977,34 @@ public function index()
             'kategoric' => null,
             'edittiket' => null,
             'rproses'   => $tiket['proses'] ?? [],
+            // Aksi Mengetahui selalu dihitung lebih dulu, sebelum semua
+            // early return di bawah. Aksi ini boleh dilakukan kapan saja,
+            // termasuk setelah tiket selesai, jadi tidak boleh ikut
+            // terpotong oleh status tiket.
+            'mengetahui' => null,
             'pesan'     => 'Tidak ada tindakan',
         ];
         $isPengaju = ($idPegawai == $tiket['kd_pegawai']);
+
+        $mengetahuiRow = null;
+        if (! empty($tiket['id'])) {
+            $mengetahuiRow = $this->eticketMengetahuiModel->findUntukUser(
+                (int) $tiket['id'],
+                $userData
+            );
+        }
+
+        if ($mengetahuiRow !== null) {
+            $tindakan['mengetahui'] = [
+                'form' => $this->buildFormData(base_url('etiket/submit_mengetahui'), [
+                    'ticket_id' => ['value' => $tiket['hashid']],
+                    'catatan'   => [],
+                ]),
+                'acted'   => ! empty($mengetahuiRow['acted_at']),
+                'catatan' => $mengetahuiRow['catatan'] ?? null,
+            ];
+        }
+
         // =====================================================
         // Tiket selesai
         // =====================================================
@@ -1725,9 +2024,16 @@ public function index()
                 $tiket['kd_jbtn'] == $jabatan
                 || $jabatan == $adminapp
             );
+            // User Mengetahui juga boleh memvalidasi tiket, sebagai aksi
+            // terpisah dari aksi Mengetahui. Haknya berasal dari snapshot
+            // tiket, bukan dari peran headsection.
+            if ($mengetahuiRow !== null) {
+                $isHeadSection = true;
+                $isValidator    = true;
+            }
             if ($isHeadSection && $isValidator) {
                 $tindakan['validasi'] = [
-                    'form' => $this->buildFormData(base_url('headsection/headsection_approve'), [
+                    'form' => $this->buildFormData(base_url('etiket/submit_approve'), [
                         'ticket_id' => ['value' => $tiket['hashid']],
                         'catatan' => [],
                     ]),
@@ -1951,6 +2257,16 @@ public function index()
             }
             //dd($kategori);
 
+            // Snapshot Mengetahui. Kalau kategori belum punya unit
+            // Mengetahui, baris cadangan diisi pembuat tiket dan nanti
+            // diganti validator headsection saat tiket disetujui.
+            $this->simpanSnapshotMengetahui((int) $ticketId, (int) $kategori['id'], [
+                'nip'        => $userData['nip'] ?? null,
+                'id_pegawai' => $userData['id_pegawai'] ?? null,
+                'nama'       => $petugasNama,
+                'kd_jbtn'    => $userData['kd_jabatan'] ?? null,
+            ]);
+
             // Update relasi proses awal
             $this->eticketModel->update($ticketId, [
                 'message_awal' => $prosesAwalId,
@@ -2000,6 +2316,15 @@ public function index()
                 'nm_jbtn' => $jabatanMap[$u['kd_jbtn']] ?? '-',
             ], $data[$key]);
         }
+
+        if (! empty($data['mengetahui_list'])) {
+            foreach ($data['mengetahui_list'] as &$mengetahui) {
+                $kdJbtn = $mengetahui['kd_jbtn'] ?? null;
+                $mengetahui['nm_jbtn'] = $jabatanMap[$kdJbtn] ?? $kdJbtn ?? '-';
+            }
+            unset($mengetahui);
+        }
+
         return $data;
     }
     private function attachNamaJabatanToKategori(array $kategori): array
@@ -2167,7 +2492,7 @@ public function index()
         // =====================================================
         // AMBIL DETAIL TICKET
         // =====================================================
-        $ticket = $this->eticketModel->findOneLengkap($ticketId);
+        $ticket = $this->eticketModel->findOneLengkap($ticketId, $this->userData);
         //dd($ticket);
         if (!$ticket) {
             return [];
@@ -2227,6 +2552,27 @@ public function index()
             'icon'  => 'fa-solid fa-pencil',
             'text'  => 'Tiket Dibuat ' . date('d M Y', strtotime($ticket['created_at'])),
         ];
+
+        // =====================================================
+        // AKSI MENGETAHUI
+        // =====================================================
+        // Satu entri per user yang sudah memberi aksi. Aksi ini boleh
+        // terjadi kapan saja, jadi tidak ditempatkan relatif terhadap
+        // validasi/selesai -- urutannya mengikuti snapshot.
+        foreach ($ticket['mengetahui_list'] ?? [] as $m) {
+            if (empty($m['acted_at'])) {
+                continue;
+            }
+
+            $timeline[] = [
+                'type'  => 'mengetahui',
+                'color' => 'info',
+                'icon'  => 'fa-solid fa-eye',
+                'text'  => 'Diketahui ' . ($m['nama'] ?? $m['nip'] ?? '-')
+                    . ' ' . date('d M Y H:i', strtotime($m['acted_at'])),
+            ];
+        }
+
         // =====================================================
         // FLOW HEADSECTION
         // =====================================================
@@ -2501,6 +2847,17 @@ public function index()
                 $lampiran,
                 $createdAt
             );
+            // Snapshot Mengetahui untuk tiket yang dibuat admin.
+            // Identitas yang dipakai adalah petugas tujuan (pengaju),
+            // konsisten dengan valid_nama yang diisi determineFlow()
+            // untuk kategori tanpa approval headsection.
+            $this->simpanSnapshotMengetahui((int) $ticketId, (int) $kategori['id'], [
+                'nip'        => $petugasId,
+                'id_pegawai' => $kd_pegawai,
+                'nama'       => $petugasNama,
+                'kd_jbtn'    => $kdJabatan,
+            ]);
+
             // Update relasi proses awal
             $this->eticketModel->update($ticketId, [
                 'message_awal' => $prosesAwalId,
