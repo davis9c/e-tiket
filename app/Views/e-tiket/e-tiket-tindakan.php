@@ -38,6 +38,11 @@ $bolehKerjakan = ! empty($t['kerjakan']);
 $bolehTeruskan = ! empty($t['teruskan']);
 $bolehKategori = ! empty($t['kategoric']);
 $bolehEdit     = ! empty($t['edittiket']);
+// Aksi Mengetahui hanya dirender untuk user yang memang ditunjuk pada
+// tiket ini. Berbeda dengan lima aksi lain, tombol ini tidak perlu
+// ditampilkan abu-abu: kalau user tidak ditunjuk, aksi ini bukan bagian
+// dari cakupannya sama sekali.
+$bolehMengetahui = ! empty($t['mengetahui']);
 
 /*
  * Riwayat proses TANPA baris permintaan.
@@ -65,7 +70,7 @@ $riwayat = array_values(array_filter(
 // ditampilkan (lihat $t['pesan']). Tombol abu-abu sendiri tidak memberi tahu
 // kenapa tidak bisa dipakai -- "Tiket selesai" dan "Tidak ada tindakan" beda
 // maknanya untuk user, dan tanpa teks keduanya tidak bisa dibedakan.
-$adaAksi = $bolehValidasi || $bolehKerjakan || $bolehTeruskan || $bolehKategori || $bolehEdit;
+$adaAksi = $bolehValidasi || $bolehKerjakan || $bolehTeruskan || $bolehKategori || $bolehEdit || $bolehMengetahui;
 
 /*
  * Atribut tombol untuk satu tindakan.
@@ -115,6 +120,14 @@ $atribut = static function (bool $boleh, string $modal): string {
             Edit
         </button>
 
+        <?php if ($bolehMengetahui): ?>
+            <button type="button" class="btn btn-outline-success"
+                data-bs-toggle="modal" data-bs-target="#modalMengetahui">
+                <i class="fas fa-eye me-1"></i>
+                <?= ! empty($t['mengetahui']['acted']) ? 'Perbarui Mengetahui' : 'Mengetahui' ?>
+            </button>
+        <?php endif; ?>
+
         <!-- Aksi baca-saja: dipisah ke kanan supaya tidak tercampur dengan aksi
              yang mengubah data.
 
@@ -144,7 +157,7 @@ $atribut = static function (bool $boleh, string $modal): string {
 <?php if ($bolehValidasi): ?>
     <div class="modal fade" id="modalValidasi" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form action="<?= base_url('headsection/headsection_approve') ?>" method="post" class="modal-content">
+            <form action="<?= esc($t['validasi']['form']['url']) ?>" method="post" class="modal-content">
                 <?= csrf_field() ?>
                 <input type="hidden"
                     name="<?= esc($t['validasi']['form']['ticket_id']['variable']) ?>"
@@ -205,6 +218,56 @@ $atribut = static function (bool $boleh, string $modal): string {
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 new bootstrap.Modal(document.getElementById('modalValidasi')).show();
+            });
+        </script>
+    <?php endif; ?>
+<?php endif; ?>
+
+<?php if ($bolehMengetahui): ?>
+    <div class="modal fade" id="modalMengetahui" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form action="<?= esc($t['mengetahui']['form']['url']) ?>" method="post" class="modal-content">
+                <?= csrf_field() ?>
+                <input type="hidden"
+                    name="<?= esc($t['mengetahui']['form']['ticket_id']['variable']) ?>"
+                    value="<?= esc($t['mengetahui']['form']['ticket_id']['value']) ?>">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-1"></i>
+                        Mengetahui Tiket
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="small text-muted">
+                        Tindakan ini menandai bahwa Anda sudah mengetahui tiket ini.
+                        Catatan bersifat opsional dan tidak menghalangi penyelesaian tiket.
+                    </p>
+
+                    <div class="mb-3">
+                        <label for="catatanMengetahui" class="form-label fw-semibold">Catatan (opsional)</label>
+                        <textarea id="catatanMengetahui" name="catatan" rows="3"
+                            class="form-control editor"
+                            placeholder="Tambahkan catatan bila perlu..."><?= esc($t['mengetahui']['catatan'] ?? '') ?></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php if (session('modal') === 'mengetahui'): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                new bootstrap.Modal(document.getElementById('modalMengetahui')).show();
             });
         </script>
     <?php endif; ?>

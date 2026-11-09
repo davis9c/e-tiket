@@ -244,6 +244,35 @@ final class TicketDetailViewTest extends CIUnitTestCase
         );
     }
 
+    public function testMengetahuiMenampilkanJabatanDanNamaOrang(): void
+    {
+        $html = $this->render('e-tiket/e-tiket-status', $this->payload([
+            'detail' => [
+                'mengetahui_list' => [
+                    [
+                        'kd_jbtn' => 'J036',
+                        'nm_jbtn' => 'Kepala Unit',
+                        'nama' => 'Suliono',
+                        'acted_at' => null,
+                    ],
+                    [
+                        'kd_jbtn' => 'J037',
+                        'nm_jbtn' => 'Koordinator',
+                        'nama' => 'Budi Santoso',
+                        'acted_at' => '2026-11-07 05:00:00',
+                    ],
+                ],
+                'mengetahui_progress' => ['sudah' => 1, 'total' => 2],
+            ],
+        ]));
+
+        $this->assertStringContainsString('Kepala Unit', $html);
+        $this->assertStringContainsString('Suliono', $html);
+        $this->assertStringContainsString('Koordinator', $html);
+        $this->assertStringContainsString('Budi Santoso', $html);
+        $this->assertStringContainsString('1/2', $html);
+    }
+
     /**
      * Kelas .timeline* tidak punya definisi CSS di mana pun sebelum
      * perubahan ini, jadi kartu status merender teks bertumpuk. Partial

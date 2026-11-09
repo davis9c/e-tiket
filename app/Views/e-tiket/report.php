@@ -231,6 +231,46 @@
                 <?= nl2br($detailTicket['respon_message_catatan']) ?>
             </div>
         </div>
+        <!-- ================== MENGETAHUI ==================
+             Daftar user yang ditunjuk pada tiket ini beserta status
+             aksinya. Laporan tetap boleh dicetak walau belum semua
+             memberi aksi; progres ditampilkan apa adanya supaya
+             pembaca tahu bagian mana yang masih menunggu. -->
+        <?php $mengetahuiList = $detailTicket['mengetahui_list'] ?? []; ?>
+        <?php if (! empty($mengetahuiList)): ?>
+            <?php $progresMengetahui = $detailTicket['mengetahui_progress'] ?? ['sudah' => 0, 'total' => 0]; ?>
+            <div class="section">
+                <div class="label">
+                    Mengetahui (<?= (int) ($progresMengetahui['sudah'] ?? 0) ?>/<?= (int) ($progresMengetahui['total'] ?? 0) ?>)
+                </div>
+                <div class="box">
+                    <table width="100%">
+                        <?php foreach ($mengetahuiList as $m): ?>
+                            <tr>
+                                <td>
+                                    <?= esc($m['nm_jbtn'] ?? $m['kd_jbtn'] ?? '-') ?>
+                                    &mdash;
+                                    <?= esc($m['nama'] ?? $m['nip'] ?? 'Belum dipetakan') ?>
+                                </td>
+                                <td class="text-right">
+                                    <?= ! empty($m['acted_at'])
+                                        ? 'Sudah mengetahui'
+                                        : 'Belum mengetahui' ?>
+                                </td>
+                            </tr>
+                            <?php if (! empty($m['catatan'])): ?>
+                                <tr>
+                                    <td colspan="2">
+                                        <small><em><?= esc($m['catatan']) ?></em></small>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </table>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- ================== TANDA TANGAN ================== -->
         <table class="signature">
             <tr>

@@ -158,6 +158,21 @@
             ],
         ];
 
+        // Kelompok Mengetahui hanya ditambahkan bagi user yang pernah
+        // ditunjuk; kartu menampilkan tiket yang aksinya masih tertunda.
+        if (isset($mengetahui)) {
+            $kelompok[] = [
+                'judul'  => 'Tiket yang perlu saya ketahui',
+                'ikon'   => 'fa-eye',
+                'base'   => 'etiket',
+                'sumber' => 'mengetahui',
+                'query'  => ['mengetahui' => 0],
+                'total'  => $mengetahui['total'],
+                'angka'  => $mengetahui,
+                'kartu'  => array_merge($kartuTotal, $statusKartu),
+            ];
+        }
+
         // Kelompok "Tiket unit saya yang harus saya validasi" hanya untuk
         // headsection + admin. User biasa tidak punya wewenang menyetujui,
         // jadi menampilkan antrean itu hanya menawarkan tombol yang saat

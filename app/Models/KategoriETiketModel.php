@@ -63,6 +63,21 @@ class KategoriETiketModel extends Model
     {
         $row['unit_penanggung_jawab'] = $this->getUnitByKategori($row['id'], 1);
         $row['unit_pengajuan']        = $this->getUnitByKategori($row['id'], 0);
+        $row['unit_mengetahui']       = $this->getMengetahuiByKategori((int) $row['id']);
+    }
+
+    /**
+     * Unit "Mengetahui" disimpan di tabel terpisah, bukan di
+     * tb_e_ticket_kategori_unit_jabatan.
+     */
+    private function getMengetahuiByKategori(int $kategoriId): array
+    {
+        return $this->db->table('tb_e_ticket_kategori_mengetahui')
+            ->select('kd_jbtn')
+            ->where('kategori_id', $kategoriId)
+            ->orderBy('id')
+            ->get()
+            ->getResultArray();
     }
 
     private function getUnitByKategori(int $kategoriId, int $isPenanggungJawab): array

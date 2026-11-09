@@ -25,6 +25,7 @@ final class NotifikasiToastTest extends CIUnitTestCase
 
     protected $refresh = false;
     protected $migrate = false;
+    private bool $inTransaction = false;
 
     /**
      * CIUnitTestCase sudah punya $db protected, jadi connect()-nya cukup
@@ -35,6 +36,16 @@ final class NotifikasiToastTest extends CIUnitTestCase
         parent::setUp();
 
         $this->db = \Config\Database::connect();
+        $this->inTransaction = $this->db->transBegin();
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->inTransaction) {
+            $this->db->transRollback();
+        }
+
+        parent::tearDown();
     }
 
     private function seedNotif(string $idPegawai, string $pesan, string $tipe, ?string $readAt = null): int
@@ -206,13 +217,21 @@ final class NotifikasiToastTest extends CIUnitTestCase
      */
     public function testEndpointJsonHanyaBelumTerbaca(): void
     {
-        $saya = $this->seedNotif('199004232019022005', 'Pesan lama', 'selesai');
-        $baru = $this->seedNotif('199004232019022005', 'Pesan baru', 'valid');
+        $saya = $this->seedNotif(
+            '987654321',
+            'Pesan lama',
+            'selesai',
+            date('Y-m-d H:i:s')
+        );
+        $baru = $this->seedNotif('987654321', 'Pesan baru', 'valid');
 
         $response = $this->withSession($this->sesi())->get('notif');
         $response->assertStatus(200);
 
-        $ids = array_column(json_decode((string) $response->response()->getBody(), true) ?: [], 'id');
+        $ids = array_map(
+            'intval',
+            array_column(json_decode((string) $response->response()->getBody(), true) ?: [], 'id')
+        );
 
         $this->assertContains($baru, $ids, 'Notifikasi belum terbaca harus ikut');
         $this->assertNotContains($saya, $ids, 'Notifikasi terbaca tidak boleh ikut');
@@ -221,7 +240,10 @@ final class NotifikasiToastTest extends CIUnitTestCase
         $this->withSession($this->sesi())->post('notifikasi/baca-semua');
 
         $response = $this->withSession($this->sesi())->get('notif');
-        $ids = array_column(json_decode((string) $response->response()->getBody(), true) ?: [], 'id');
+        $ids = array_map(
+            'intval',
+            array_column(json_decode((string) $response->response()->getBody(), true) ?: [], 'id')
+        );
 
         $this->assertNotContains($baru, $ids, 'Setelah ditandai terbaca, tidak boleh muncul lagi');
     }
@@ -231,8 +253,8 @@ final class NotifikasiToastTest extends CIUnitTestCase
      */
     public function testTandaiSemuaTidakMenyentuhMilikOrangLain(): void
     {
-        $saya   = $this->seedNotif('199004232019022005', 'Milik saya', 'valid');
-        $orang  = $this->seedNotif('198001012010011234', 'Milik orang lain', 'valid');
+        $saya   = $this->seedNotif('987654321', 'Milik saya', 'valid');
+        $orang  = $this->seedNotif('987654322', 'Milik orang lain', 'valid');
 
         $this->withSession($this->sesi())->post('notifikasi/baca-semua');
 
@@ -253,8 +275,8 @@ final class NotifikasiToastTest extends CIUnitTestCase
      */
     public function testHistoriMemuatYangSudahTerbaca(): void
     {
-        $lama = $this->seedNotif('199004232019022005', 'Notifikasi lama', 'selesai', date('Y-m-d H:i:s'));
-        $ini = $this->seedNotif('199004232019022005', 'Notifikasi baru saja', 'valid');
+        $lama = $this->seedNotif('987654321', 'Notifikasi lama', 'selesai', date('Y-m-d H:i:s'));
+        $ini = $this->seedNotif('987654321', 'Notifikasi baru saja', 'valid');
 
         $html = $this->html($this->withSession($this->sesi())->get('notifikasi'));
 
@@ -278,8 +300,8 @@ final class NotifikasiToastTest extends CIUnitTestCase
      */
     public function testHistoriHanyaMilikUserLogin(): void
     {
-        $this->seedNotif('199004232019022005', 'Pesan milik saya', 'valid');
-        $this->seedNotif('198001012010011234', 'Pesan milik orang lain', 'valid');
+        $this->seedNotif('987654321', 'Pesan milik saya', 'valid');
+        $this->seedNotif('987654322', 'Pesan milik orang lain', 'valid');
 
         $html = $this->html($this->withSession($this->sesi())->get('notifikasi'));
 
@@ -297,7 +319,7 @@ final class NotifikasiToastTest extends CIUnitTestCase
     public function testTombolTandaiSemuaHanyaKalauAdaYangBelumTerbaca(): void
     {
         $semuaTerbaca = $this->seedNotif(
-            '199004232019022005',
+            '987654321',
             'Sudah dibaca semua',
             'valid',
             date('Y-m-d H:i:s')
@@ -311,7 +333,7 @@ final class NotifikasiToastTest extends CIUnitTestCase
             'Tidak ada yang belum terbaca, jadi tombolnya tidak perlu dirender'
         );
 
-        $this->seedNotif('199004232019022005', 'Masih baru', 'valid');
+        $this->seedNotif('987654321', 'Masih baru', 'valid');
 
         $html = $this->html($this->withSession($this->sesi())->get('notifikasi'));
 
@@ -390,7 +412,7 @@ final class NotifikasiToastTest extends CIUnitTestCase
             'auth_version' => 2,
             'nip'         => '199004232019022005',
             'nama'        => 'Petugas Uji',
-            'id_pegawai'  => '199004232019022005',
+            'id_pegawai'  => '987654321',
             'kd_jabatan'  => 'J001',
             'jabatan'     => 'Unit Sarana',
             'headsection' => null,

@@ -346,6 +346,34 @@ $tiketSelesai = ($t['status'] ?? null) === 'selesai';
                             <span class="text-muted fst-italic">Tidak ada unit tujuan.</span>
                         <?php endif; ?>
                     </div>
+
+                    <!-- MENGETAHUI
+                         Progres dihitung per user dari snapshot tiket,
+                         bukan dari konfigurasi kategori saat ini. -->
+                    <div class="col-12">
+                        <div class="text-uppercase text-muted small fw-semibold mb-1">Mengetahui</div>
+                        <?php $mengetahuiList = $t['mengetahui_list'] ?? []; ?>
+                        <?php if (! empty($mengetahuiList)): ?>
+                            <?php $progres = $t['mengetahui_progress'] ?? ['sudah' => 0, 'total' => 0]; ?>
+                            <span class="badge bg-info me-1 mb-1">
+                                <i class="fas fa-list-check me-1"></i>
+                                <?= (int) ($progres['sudah'] ?? 0) ?>/<?= (int) ($progres['total'] ?? 0) ?>
+                            </span>
+                            <?php foreach ($mengetahuiList as $m): ?>
+                                <span class="badge <?= ! empty($m['acted_at']) ? 'bg-success' : 'bg-secondary' ?> me-1 mb-1"
+                                    title="<?= ! empty($m['acted_at']) ? 'Sudah mengetahui' : 'Belum mengetahui' ?>">
+                                    <?php if (! empty($m['acted_at'])): ?>
+                                        <i class="fas fa-check me-1"></i>
+                                    <?php endif; ?>
+                                    <?= esc($m['nm_jbtn'] ?? $m['kd_jbtn'] ?? '-') ?>
+                                    &mdash;
+                                    <?= esc($m['nama'] ?? $m['nip'] ?? 'Belum dipetakan') ?>
+                                </span>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <span class="text-muted fst-italic">Tidak ada user Mengetahui.</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>

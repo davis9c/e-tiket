@@ -461,9 +461,24 @@ public function testNoRouteCanDeleteKategori(): void
 
         // Script kategori.js harus dimuat SETELAH dataTables.js dan CKEditor,
         // karena ia bergantung pada keduanya.
-        $this->assertLessThan(
-            strpos($html, 'js/kategori.js'),
-            strpos($html, 'js/dataTables.js'),
+        preg_match(
+            '/<script\b[^>]*src="[^"]*js\/kategori\.js[^"]*"[^>]*>/i',
+            $html,
+            $kategoriScript,
+            PREG_OFFSET_CAPTURE
+        );
+        preg_match(
+            '/<script\b[^>]*src="[^"]*js\/dataTables\.js[^"]*"[^>]*>/i',
+            $html,
+            $dataTablesScript,
+            PREG_OFFSET_CAPTURE
+        );
+
+        $this->assertNotEmpty($kategoriScript, 'Tag script kategori.js harus dirender');
+        $this->assertNotEmpty($dataTablesScript, 'Tag script dataTables.js harus dirender');
+        $this->assertGreaterThan(
+            $dataTablesScript[0][1],
+            $kategoriScript[0][1],
             'kategori.js harus dimuat setelah dataTables.js'
         );
 

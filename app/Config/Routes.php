@@ -79,6 +79,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     $routes->get('report/(:any)', 'ETicket2::report/$1');
 
     //Untuk Tindakan
+    // Otorisasi validasi dan Mengetahui diperiksa terhadap snapshot tiket
+    // oleh controller, bukan hanya terhadap jabatan user saat ini.
+    $routes->post('etiket/submit_approve', 'ETicket2::submit_approve');
+    $routes->post('etiket/submit_mengetahui', 'ETicket2::submit_mengetahui');
     $routes->post('ambil-tiket', 'ETicket2::submit_ambil_tiket', ['filter' => 'requirejabatan']);
     $routes->post('pelaksana/kategori-change', 'ETicket2::kategori_change', ['filter' => 'requirejabatan']);
     $routes->post('etiket/ticket-edit-permintaan', 'ETicket2::eticket_edit_permintaan', ['filter' => 'requirejabatan']);
