@@ -19,15 +19,8 @@ KANZABRIDGE_API_KEY =
 # Set KANZABRIDGE_REQUIRE_HTTPS=true di production.
 KANZABRIDGE_REQUIRE_HTTPS = false
 
-# Variabel tambahan yang dipakai docker-compose.yaml.
+# Port host yang dipetakan ke port 80 container.
 APP_PORT=8080
-APP_BASE_URL=http://localhost:8080/
-DB_HOST=host.docker.internal
-DB_PORT=3306
-DB_DATABASE=e_tiket
-DB_USERNAME=eticket
-DB_PASSWORD=eticket
-COOKIE_SECURE=false
 
 
 
@@ -35,7 +28,7 @@ COOKIE_SECURE=false
 #--------------------------------------------------------------------
 # APP
 #--------------------------------------------------------------------
-app.baseURL = http://localhost:8080/
+app.baseURL = 'http://localhost:8080/'
 # If you have trouble with `.`, you could also use `_`.
 # app_baseURL = ''
 # app.forceGlobalSecureRequests = false

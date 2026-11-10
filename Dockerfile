@@ -14,7 +14,6 @@ RUN a2enmod rewrite \
 WORKDIR /var/www/html
 
 COPY . .
-COPY env .env
 
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && mkdir -p writable/cache writable/logs writable/session writable/uploads writable/debugbar \

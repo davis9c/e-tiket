@@ -3,23 +3,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./.env:/var/www/html/.env:ro
     ports:
-      - "${APP_PORT:-8080}:80"
-    environment:
-      CI_ENVIRONMENT: ${CI_ENVIRONMENT:-development}
-      ROLE_ADMIN: ${ROLE_ADMIN:-J002}
-      app.baseURL: ${APP_BASE_URL:-http://localhost:8080/}
-      cookie.secure: ${COOKIE_SECURE:-false}
-      database.default.hostname: ${DB_HOST:-host.docker.internal}
-      database.default.database: ${DB_DATABASE:-e_tiket}
-      database.default.username: ${DB_USERNAME:-eticket}
-      database.default.password: ${DB_PASSWORD:-eticket}
-      database.default.DBDriver: MySQLi
-      database.default.port: ${DB_PORT:-3306}
-      API_KANZA_BRIDGE: ${API_KANZA_BRIDGE:-http://host.docker.internal:8091/api/}
-      KANZABRIDGE_BASE_URL: ${KANZABRIDGE_BASE_URL:-http://host.docker.internal:8091/api/v2/}
-      KANZABRIDGE_API_KEY: ${KANZABRIDGE_API_KEY:-}
-      KANZABRIDGE_REQUIRE_HTTPS: ${KANZABRIDGE_REQUIRE_HTTPS:-false}
+      - "${APP_PORT:?APP_PORT must be set in .env}:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

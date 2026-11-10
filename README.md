@@ -44,10 +44,16 @@ docker compose exec app php spark migrate
 
 Di PowerShell, gunakan `Copy-Item env .env` sebagai pengganti `cp env .env`.
 
-Atur `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD`
-di `.env` sesuai detail database. Compose hanya menjalankan container aplikasi;
-database dikelola terpisah. Nilai `host.docker.internal` adalah default untuk
-database di mesin host saat development lokal.
+Compose meneruskan semua variabel di `.env` langsung ke container aplikasi.
+File `.env` juga dipasang read-only di container agar CodeIgniter memuat semua
+pengaturan framework dari file yang sama.
+Atur `database.default.hostname`, `database.default.port`,
+`database.default.database`, `database.default.username`, dan
+`database.default.password` di `.env` sesuai detail database. Compose hanya
+menjalankan container aplikasi; database dikelola terpisah. Nilai
+`host.docker.internal` adalah default untuk database di mesin host saat
+development lokal. `app.baseURL` mengatur URL aplikasi dan `APP_PORT` mengatur
+port host yang dipetakan ke port 80 container.
 
 Buka aplikasi di `http://localhost:8080`. Untuk mengisi data awal, jalankan
 `docker compose exec app php spark db:seed` jika diperlukan. Jangan gunakan
@@ -57,7 +63,7 @@ KanzaBridge tidak dijalankan dalam Compose. URL default mengakses layanan pada
 host di port `8091`; isi `KANZABRIDGE_API_KEY` di `.env` jika integrasi
 dibutuhkan. URL HTTP dan `KANZABRIDGE_REQUIRE_HTTPS = false` hanya untuk
 development lokal; di production gunakan URL HTTPS, set
-`KANZABRIDGE_REQUIRE_HTTPS=true` dan `COOKIE_SECURE=true`, serta ganti semua
+`KANZABRIDGE_REQUIRE_HTTPS=true` dan `cookie.secure=true`, serta ganti semua
 kredensial default.
 
 ### 1. Clone Repository dari GitHub
