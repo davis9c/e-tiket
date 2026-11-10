@@ -1,12 +1,14 @@
+name: ${COMPOSE_PROJECT_NAME:-etiket-live}
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - ${APP_ENV_FILE:-.env}
     volumes:
-      - ./.env:/var/www/html/.env:ro
+      - ${APP_ENV_FILE:-.env}:/var/www/html/.env:ro
     ports:
       - "${APP_PORT:?APP_PORT must be set in .env}:80"
     extra_hosts:

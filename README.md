@@ -55,6 +55,18 @@ menjalankan container aplikasi; database dikelola terpisah. Nilai
 development lokal. `app.baseURL` mengatur URL aplikasi dan `APP_PORT` mengatur
 port host yang dipetakan ke port 80 container.
 
+Nama project/container diatur oleh `COMPOSE_PROJECT_NAME` di `.env`. Untuk
+menjalankan instance kedua, salin `.env` ke file konfigurasi berbeda, lalu
+ubah `COMPOSE_PROJECT_NAME`, `APP_PORT`, dan `app.baseURL` agar tidak bentrok
+dengan instance pertama:
+
+```bash
+cp .env .env.instance2
+# Edit .env.instance2: COMPOSE_PROJECT_NAME=etiket-live-2, APP_PORT=8081,
+# dan app.baseURL sesuai alamat instance kedua.
+APP_ENV_FILE=.env.instance2 docker compose --env-file .env.instance2 up -d --build
+```
+
 Buka aplikasi di `http://localhost:8080`. Untuk mengisi data awal, jalankan
 `docker compose exec app php spark db:seed` jika diperlukan. Jangan gunakan
 kredensial database development pada production.
