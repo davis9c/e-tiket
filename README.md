@@ -25,7 +25,7 @@ Sistem manajemen e-tiket berbasis web menggunakan framework CodeIgniter 4.
 ## 📦 Persyaratan Sistem
 
 - PHP 8.2 atau lebih tinggi
-- MySQL 8.4 (untuk setup Docker)
+- Database MySQL yang sudah tersedia dan dapat diakses dari aplikasi
 - Composer
 - Docker Engine dan Docker Compose (untuk setup yang direkomendasikan)
 
@@ -33,7 +33,8 @@ Sistem manajemen e-tiket berbasis web menggunakan framework CodeIgniter 4.
 
 ### Setup cepat dengan Docker
 
-Salin template environment lalu jalankan aplikasi dan MySQL:
+Salin template environment, atur koneksi ke database yang sudah tersedia, lalu
+jalankan aplikasi:
 
 ```bash
 cp env .env
@@ -43,10 +44,14 @@ docker compose exec app php spark migrate
 
 Di PowerShell, gunakan `Copy-Item env .env` sebagai pengganti `cp env .env`.
 
+Atur `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD`
+di `.env` sesuai detail database. Compose hanya menjalankan container aplikasi;
+database dikelola terpisah. Nilai `host.docker.internal` adalah default untuk
+database di mesin host saat development lokal.
+
 Buka aplikasi di `http://localhost:8080`. Untuk mengisi data awal, jalankan
-`docker compose exec app php spark db:seed`. Ubah kredensial database dan port
-di `.env` sebelum menjalankan Compose jika nilai default development tidak sesuai.
-Password database default hanya untuk penggunaan lokal.
+`docker compose exec app php spark db:seed` jika diperlukan. Jangan gunakan
+kredensial database development pada production.
 
 KanzaBridge tidak dijalankan dalam Compose. URL default mengakses layanan pada
 host di port `8091`; isi `KANZABRIDGE_API_KEY` di `.env` jika integrasi

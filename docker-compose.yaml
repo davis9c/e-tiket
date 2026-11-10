@@ -10,40 +10,16 @@ services:
       ROLE_ADMIN: ${ROLE_ADMIN:-J002}
       app.baseURL: ${APP_BASE_URL:-http://localhost:8080/}
       cookie.secure: ${COOKIE_SECURE:-false}
-      database.default.hostname: db
+      database.default.hostname: ${DB_HOST:-host.docker.internal}
       database.default.database: ${DB_DATABASE:-e_tiket}
       database.default.username: ${DB_USERNAME:-eticket}
       database.default.password: ${DB_PASSWORD:-eticket}
       database.default.DBDriver: MySQLi
-      database.default.port: 3306
+      database.default.port: ${DB_PORT:-3306}
       API_KANZA_BRIDGE: ${API_KANZA_BRIDGE:-http://host.docker.internal:8091/api/}
       KANZABRIDGE_BASE_URL: ${KANZABRIDGE_BASE_URL:-http://host.docker.internal:8091/api/v2/}
       KANZABRIDGE_API_KEY: ${KANZABRIDGE_API_KEY:-}
       KANZABRIDGE_REQUIRE_HTTPS: ${KANZABRIDGE_REQUIRE_HTTPS:-false}
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      db:
-        condition: service_healthy
     restart: unless-stopped
-
-  db:
-    image: mysql:8.4
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-e_tiket}
-      MYSQL_USER: ${DB_USERNAME:-eticket}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-eticket}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-eticket_root}
-    ports:
-      - "${DB_PORT:-3307}:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-    restart: unless-stopped
-
-volumes:
-  mysql_data:
