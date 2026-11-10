@@ -37,12 +37,12 @@ final class KanzaBridgeAuthTest extends CIUnitTestCase
         parent::setUp();
         $this->http = new AuthV2FakeRequest();
         Services::injectMock('curlrequest', $this->http);
-        session()->remove(['logged_in', 'auth_version', 'token', 'expires', 'kd_jabatan']);
+        session()->remove(['logged_in', 'auth_version', 'token', 'expires', 'kd_jabatan', 'headsection']);
     }
 
     protected function tearDown(): void
     {
-        session()->remove(['logged_in', 'auth_version', 'token', 'expires', 'kd_jabatan']);
+        session()->remove(['logged_in', 'auth_version', 'token', 'expires', 'kd_jabatan', 'headsection']);
         Services::injectMock('curlrequest', null);
         parent::tearDown();
     }
@@ -76,6 +76,26 @@ final class KanzaBridgeAuthTest extends CIUnitTestCase
         $this->assertNull(session('kd_jabatan'));
         $this->assertNull(session('token'));
         $this->assertNull(session('expires'));
+    }
+
+    public function testUserSessionUsesHeadsectionLoadedDuringLocalSync(): void
+    {
+        $auth = new Auth();
+        $method = (new \ReflectionClass($auth))->getMethod('setUserSession');
+        $method->setAccessible(true);
+        $profile = ['data' => [
+            'pegawai_id' => '123',
+            'nik' => '123456',
+            'nama' => 'Pengguna',
+            'kd_jabatan' => 'J123',
+            'jabatan' => 'Petugas',
+        ]];
+        $headsection = ['headsection' => 1];
+
+        $method->invoke($auth, $profile, $headsection);
+
+        $this->assertSame($headsection, session('headsection'));
+        $this->assertTrue(session('logged_in'));
     }
 
     public function testLoginErrorDistinguishesPasswordFromInvalidApiKey(): void

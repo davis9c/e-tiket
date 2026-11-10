@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\UsersModel;
 use App\Services\KanzaBridgeClient;
 use App\Services\KanzaBridgeException;
+use CodeIgniter\Database\Exceptions\DatabaseException;
 
 class Auth extends BaseController
 {
@@ -38,11 +39,24 @@ class Auth extends BaseController
             return $this->backWithError($result['message']);
         }
 
-        $this->syncUser($result['data'], $userId);
+        try {
+            $this->syncUser($result['data'], $userId);
+            $headsection = !empty($result['data']['kd_jabatan'])
+                ? $this->userModel->getHeadSectionByNip($result['data']['nik']) : null;
+        } catch (DatabaseException $e) {
+            log_message('error', '[AUTH USER SYNC] KanzaBridge login succeeded but local user sync failed: '
+                . $e->getMessage());
+
+            return $this->backWithError(
+                'Login berhasil diverifikasi, tetapi profil pengguna gagal disinkronkan ke database aplikasi. '
+                . 'Periksa koneksi dan hak akses database, lalu coba lagi.'
+            );
+        }
+
         // Jangan bawa JWT/masa berlaku V1 dari sesi lama saat login ulang.
         session()->remove(['token', 'expires']);
         session()->regenerate(true);
-        $this->setUserSession($result['data']);
+        $this->setUserSession($result['data'], $headsection);
 
         return redirect()->to(base_url('index'))
             ->with('success', $result['data']['message'] ?? 'Login berhasil');
@@ -85,7 +99,7 @@ class Auth extends BaseController
             return ['success' => false, 'message' => 'Layanan login sedang bermasalah.'];
         }
     }
-    private function setUserSession(array $result): void
+    private function setUserSession(array $result, ?array $headsection = null): void
     {
         $data = $result['data'];
         session()->set([
@@ -95,8 +109,7 @@ class Auth extends BaseController
             'nama'        => $data['nama'],
             'kd_jabatan'  => $data['kd_jabatan'] ?? null,
             'jabatan'     => $data['jabatan'] ?? null,
-            'headsection' => !empty($data['kd_jabatan'])
-                ? $this->userModel->getHeadSectionByNip($data['nik']) : null,
+            'headsection' => $headsection,
             'logged_in'   => true,
             'auth_version' => 2,
         ]);
