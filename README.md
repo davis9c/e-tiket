@@ -24,12 +24,36 @@ Sistem manajemen e-tiket berbasis web menggunakan framework CodeIgniter 4.
 
 ## 📦 Persyaratan Sistem
 
-- PHP 7.4 atau lebih tinggi
-- MySQL 5.7 atau MariaDB 10.2
+- PHP 8.2 atau lebih tinggi
+- MySQL 8.4 (untuk setup Docker)
 - Composer
-- Web Server (Apache, Nginx, atau built-in PHP server)
+- Docker Engine dan Docker Compose (untuk setup yang direkomendasikan)
 
 ## 🚀 Instalasi
+
+### Setup cepat dengan Docker
+
+Salin template environment lalu jalankan aplikasi dan MySQL:
+
+```bash
+cp env .env
+docker compose up --build -d
+docker compose exec app php spark migrate
+```
+
+Di PowerShell, gunakan `Copy-Item env .env` sebagai pengganti `cp env .env`.
+
+Buka aplikasi di `http://localhost:8080`. Untuk mengisi data awal, jalankan
+`docker compose exec app php spark db:seed`. Ubah kredensial database dan port
+di `.env` sebelum menjalankan Compose jika nilai default development tidak sesuai.
+Password database default hanya untuk penggunaan lokal.
+
+KanzaBridge tidak dijalankan dalam Compose. URL default mengakses layanan pada
+host di port `8091`; isi `KANZABRIDGE_API_KEY` di `.env` jika integrasi
+dibutuhkan. URL HTTP dan `KANZABRIDGE_REQUIRE_HTTPS = false` hanya untuk
+development lokal; di production gunakan URL HTTPS, set
+`KANZABRIDGE_REQUIRE_HTTPS=true` dan `COOKIE_SECURE=true`, serta ganti semua
+kredensial default.
 
 ### 1. Clone Repository dari GitHub
 
@@ -52,24 +76,9 @@ Copy file `env` ke `.env`:
 cp env .env
 ```
 
-Edit file `.env` dan sesuaikan konfigurasi:
-
-```env
-CI_ENVIRONMENT = development
-
-# Database
-database.default.hostname = localhost
-database.default.username = root
-database.default.password = your_password
-database.default.database = e_tiket
-database.default.DBDriver = MySQLi
-database.default.port = 3306
-
-# Konfigurasi KanzaBridge V2 (ganti URL dan key sesuai server Anda)
-ROLE_ADMIN = J002
-KANZABRIDGE_BASE_URL = 'https://kanzabridge.example.com/api/v2/'
-KANZABRIDGE_API_KEY = 'YOUR_KANZABRIDGE_V2_API_KEY'
-```
+Untuk menjalankan tanpa Docker, sesuaikan konfigurasi database di `.env` ke
+host lokal (mis. `localhost`) dan gunakan URL HTTPS serta API key KanzaBridge
+yang valid bila integrasi diperlukan.
 
 ### 4. Setup Database
 
@@ -165,7 +174,7 @@ ROLE_ADMIN = J002
 php spark serve
 ```
 
-Server akan berjalan di `http://localhost:8080`
+Server akan berjalan di `http://localhost:8080` (sesuai default `.env`).
 
 ### Login ke Aplikasi
 

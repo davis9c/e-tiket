@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+vendor
+composer.lock
+tests
+phpunit.xml.dist
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/uploads/*
+writable/debugbar/*

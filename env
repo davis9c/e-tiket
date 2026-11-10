@@ -9,14 +9,25 @@ CI_ENVIRONMENT = development
 # Khanza Bridge
 #--------------------------------------------------------------------
 ROLE_ADMIN = J002
-API_KANZA_BRIDGE = 'http://localhost:8091/api/'
-KANZABRIDGE_BASE_URL = 'http://localhost:8091/api/v2/'
-KANZABRIDGE_API_KEY = 'kb_live_****'
+API_KANZA_BRIDGE = 'http://host.docker.internal:8091/api/'
+KANZABRIDGE_BASE_URL = 'http://host.docker.internal:8091/api/v2/'
+KANZABRIDGE_API_KEY =
 
-# KanzaBridge hanya boleh diakses lewat HTTPS di server production.
-# Lokal masih http://localhost:8091, jadi syaratnya dimatikan di sini.
+# KanzaBridge lokal Docker menggunakan HTTP; production wajib menggunakan HTTPS.
+# Override ini hanya untuk HTTP pada setup Docker lokal.
 # HAPUS baris ini di .env produksi begitu aplikasi dionlinekan dengan HTTPS.
+# Set KANZABRIDGE_REQUIRE_HTTPS=true di production.
 KANZABRIDGE_REQUIRE_HTTPS = false
+
+# Variabel tambahan yang dipakai docker-compose.yaml.
+APP_PORT=8080
+APP_BASE_URL=http://localhost:8080/
+DB_PORT=3307
+DB_DATABASE=e_tiket
+DB_USERNAME=eticket
+DB_PASSWORD=eticket
+DB_ROOT_PASSWORD=eticket_root
+COOKIE_SECURE=false
 
 
 
@@ -24,7 +35,7 @@ KANZABRIDGE_REQUIRE_HTTPS = false
 #--------------------------------------------------------------------
 # APP
 #--------------------------------------------------------------------
-app.baseURL = http://localhost:8092
+app.baseURL = http://localhost:8080/
 # If you have trouble with `.`, you could also use `_`.
 # app_baseURL = ''
 # app.forceGlobalSecureRequests = false
@@ -33,19 +44,19 @@ app.baseURL = http://localhost:8092
 #-----------------------------------------------------------------------
 # COOKIE
 #-----------------------------------------------------------------------
-# Cookie session hanya bisa disimpan browser lewat koneksi HTTPS, jadi di
-# production nilainya wajib true. Lokal aplikasinya jalan di
-# http://localhost:8092, jadi di sini dimatikan supaya session tidak hilang.
-# HAPUS baris ini di .env produksi begitu aplikasi memakai HTTPS.
+# Cookie lokal Docker menggunakan HTTP. Aktifkan di production dengan HTTPS.
+# Cookie session pada production wajib memakai HTTPS.
+# Nilai `false` di bawah hanya untuk development HTTP.
+# Aktifkan secure cookies saat aplikasi menggunakan HTTPS.
 cookie.secure = false
 
 #--------------------------------------------------------------------
 # DATABASE
 #--------------------------------------------------------------------
-database.default.hostname = 127.0.0.1
-database.default.database = db_ar_eticket
+database.default.hostname = db
+database.default.database = e_tiket
 database.default.username = eticket
-database.default.password = 11
+database.default.password = eticket
 database.default.DBDriver = MySQLi
 database.default.DBPrefix =
 database.default.port = 3306
