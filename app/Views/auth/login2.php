@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="description" content="Login E-Ticket System">
     <meta name="author" content="">
-    <title>Login - E-Ticket</title>
+    <title>Login - <?= esc(app_name()) ?></title>
     <link rel="icon" type="image/x-icon" href="<?= base_url('assets/img/logo.ico') ?>">
     <link href="<?= base_url('sb/css/styles.css') ?>" rel="stylesheet">
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
@@ -23,7 +23,7 @@
                         <div class="col-lg-5">
                             <div class="card shadow-lg border-0 rounded-lg mt-5">
                                 <div class="card-header text-center">
-                                    <h3 class="font-weight-light my-4">Login E-Ticket</h3>
+                                    <h3 class="font-weight-light my-4">Login <?= esc(app_name()) ?></h3>
                                 </div>
                                 <div class="card-body">
                                     <form action="<?= base_url('/auth/attempt') ?>" method="POST" id="loginForm">

@@ -73,7 +73,7 @@ $avatarWarna = $nipUser !== ''
 ?>
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
     <!-- Navbar Brand -->
-    <a class="navbar-brand ps-3" href="<?= base_url() ?>">E-Tiket</a>
+    <a class="navbar-brand ps-3" href="<?= base_url() ?>"><?= esc(app_name()) ?></a>
 
     <!-- Sidebar Toggle -->
     <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0"

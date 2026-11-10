@@ -9,8 +9,14 @@ services:
       - ${APP_ENV_FILE:-.env}
     volumes:
       - ${APP_ENV_FILE:-.env}:/var/www/html/.env:ro
+      - etiket_uploads:/var/www/html/writable/uploads
+      - etiket_sessions:/var/www/html/writable/session
     ports:
       - "${APP_PORT:?APP_PORT must be set in .env}:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+
+volumes:
+  etiket_uploads:
+  etiket_sessions:

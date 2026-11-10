@@ -71,6 +71,20 @@ Buka aplikasi di `http://localhost:8080`. Untuk mengisi data awal, jalankan
 `docker compose exec app php spark db:seed` jika diperlukan. Jangan gunakan
 kredensial database development pada production.
 
+Lampiran tiket dan sesi login disimpan di named volume `etiket_uploads` dan
+`etiket_sessions`, sehingga tetap ada saat container di-build ulang atau
+diganti. Volume dipisah otomatis per `COMPOSE_PROJECT_NAME`, jadi instance
+kedua tidak berbagi data dengan instance pertama. Perintah
+`docker compose down -v` menghapus volume beserta seluruh lampiran; gunakan
+`docker compose down` tanpa `-v` untuk menghentikan container saja. Untuk
+memindahkan lampiran dari container lama yang belum memakai volume:
+
+```bash
+docker cp etiket-live-app-1:/var/www/html/writable/uploads ./backup-uploads
+docker compose up -d --build
+docker cp ./backup-uploads/. etiket-live-app-1:/var/www/html/writable/uploads/
+```
+
 KanzaBridge tidak dijalankan dalam Compose. URL default mengakses layanan pada
 host di port `8091`; isi `KANZABRIDGE_API_KEY` di `.env` jika integrasi
 dibutuhkan. URL HTTP dan `KANZABRIDGE_REQUIRE_HTTPS = false` hanya untuk
@@ -188,6 +202,23 @@ Admin role dapat diatur di `.env`:
 ```env
 ROLE_ADMIN = J002
 ```
+
+### Nama Aplikasi
+
+Nama yang tampil di navbar, judul tab browser, footer, dan sidenav diatur lewat
+`.env`:
+
+```env
+APP_NAME = 'E-Tiket'
+```
+
+Gunakan tanda kutip jika nama mengandung spasi. Jika dikosongkan atau tidak
+diisi, default-nya `E-Tiket`. Label fitur seperti menu "E-Tiket", "My E-Tiket",
+dan "Kategori E-Tiket" tidak ikut berubah.
+
+Saat memakai Docker, jalankan `docker compose up -d` setelah mengubah
+`APP_NAME` agar container dibuat ulang dengan environment terbaru. Nama baru
+juga berlaku di halaman login.
 
 ## 📖 Pemakaian
 

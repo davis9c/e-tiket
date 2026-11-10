@@ -210,7 +210,7 @@ $openApp = preg_match('#^(kategori|admin)(/|$)#', $currentPath);
             (tests/feature/AdminTabTest.php::sidebarOnly()).
         -->
         <div class="sb-sidenav-footer">
-            <div class="small">E-Tiket v<?= esc(APP_VERSION) ?></div>
+            <div class="small"><?= esc(app_name()) ?> v<?= esc(APP_VERSION) ?></div>
         </div>
     </nav>
 </div>

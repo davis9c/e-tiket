@@ -4,7 +4,7 @@
             
             <!-- Left -->
             <div class="text-muted mb-2 mb-md-0">
-                &copy; <?= date('Y') ?> E-Tiket. All rights reserved.
+                &copy; <?= date('Y') ?> <?= esc(app_name()) ?>. All rights reserved.
             </div>
 
             <!-- Right -->

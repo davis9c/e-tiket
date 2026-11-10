@@ -13,3 +13,21 @@
  *
  * @see: https://codeigniter.com/user_guide/extending/common.html
  */
+
+if (! function_exists('app_name')) {
+    /**
+     * Nama aplikasi untuk brand di navbar, judul tab, footer, dan sidenav.
+     *
+     * Dibaca dari APP_NAME di .env. Helper ini sengaja tidak memakai
+     * konstanta di Config/Constants.php: Boot::bootWeb() memuat Constants.php
+     * SEBELUM .env dibaca, jadi env() di sana tidak akan melihat nilai dari
+     * .env saat aplikasi dijalankan tanpa Docker. Common.php dimuat setelah
+     * .env, jadi aman untuk kedua mode.
+     */
+    function app_name(): string
+    {
+        $nama = trim((string) env('APP_NAME', 'E-Tiket'));
+
+        return $nama !== '' ? $nama : 'E-Tiket';
+    }
+}
