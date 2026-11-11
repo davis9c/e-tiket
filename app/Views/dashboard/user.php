@@ -158,8 +158,12 @@
             ],
         ];
 
-        // Kelompok Mengetahui hanya ditambahkan bagi user yang pernah
-        // ditunjuk; kartu menampilkan tiket yang aksinya masih tertunda.
+        // Kelompok Mengetahui dirender untuk user yang pernah ditunjuk
+        // pada tiket mana pun ATAU yang jabatannya terdaftar sebagai unit
+        // Mengetahui di kategori. Yang kedua membuat user baru langsung
+        // melihat bagiannya walau belum ada tiket yang menyalin
+        // identitasnya; kartu menampilkan tiket yang aksinya masih
+        // tertunda, jadi bisa nol sampai ada tiket baru.
         if (isset($mengetahui)) {
             $kelompok[] = [
                 'judul'  => 'Tiket yang perlu saya ketahui',

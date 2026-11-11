@@ -187,10 +187,15 @@ $openApp = preg_match('#^(kategori|admin)(/|$)#', $currentPath);
                         Kalau tidak, link ini terlihat menjulur seperti anak
                         grup padahal posisinya di luar collapse.
                     -->
-                    <a class="nav-link<?= $activeLink('allticket') ? ' active' : '' ?>"
+                    <a class="nav-link<?= $activeLink('allticket') && $currentPath !== 'allticket/dihapus' ? ' active' : '' ?>"
                         href="<?= base_url('allticket') ?>">
                         <div class="sb-nav-link-icon"><i class="fas fa-list-check"></i></div>
                         Semua Tiket
+                    </a>
+                    <a class="nav-link<?= service('uri')->getSegment(2) === 'dihapus' ? ' active' : '' ?>"
+                        href="<?= base_url('allticket/dihapus') ?>">
+                        <div class="sb-nav-link-icon"><i class="fas fa-trash-can"></i></div>
+                        Tiket Dihapus
                     </a>
                 <?php endif; ?>
 

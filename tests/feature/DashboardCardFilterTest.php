@@ -1234,6 +1234,32 @@ private function asUserBiasa()
 }
 
 /**
+ * Session dengan kd_jabatan bebas.
+ *
+ * Dipakai test Mengetahui supaya bisa memilih jabatan unik yang tidak
+ * mungkin sudah terdaftar sebagai unit Mengetahui di database test.
+ * Kalau memakai jabatan tetap seperti J036, hasil test bergantung pada
+ * data yang kebetulan ada di DB.
+ */
+private function asJabatan(
+    string $kdJbtn,
+    string $nip = '199004232019022005',
+    int $idPegawai = 2112
+)
+{
+    return $this->withSession([
+        'logged_in'   => true,
+        'auth_version' => 2,
+        'kd_jabatan'  => $kdJbtn,
+        'id_pegawai'  => $idPegawai,
+        'nip'         => $nip,
+        'nama'        => 'Petugas Uji',
+        'jabatan'     => 'Petugas Uji',
+        'headsection' => 0,
+    ]);
+}
+
+/**
  * Session headsection: peran diambil dari DB, session 'headsection'-nya
  * sengaja kosong supaya jalur DB yang diuji.
  */
@@ -1406,6 +1432,14 @@ public function testHeadsectionDapatMemvalidasiTiketUnitnya(): void
         false
     );
 
+    $svc = new \App\Services\HashIdService();
+    $detail = $this->asHeadsection()->get('headsection/' . $svc->encode($ticketId));
+    $this->assertStringContainsString(
+        'data-bs-target="#modalValidasi"',
+        $this->html($detail),
+        'Headsection yang haknya terdaftar di DB harus mendapat tombol validasi meski sesi headsection kosong'
+    );
+
     // UserData jabatan berisi label "Kepala Unit", sedangkan kd_jbtn
     // tiket berisi kode unit "J036". Hak validasi harus mencocokkan kode.
     $response = $this->asHeadsection()->post('etiket/submit_approve', [
@@ -1502,6 +1536,119 @@ public function testBackfillMengetahuiMenambahkanFallbackPembuatUntukTiketBelumD
     $this->assertSame('123456789012345678', $snapshots[0]['nip']);
     $this->assertSame('Pemohon Belum Divalidasi', $snapshots[0]['nama']);
     $this->assertSame(1, (int) $snapshots[0]['is_fallback']);
+}
+
+/**
+ * Kelompok Mengetahui harus muncul untuk jabatan yang terdaftar sebagai
+ * unit Mengetahui, walau belum ada satu pun snapshot tiket.
+ *
+ * Dulu visibilitasnya hanya bergantung pada tb_e_ticket_mengetahui.
+ * Akibatnya unit yang baru dikonfigurasi tidak melihat bagian apa pun
+ * sampai ada tiket baru yang menyalin identitasnya.
+ */
+public function testKelompokMengetahuiTampilUntukJabatanTerdaftarTanpaSnapshot(): void
+{
+    $setup  = $this->seedKategoriDenganSatuUnitPj();
+    $kdJbtn = 'Z' . random_int(100, 999);
+    $nip    = '88' . random_int(100000000, 999999999);
+    $idPeg  = random_int(100000, 999999);
+
+    $this->db->table('tb_e_ticket_kategori_mengetahui')->insert([
+        'kategori_id' => $setup['kategori_id'],
+        'kd_jbtn'     => $kdJbtn,
+        'created_at'  => date('Y-m-d H:i:s'),
+    ]);
+
+    $html = $this->html($this->asJabatan($kdJbtn, $nip, $idPeg)->get('index'));
+
+    $this->assertStringContainsString(
+        'Tiket yang perlu saya ketahui',
+        $html,
+        'Jabatan yang terdaftar sebagai Mengetahui harus melihat kelompoknya'
+    );
+
+    preg_match(
+        '~Tiket yang perlu saya ketahui.*?<div class="fw-bold fs-5 lh-1 mt-1">(\d+)</div>~s',
+        $html,
+        $m
+    );
+
+    $this->assertSame(
+        0,
+        (int) ($m[1] ?? -1),
+        'Tanpa snapshot, total kartu Mengetahui harus 0'
+    );
+}
+
+/**
+ * Kebalikannya: user yang bukan Mengetahui sama sekali tidak boleh
+ * melihat kelompok itu. Tanpa batas ini, semua user akan melihat
+ * kelompok kosong dan query-nya ikut jalan.
+ */
+public function testKelompokMengetahuiTidakTampilTanpaSnapshotDanTanpaKonfigurasi(): void
+{
+    $kdJbtn = 'Z' . random_int(100, 999);
+    $nip    = '88' . random_int(100000000, 999999999);
+    $idPeg  = random_int(100000, 999999);
+
+    $html = $this->html($this->asJabatan($kdJbtn, $nip, $idPeg)->get('index'));
+
+    $this->assertStringNotContainsString(
+        'Tiket yang perlu saya ketahui',
+        $html,
+        'User yang bukan Mengetahui tidak boleh melihat kelompoknya'
+    );
+}
+
+/**
+ * Kalau snapshot ada, angka kartu harus dihitung dari tiket yang belum
+ * diaksi dan tautannya memakai filter yang sama dengan halaman tujuan.
+ */
+public function testKelompokMengetahuiMenghitungTiketDariSnapshot(): void
+{
+    $setup  = $this->seedKategoriDenganSatuUnitPj();
+    $kdJbtn = 'Z' . random_int(100, 999);
+    $nip    = '88' . random_int(100000000, 999999999);
+    $idPeg  = random_int(100000, 999999);
+
+    $ticketId = $this->seedTiket(
+        $setup['kategori_id'],
+        $setup['kd_jbtn'],
+        'Tiket Perlu Diketahui',
+        'dalam_antrian'
+    );
+
+    $this->db->table('tb_e_ticket_mengetahui')->insert([
+        'etiket_id'   => $ticketId,
+        'kd_jbtn'     => $kdJbtn,
+        'id_pegawai'  => $idPeg,
+        'nip'         => $nip,
+        'nama'        => 'Petugas Uji',
+        'is_fallback' => 0,
+        'created_at'  => date('Y-m-d H:i:s'),
+    ]);
+
+    $html = $this->html($this->asJabatan($kdJbtn, $nip, $idPeg)->get('index'));
+
+    $this->assertStringContainsString('Tiket yang perlu saya ketahui', $html);
+
+    preg_match(
+        '~Tiket yang perlu saya ketahui.*?<div class="fw-bold fs-5 lh-1 mt-1">(\d+)</div>~s',
+        $html,
+        $m
+    );
+
+    $this->assertSame(
+        1,
+        (int) ($m[1] ?? -1),
+        'Satu tiket yang belum diaksi harus terhitung di kartu Mengetahui'
+    );
+
+    $this->assertStringContainsString(
+        'href="' . esc(base_url('etiket') . '?sumber=mengetahui&mengetahui=0') . '"',
+        $html,
+        'Kartu Mengetahui harus menaut ke daftar dengan filter yang sama'
+    );
 }
 
 /**
@@ -2629,6 +2776,54 @@ public function testSemuaKartuPunyaLinkLihat(): void
             'Dikerjakan Pengaju Doang',
             $detail,
             'Nama di luar UPJ tidak boleh muncul sebagai pekerja di header'
+        );
+    }
+
+    public function testAdminBisaMenghapusDanMemulihkanTiketSecaraSoftDelete(): void
+    {
+        $setup = $this->seedKategoriDenganSatuUnitPj();
+        $tiketId = $this->seedTiket(
+            $setup['kategori_id'],
+            $setup['kd_jbtn'],
+            'Tiket Soft Delete Uji',
+            'dalam_antrian'
+        );
+        $hashid = (new \App\Services\HashIdService())->encode($tiketId);
+
+        $this->asUser()->post('allticket/hapus', ['ticket_id' => $hashid])
+            ->assertRedirect();
+
+        $tiketTersimpan = $this->db->table('tb_e_ticket')
+            ->select('deleted_at')
+            ->where('id', $tiketId)
+            ->get()
+            ->getRowArray();
+        $this->assertNotEmpty($tiketTersimpan['deleted_at'], 'Tiket harus ditandai terhapus tanpa dihapus dari database');
+
+        $model = new \App\Models\ETicketModel();
+        $this->assertNotContains(
+            $tiketId,
+            array_column($model->getTickets(['all']), 'id'),
+            'Tiket soft-delete tidak boleh masuk daftar aktif'
+        );
+
+        $arsip = $this->asUser()->get('allticket/dihapus');
+        $arsip->assertStatus(200);
+        $this->assertStringContainsString('Tiket Soft Delete Uji', $this->html($arsip));
+
+        $this->asUser()->post('allticket/pulihkan', ['ticket_id' => $hashid])
+            ->assertRedirect();
+
+        $tiketDipulihkan = $this->db->table('tb_e_ticket')
+            ->select('deleted_at')
+            ->where('id', $tiketId)
+            ->get()
+            ->getRowArray();
+        $this->assertNull($tiketDipulihkan['deleted_at'], 'Pemulihan harus mengosongkan deleted_at');
+        $this->assertContains(
+            $tiketId,
+            array_column($model->getTickets(['all']), 'id'),
+            'Tiket pulih harus kembali ke daftar aktif'
         );
     }
 }

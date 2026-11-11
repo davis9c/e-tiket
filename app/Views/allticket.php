@@ -35,10 +35,26 @@ if ($s = service('request')->getGet('status')) {
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
                 </div>
             <?php endif; ?>
+            <?php if ($msg = session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-exclamation-circle me-1"></i><?= esc($msg) ?></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+                </div>
+            <?php endif; ?>
 
             <?= $this->include('e-tiket/e-tiket-status') ?>
 
             <?= $this->include('e-tiket/e-tiket-tindakan') ?>
+
+            <form action="<?= base_url('allticket/hapus') ?>" method="post" class="mb-3"
+                onsubmit="return confirm('Pindahkan tiket ini ke daftar tiket yang dihapus? Tiket dapat dipulihkan oleh admin.');">
+                <?= csrf_field() ?>
+                <input type="hidden" name="ticket_id" value="<?= esc($detail['hashid']) ?>">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="fas fa-trash-can me-1"></i>
+                    Hapus Tiket
+                </button>
+            </form>
 
         <?php else: ?>
             <h1 class="h4 mt-4 mb-3"><?= esc($judul) ?></h1>
@@ -46,6 +62,12 @@ if ($s = service('request')->getGet('status')) {
             <?php if ($msg = session()->getFlashdata('success')): ?>
                 <div class="alert alert-success d-flex justify-content-between align-items-center">
                     <span><i class="fas fa-check-circle me-1"></i><?= esc($msg) ?></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+                </div>
+            <?php endif; ?>
+            <?php if ($msg = session()->getFlashdata('error')): ?>
+                <div class="alert alert-danger d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-exclamation-circle me-1"></i><?= esc($msg) ?></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
                 </div>
             <?php endif; ?>

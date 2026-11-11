@@ -159,6 +159,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     | keduanya sudah digabung ke sini.
     */
     $routes->group('allticket', ['filter' => 'roleadmin'], function ($routes) {
+        $routes->get('dihapus', 'ETicket2::deletedTickets');
+        $routes->post('hapus', 'ETicket2::softDeleteTicket');
+        $routes->post('pulihkan', 'ETicket2::restoreDeletedTicket');
         $routes->get('', 'ETicket2::allticket');
         $routes->get('(:any)', 'ETicket2::allticket/$1');
     });

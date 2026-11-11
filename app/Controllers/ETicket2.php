@@ -241,6 +241,64 @@ public function index()
         );
     }
 
+    public function deletedTickets()
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $tickets = $this->addHashIds($this->eticketModel->getDeletedTickets());
+        $tickets = array_map(function (array $ticket): array {
+            return array_merge($this->sanitizeTicketSummary($ticket), [
+                'deleted_at' => $ticket['deleted_at'] ?? null,
+            ]);
+        }, $tickets);
+
+        return view('allticket-deleted', [
+            'title' => 'Tiket Dihapus',
+            'data'  => [
+                'eticket' => $tickets,
+            ],
+        ]);
+    }
+
+    public function softDeleteTicket()
+    {
+        if (! $this->request->is('post')) {
+            return redirect()->to(base_url('allticket'));
+        }
+
+        $ticketId = $this->decodePostIdValue('ticket_id');
+        if (! $ticketId || ! $this->eticketModel->find($ticketId)) {
+            return redirect()->to(base_url('allticket'))
+                ->with('error', 'Tiket tidak ditemukan atau sudah dihapus.');
+        }
+
+        if (! $this->eticketModel->delete($ticketId)) {
+            return redirect()->to(base_url('allticket'))
+                ->with('error', 'Tiket gagal dipindahkan ke daftar tiket yang dihapus.');
+        }
+
+        return redirect()->to(base_url('allticket'))
+            ->with('success', 'Tiket dipindahkan ke daftar tiket yang dihapus.');
+    }
+
+    public function restoreDeletedTicket()
+    {
+        if (! $this->request->is('post')) {
+            return redirect()->to(base_url('allticket/dihapus'));
+        }
+
+        $ticketId = $this->decodePostIdValue('ticket_id');
+        if (! $ticketId || ! $this->eticketModel->restoreDeletedTicket($ticketId)) {
+            return redirect()->to(base_url('allticket/dihapus'))
+                ->with('error', 'Tiket terhapus tidak ditemukan atau sudah dipulihkan.');
+        }
+
+        return redirect()->to(base_url('allticket/dihapus'))
+            ->with('success', 'Tiket berhasil dipulihkan dan kembali ke daftar semua tiket.');
+    }
+
     /**
      * Halaman daftar tiket Tunggal.
      *
@@ -852,6 +910,7 @@ public function index()
         return [
             'id' => $t['id'] ?? null,
             'hashid' => $t['hashid'] ?? ($t['id'] ? $this->hashIdService->encode($t['id']) : null),
+            'kode_ticket' => $t['kode_ticket'] ?? null,
             'kode_kategori' => $t['kode_kategori'] ?? null,
             'nama_kategori' => $t['nama_kategori'] ?? null,
             'petugas_id_nama' => $t['petugas_id_nama'] ?? ($t['petugas_nama'] ?? null),
@@ -2016,10 +2075,7 @@ public function index()
         // Tiket belum valid
         // =====================================================
         if (empty($tiket['valid_nama'])) {
-            $isHeadSection = (
-                $userData['headsection'] != null
-                || $jabatan == $adminapp
-            );
+            $isHeadSection = $this->bolehValidasi();
             $isValidator = (
                 $tiket['kd_jbtn'] == $jabatan
                 || $jabatan == $adminapp

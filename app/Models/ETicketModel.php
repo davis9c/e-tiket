@@ -13,6 +13,8 @@ class ETicketModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
 
+    protected $useSoftDeletes = true;
+    protected $deletedField   = 'deleted_at';
     protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
@@ -37,6 +39,7 @@ class ETicketModel extends Model
         'handler',
         'created_at',
         'updated_at',
+        'deleted_at',
     ];
 
     public function __construct()
@@ -245,9 +248,9 @@ class ETicketModel extends Model
     | BASE QUERY
     |--------------------------------------------------------------------------
     */
-    private function baseQuery()
+    private function baseQuery(bool $includeDeleted = false)
     {
-        return $this->db->table($this->table . ' e')
+        $builder = $this->db->table($this->table . ' e')
             ->select('
             e.*,
             k.kode_kategori,
@@ -258,6 +261,12 @@ class ETicketModel extends Model
         ')
             ->join('tb_e_ticket_kategori_eticket k', 'k.id = e.kategori_id', 'left')
             ->join('tb_e_ticket_users u', 'u.user_id = e.handler', 'left');
+
+        if (! $includeDeleted) {
+            $builder->where('e.deleted_at IS NULL', null, false);
+        }
+
+        return $builder;
     }
     /*
     |--------------------------------------------------------------------------
@@ -274,6 +283,32 @@ class ETicketModel extends Model
 
         return $this->attachProsesToRows($rows);
     }
+
+    public function getDeletedTickets(): array
+    {
+        $rows = $this->baseQuery(true)
+            ->where('e.deleted_at IS NOT NULL', null, false)
+            ->orderBy('e.deleted_at', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        return $this->attachProsesToRows($rows);
+    }
+
+    public function restoreDeletedTicket(int $id): bool
+    {
+        $updated = $this->db->table($this->table)
+            ->where('id', $id)
+            ->where('deleted_at IS NOT NULL', null, false)
+            ->update(['deleted_at' => null]);
+
+        if (! $updated) {
+            return false;
+        }
+
+        return $this->db->affectedRows() > 0;
+    }
+
     public function getByUnit(string $kd_jbtn): array
     {
         $rows = $this->baseQuery()

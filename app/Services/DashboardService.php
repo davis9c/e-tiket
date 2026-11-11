@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ETicketModel;
 use App\Models\ETicketMengetahuiModel;
 use App\Models\KategoriETiketModel;
+use App\Models\KategoriMengetahuiModel;
 
 /**
  * Pengumpulan data untuk dashboard per user.
@@ -28,14 +29,16 @@ class DashboardService
     protected ETicketModel $tiket;
     protected KategoriETiketModel $kategori;
     protected ETicketMengetahuiModel $mengetahui;
+    protected KategoriMengetahuiModel $kategoriMengetahui;
     protected HashIdService $hashId;
 
     public function __construct()
     {
-        $this->tiket      = new ETicketModel();
-        $this->kategori   = new KategoriETiketModel();
-        $this->mengetahui = new ETicketMengetahuiModel();
-        $this->hashId     = new HashIdService();
+        $this->tiket              = new ETicketModel();
+        $this->kategori           = new KategoriETiketModel();
+        $this->mengetahui         = new ETicketMengetahuiModel();
+        $this->kategoriMengetahui = new KategoriMengetahuiModel();
+        $this->hashId             = new HashIdService();
     }
 
     /**
@@ -446,13 +449,23 @@ class DashboardService
      * "Tiket yang perlu saya ketahui": tiket yang memuat user login di
      * snapshot Mengetahui dan aksinya belum diberikan.
      *
-     * Mengembalikan null kalau user tidak pernah ditunjuk pada tiket mana
-     * pun -- view memakai itu untuk tidak merender kelompok kartunya.
+     * Kelompok ini dirender kalau salah satu benar:
+     *   - user punya baris snapshot (pernah ditunjuk pada tiket), atau
+     *   - jabatannya terdaftar sebagai unit Mengetahui di kategori.
      *
-     * Pemeriksaan keberadaan sengaja memakai tb_e_ticket_mengetahui,
-     * bukan getTickets(): halaman user biasa yang tidak punya peran ini
-     * tidak boleh menambah query daftar tb_e_ticket (dijaga test jumlah
-     * query dashboard).
+     * Pengecekan konfigurasi penting supaya user yang baru ditunjuk
+     * sebagai Mengetahui langsung melihat bagiannya, tanpa menunggu
+     * tiket baru menyalin identitasnya. Angka kartu tetap dihitung dari
+     * snapshot -- sumber otorisasi yang sama dengan aksi Mengetahui --
+     * jadi selama belum ada snapshot, angkanya nol.
+     *
+     * Mengembalikan null kalau user bukan Mengetahui sama sekali; view
+     * memakai itu untuk tidak merender kelompok kartunya.
+     *
+     * Pemeriksaan keberadaan sengaja memakai tb_e_ticket_mengetahui dan
+     * tb_e_ticket_kategori_mengetahui, bukan getTickets(): halaman user
+     * biasa yang tidak punya peran ini tidak boleh menambah query daftar
+     * tb_e_ticket (dijaga test jumlah query dashboard).
      */
     public function mengetahuiData(?string $kdJbtn, ?string $nip, ?string $kdPegawai = null): ?array
     {
@@ -462,8 +475,25 @@ class DashboardService
             'kd_jabatan' => $kdJbtn,
         ];
 
-        if (! $this->mengetahui->hasUntukUser($userData)) {
+        $punyaSnapshot = $this->mengetahui->hasUntukUser($userData);
+        $terdaftar     = $this->kategoriMengetahui->hasUntukJabatan($kdJbtn);
+
+        if (! $punyaSnapshot && ! $terdaftar) {
             return null;
+        }
+
+        // Terdaftar di kategori tetapi belum punya snapshot: belum ada
+        // tiket yang menyalin identitas user. Tampilkan kelompok dengan
+        // angka nol, tanpa query daftar tiket yang pasti kosong.
+        if (! $punyaSnapshot) {
+            return [
+                'total'        => 0,
+                'selesai'      => 0,
+                'dikerjakan'   => 0,
+                'dalamAntrian' => 0,
+                'belumValid'   => 0,
+                'list'         => [],
+            ];
         }
 
         // Hanya yang belum diaksi. Link kartu membawa ?mengetahui=0,

@@ -250,6 +250,19 @@ final class AdminTicketListTest extends CIUnitTestCase
         $this->assertBlockedForNonAdmin($this->asUserBiasa()->get('allticket'), 'allticket');
     }
 
+    public function testSoftDeletePagesAndActionsAreAdminOnly(): void
+    {
+        $this->assertBlockedForNonAdmin(
+            $this->asUserBiasa()->get('allticket/dihapus'),
+            'allticket/dihapus'
+        );
+
+        foreach (['allticket/hapus', 'allticket/pulihkan'] as $url) {
+            $result = $this->asUserBiasa()->post($url, ['ticket_id' => 'abc123']);
+            $this->assertBlockedForNonAdmin($result, 'POST ' . $url);
+        }
+    }
+
     /**
      * Halaman /allticket menampilkan tombol yang membuka form admin. Kalau
      * filter roleadmin somehow bocor, user biasa akan melihat form pembuatan

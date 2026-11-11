@@ -55,4 +55,24 @@ class KategoriMengetahuiModel extends Model
     {
         return array_column($this->getByKategori($kategoriId), 'kd_jbtn');
     }
+
+    /**
+     * Apakah jabatan ini terdaftar sebagai unit Mengetahui pada kategori
+     * mana pun.
+     *
+     * Dipakai dashboard untuk memutuskan apakah kelompok "Tiket yang
+     * perlu saya ketahui" perlu dirender. Pengecekan ini TIDAK melihat
+     * snapshot tiket: user yang baru ditunjuk sebagai Mengetahui harus
+     * tetap melihat bagiannya walau belum ada tiket yang menyalin
+     * identitasnya. Angka di kartu tetap dihitung dari snapshot, jadi
+     * bisa nol sampai ada tiket baru.
+     */
+    public function hasUntukJabatan(?string $kdJbtn): bool
+    {
+        if ($kdJbtn === null || $kdJbtn === '') {
+            return false;
+        }
+
+        return $this->where('kd_jbtn', $kdJbtn)->countAllResults() > 0;
+    }
 }
