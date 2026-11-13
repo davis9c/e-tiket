@@ -25,21 +25,39 @@ class KategoriEticketSeeder extends Seeder
         $kategori = [
             [
                 'kode_kategori' => 'ERM',
-                'nama_kategori' => 'Rekam Medis',
-                'deskripsi'     => 'Kategori rekam medis',
-                'template'      => 'No RM:,',
+                'nama_kategori' => 'Rekam Medis Elektronik',
+                'deskripsi'     => 'Pengajuan ticket terkait perubahan data di ERM. Perubahan ERM harus mendapatkan persetujuan dari Perekam Medis terlebih dahulu',
+                'template'      => '<p>No. RM :&nbsp;</p><p>Nama :&nbsp;</p><p>No. Rawat :&nbsp;</p>',
             ],
             [
                 'kode_kategori' => 'BILL',
                 'nama_kategori' => 'Billing',
-                'deskripsi'     => 'Kategori billing',
-                'template'      => 'No RM:,',
+                'deskripsi'     => 'Pengajuan ticket terkait dengan billing (perubahan, penambahan, pengurangan, buka billing, tutup billing, dll) dan atas persetujuan bagian keuangan (Bendahara Penerimaan/kasir)',
+                'template'      => '<p>No. RM :&nbsp;</p><p>Nama :&nbsp;</p><p>No. Rawat :&nbsp;</p>',
             ],
             [
-                'kode_kategori' => 'IT',
-                'nama_kategori' => 'Tim IT',
-                'deskripsi'     => 'Kategori IT',
-                'template'      => 'Nama Alat:, Detail Kendala:,',
+                'kode_kategori' => 'IT-KHANZA',
+                'nama_kategori' => 'Support SIMRS',
+                'deskripsi'     => 'Pengajuan ticket terkait dukungan teknis operasional SIMRS dan pengaduan gangguan SIMRS',
+                'template'      => '<p>Detail pengaduan :</p>',
+            ],
+            [
+                'kode_kategori' => 'IT-SERV',
+                'nama_kategori' => 'Pelayanan Troubleshhoting Peralatan IT',
+                'deskripsi'     => 'Pengajuan ticket terkait dukungan/troubleshooting peralatan IT (PC, Laptop, Printer, Router, Switch, Webcam, WIfi dll)',
+                'template'      => '<p>Detail Keluhan :&nbsp;</p>',
+            ],
+            [
+                'kode_kategori' => 'IT-DEVICES',
+                'nama_kategori' => 'Penggantian Peralatan IT',
+                'deskripsi'     => 'Pengajuan ticket terkait permohonan penambahan/penggantian peralatan IT (Mouse, Keyboard, Printer dan lainnya)',
+                'template'      => '<p>Nama Alat:&nbsp;</p><p>Ganti/Baru:&nbsp;</p><p>Keterangan:&nbsp;</p>',
+            ],
+            [
+                'kode_kategori' => 'RND-KHANZA',
+                'nama_kategori' => 'Pengembangan SIMRS',
+                'deskripsi'     => 'Pengajuan ticket terkait pengembangan fitur dan penambahan dokumen RME pada SIMRS',
+                'template'      => '<p>Judul :&nbsp;</p><p>Detail Permintaan :</p>',
             ],
         ];
 
@@ -58,11 +76,10 @@ class KategoriEticketSeeder extends Seeder
                 ->getRowArray();
 
             if ($existing) {
-                // Jangan timpa nama/deskripsi/template yang sudah diubah
-                // lewat aplikasi; cukup pastikan pengaturannya sesuai.
                 $this->db->table('tb_e_ticket_kategori_eticket')
                     ->where('id', $existing['id'])
                     ->update([
+                        ...$row,
                         ...$flags,
                         'updated_at' => $now,
                     ]);
