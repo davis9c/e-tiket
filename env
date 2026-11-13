@@ -68,6 +68,20 @@ database.default.port = 3306
 # database.tests.port = 3306
 
 #--------------------------------------------------------------------
+# PENGINGAT SETUP DATABASE
+#--------------------------------------------------------------------
+# Setelah database dibuat atau konfigurasi di atas diubah, jalankan:
+#   php spark migrate
+#   php spark db:seed KategoriEticketSeeder
+#
+# Jika memakai Docker:
+#   docker compose exec app php spark migrate
+#   docker compose exec app php spark db:seed KategoriEticketSeeder
+#
+# PERHATIAN: migrate:refresh akan menghapus seluruh data. Gunakan hanya
+# untuk instalasi baru/development.
+
+#--------------------------------------------------------------------
 # ENCRYPTION
 #--------------------------------------------------------------------
 # encryption.key =
